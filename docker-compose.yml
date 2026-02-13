@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      - APP_NAME=ParkHub
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8080
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=parkhub
+      - DB_USERNAME=parkhub
+      - DB_PASSWORD=secret
+      - SESSION_DRIVER=file
+      - CACHE_STORE=file
+      - QUEUE_CONNECTION=sync
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage:/var/www/html/storage
+
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootsecret
+      - MYSQL_DATABASE=parkhub
+      - MYSQL_USER=parkhub
+      - MYSQL_PASSWORD=secret
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  storage:
+  dbdata:
