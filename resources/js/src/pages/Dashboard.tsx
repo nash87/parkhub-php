@@ -74,7 +74,7 @@ export function DashboardPage() {
   const todayDow = new Date().getDay() === 0 ? 6 : new Date().getDay() - 1;
   const todayStr = new Date().toISOString().slice(0, 10);
   const isHoToday = hoSettings ? (
-    hoSettings.pattern.weekdays.includes(todayDow) || hoSettings.single_days.some(d => d.date === todayStr)
+    hoSettings?.pattern?.weekdays?.includes(todayDow) || hoSettings?.single_days?.some(d => d.date === todayStr)
   ) : false;
 
   const totalSlots = lots.reduce((sum, lot) => sum + lot.total_slots, 0);
@@ -174,7 +174,7 @@ export function DashboardPage() {
           <div className="flex items-center gap-3">
             <House weight="fill" className="w-6 h-6 text-sky-600 dark:text-sky-400 flex-shrink-0" />
             <p className="font-medium text-sky-800 dark:text-sky-200 text-sm sm:text-base">
-              {t('dashboard.homeofficeToday', { slot: hoSettings.parkingSlot.number })}
+              {t('dashboard.homeofficeToday', { slot: hoSettings?.parkingSlot?.number })}
             </p>
           </div>
         </motion.div>
