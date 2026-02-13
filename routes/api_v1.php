@@ -47,6 +47,17 @@ Route::get('/public/display', [PublicController::class, 'display']);
         ]);
     });
 
+// Announcements (public)
+Route::get('/announcements/active', function() {
+    $announcements = \App\Models\Announcement::where('active', true)
+        ->where(function($q) {
+            $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+        })
+        ->orderBy('created_at', 'desc')
+        ->get();
+    return response()->json($announcements);
+});
+
 // Protected
 Route::middleware('auth:sanctum')->group(function () {
     // Users
@@ -90,7 +101,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/recurring-bookings/{id}', [RecurringBookingController::class, 'destroy']);
 
     // Absences (maps homeoffice + vacation to unified absences)
-    Route::get('/homeoffice', [AbsenceController::class, 'index']);
+    Route::get('/homeoffice', function(\Illuminate\Http\Request $request) {
+        $user = $request->user();
+        // Return HomeofficeSettings format expected by Rust frontend
+        return response()->json([
+            'pattern' => ['weekdays' => []],
+            'single_days' => \App\Models\Absence::where('user_id', $user->id)
+                ->where('absence_type', 'homeoffice')
+                ->get()
+                ->map(fn($a) => ['id' => $a->id, 'date' => $a->start_date, 'reason' => $a->note]),
+            'parkingSlot' => null,
+        ]);
+    });
     Route::post('/homeoffice/days', [AbsenceController::class, 'store']);
     Route::delete('/homeoffice/days/{id}', [AbsenceController::class, 'destroy']);
     Route::put('/homeoffice/pattern', [AbsenceController::class, 'update']);
@@ -124,6 +146,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/announcements', [AdminController::class, 'createAnnouncement']);
     Route::put('/admin/announcements/{id}', [AdminController::class, 'updateAnnouncement']);
     Route::delete('/admin/announcements/{id}', [AdminController::class, 'deleteAnnouncement']);
+    Route::get('/admin/updates/check', function() { return response()->json(['update_available' => false, 'current_version' => '1.0.0-php']); });
 
 
 
