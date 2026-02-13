@@ -296,7 +296,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append('file', file);
     const token = this.getToken();
-    const resp = await fetch(, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
+    const resp = await fetch(`${API_BASE}/api/v1/absences/import`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
     return resp.json();
   }
 
