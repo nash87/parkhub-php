@@ -125,3 +125,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/webhooks/{id}', [MiscController::class, 'updateWebhook']);
     Route::delete('/webhooks/{id}', [MiscController::class, 'deleteWebhook']);
 });
+
+// V1 compatibility routes (same endpoints as Rust edition)
+Route::prefix('v1')->group(base_path('routes/api_v1.php'));

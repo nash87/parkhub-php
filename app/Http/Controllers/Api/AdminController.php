@@ -116,10 +116,23 @@ class AdminController extends Controller
         return response()->json(['imported' => $imported]);
     }
 
-    public function getSettings()
+public function getSettings()
     {
-        $settings = Setting::all()->pluck('value', 'key');
-        return response()->json($settings);
+        $settings = Setting::all()->pluck('value', 'key')->toArray();
+        $defaults = [
+            'company_name' => 'ParkHub',
+            'use_case' => 'corporate',
+            'self_registration' => 'true',
+            'license_plate_mode' => 'optional',
+            'display_name_format' => 'first_name',
+            'max_bookings_per_day' => '3',
+            'allow_guest_bookings' => 'false',
+            'auto_release_minutes' => '30',
+            'require_vehicle' => 'false',
+            'primary_color' => '#d97706',
+            'secondary_color' => '#475569',
+        ];
+        return response()->json(array_merge($defaults, $settings));
     }
 
     public function updateSettings(Request $request)

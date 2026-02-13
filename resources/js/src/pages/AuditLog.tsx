@@ -1,45 +1,87 @@
-import React, { useEffect, useState } from 'react';
-import { api } from '../api/client';
-import { t } from '../i18n';
-import { MagnifyingGlass } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
+import { ClockCounterClockwise, MagnifyingGlass } from '@phosphor-icons/react';
+import { api, AuditLogEntry } from '../api/client';
+import { useTranslation } from 'react-i18next';
+import { format } from 'date-fns';
+import { de, enUS } from 'date-fns/locale';
 
-export default function AuditLog() {
-  const [logs, setLogs] = useState<any[]>([]);
-  const [search, setSearch] = useState('');
+export function AuditLogPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('en') ? enUS : de;
+  const [entries, setEntries] = useState<AuditLogEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
 
-  useEffect(() => {
-    api.get<any>(`/admin/audit-log?search=${search}`).then(res => setLogs(res.data || [])).catch(() => {});
-  }, [search]);
+  useEffect(() => { loadLog(); }, []);
+
+  async function loadLog() {
+    const res = await api.getAuditLog(1, 100);
+    if (res.success && res.data) setEntries(res.data);
+    setLoading(false);
+  }
+
+  const filtered = filter
+    ? entries.filter(e => e.action.toLowerCase().includes(filter.toLowerCase()) || (e.user_name || '').toLowerCase().includes(filter.toLowerCase()))
+    : entries;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-1">{t('auditLog.title')}</h1>
-      <p className="text-slate-500 mb-6">{t('auditLog.subtitle')}</p>
-      <div className="relative mb-4">
-        <MagnifyingGlass size={18} className="absolute left-3 top-3 text-slate-400" />
-        <input type="text" value={search} onChange={e => setSearch(e.target.value)} className="input pl-10" placeholder={t('auditLog.search')} />
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <ClockCounterClockwise weight="fill" className="w-6 h-6 text-primary-600" />
+            {t('auditLog.title', 'Audit Log')}
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{t('auditLog.subtitle', 'All system activities')}</p>
+        </div>
       </div>
-      <div className="card overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead><tr className="border-b dark:border-slate-700">
-            <th className="text-left py-2">{t('auditLog.time')}</th>
-            <th className="text-left py-2">{t('auditLog.user')}</th>
-            <th className="text-left py-2">{t('auditLog.action')}</th>
-            <th className="text-left py-2">{t('auditLog.details')}</th>
-          </tr></thead>
-          <tbody>
-            {logs.map((log: any) => (
-              <tr key={log.id} className="border-b dark:border-slate-700">
-                <td className="py-2 text-slate-500">{new Date(log.created_at).toLocaleString()}</td>
-                <td className="py-2">{log.username || '—'}</td>
-                <td className="py-2"><span className="bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-xs">{log.action}</span></td>
-                <td className="py-2 text-slate-500 text-xs">{log.details ? JSON.stringify(log.details) : ''}</td>
-              </tr>
-            ))}
-            {logs.length === 0 && <tr><td colSpan={4} className="py-8 text-center text-slate-500">{t('auditLog.empty')}</td></tr>}
-          </tbody>
-        </table>
+
+      <div className="relative">
+        <MagnifyingGlass weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <input
+          type="text"
+          value={filter}
+          onChange={e => setFilter(e.target.value)}
+          placeholder={t('auditLog.search', 'Search actions or users...')}
+          className="input pl-10"
+        />
       </div>
+
+      {loading ? (
+        <div className="space-y-2">{[1,2,3,4,5].map(i => <div key={i} className="h-12 skeleton rounded-lg" />)}</div>
+      ) : (
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800/50">
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('auditLog.time', 'Time')}</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('auditLog.user', 'User')}</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('auditLog.action', 'Action')}</th>
+                  <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">{t('auditLog.details', 'Details')}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {filtered.map(entry => (
+                  <tr key={entry.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {format(new Date(entry.created_at), 'dd.MM.yy HH:mm', { locale })}
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">{entry.user_name || '-'}</td>
+                    <td className="px-4 py-3">
+                      <span className="badge badge-info">{entry.action}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate">{entry.details || '-'}</td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-400">{t('auditLog.empty', 'No entries found')}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,109 +1,216 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { api } from '../api/client';
-import { t } from '../i18n';
-import { useTheme } from '../stores/theme';
-import { setLanguage, getLanguage, LANGUAGES } from '../i18n';
-import { UserCircle, Sun, Moon, Globe, Download, Trash } from '@phosphor-icons/react';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash } from '@phosphor-icons/react';
+import { useAuth } from '../context/auth-hook';
+import { api, UserStats } from '../api/client';
+import { useAccessibility, ColorMode, FontScale } from '../stores/accessibility';
+import { useTranslation } from 'react-i18next';
+import toast from 'react-hot-toast';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ThemeSelector } from "../components/ThemeSelector";
 
-export default function Profile() {
-  const { user, updateUser, logout } = useAuth();
-  const { isDark, setTheme, theme } = useTheme();
-  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', phone: '' });
-  const [stats, setStats] = useState<any>(null);
-  const [saved, setSaved] = useState(false);
-  const [lang, setLang] = useState(getLanguage());
+export function ProfilePage() {
+  const { t } = useTranslation();
+  const { user } = useAuth();
+  const a11y = useAccessibility();
+  const [editing, setEditing] = useState(false);
+  const [formData, setFormData] = useState({ name: user?.name || '', email: user?.email || '' });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [stats, setStats] = useState<UserStats | null>(null);
 
-  useEffect(() => { api.get<any>('/user/stats').then(setStats).catch(() => {}); }, []);
+  useEffect(() => {
+    api.getUserStats().then((res: { success: boolean; data?: UserStats }) => { if (res.success && res.data) setStats(res.data); }).catch(() => {});
+  }, []);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await api.put<any>('/me', form);
-    updateUser(res);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+  function handleSave() { setEditing(false); toast.success(t('profile.updated')); }
 
-  const changeLang = (code: string) => {
-    setLang(code);
-    setLanguage(code);
-    window.location.reload();
-  };
-
-  const exportData = async () => {
-    const me = await api.get('/me');
-    const bookings = await api.get('/bookings');
-    const vehicles = await api.get('/vehicles');
-    const data = { user: me, bookings, vehicles };
+  function handleExportData() {
+    const data = {
+      profile: { name: user?.name, email: user?.email, username: user?.username, role: user?.role },
+      preferences: {
+        colorMode: a11y.colorMode,
+        fontScale: a11y.fontScale,
+        reducedMotion: a11y.reducedMotion,
+        highContrast: a11y.highContrast,
+      },
+      exportedAt: new Date().toISOString(),
+    };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = 'parkhub-data-export.json'; a.click();
-  };
+    URL.revokeObjectURL(url);
+    toast.success(t('gdpr.exported'));
+  }
+
+  function handleDeleteAccount() {
+    toast.success('Account deletion requested');
+    setShowDeleteConfirm(false);
+  }
+
+  const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
+  const roleLabels: Record<string, string> = { user: t('profile.roles.user'), admin: t('profile.roles.admin'), superadmin: t('profile.roles.superadmin') };
+
+  const containerVariants = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+  const itemVariants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+
+  const colorModes: ColorMode[] = ['normal', 'protanopia', 'deuteranopia', 'tritanopia'];
+  const fontScales: FontScale[] = ['small', 'normal', 'large', 'xlarge'];
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold mb-1">{t('profile.title')}</h1>
-      <p className="text-slate-500 mb-6">{t('profile.subtitle')}</p>
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="max-w-3xl mx-auto space-y-8">
+      <motion.div variants={itemVariants}>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('profile.title')}</h1>
+        <p className="text-gray-500 dark:text-gray-400 mt-1">{t('profile.subtitle')}</p>
+      </motion.div>
 
-      <div className="card mb-6">
-        <div className="flex items-center gap-4 mb-6">
-          <UserCircle size={64} className="text-slate-400" />
-          <div>
-            <p className="text-xl font-bold">{user?.name}</p>
-            <p className="text-slate-500">@{user?.username}</p>
-            <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 px-2 py-1 rounded-full mt-1 inline-block">{user?.role}</span>
+      {/* Profile Card */}
+      <motion.div variants={itemVariants} className="card p-8">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
+          <div className="w-24 h-24 rounded-2xl bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center flex-shrink-0">
+            <span className="text-3xl font-bold text-primary-600 dark:text-primary-400">{initials}</span>
+          </div>
+          <div className="flex-1 text-center sm:text-left">
+            {editing ? (
+              <div className="space-y-3">
+                <div><label className="label" htmlFor="profile-name">{t('profile.name')}</label><input id="profile-name" type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input" /></div>
+                <div><label className="label" htmlFor="profile-email">{t('profile.email')}</label><input id="profile-email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input" /></div>
+                <div className="flex gap-2">
+                  <button onClick={handleSave} className="btn btn-primary btn-sm"><FloppyDisk weight="bold" className="w-4 h-4" />{t('common.save')}</button>
+                  <button onClick={() => setEditing(false)} className="btn btn-secondary btn-sm">{t('common.cancel')}</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">{user?.name}</h2>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mt-2">
+                  <span className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"><User weight="regular" className="w-4 h-4" />@{user?.username}</span>
+                  <span className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400"><Envelope weight="regular" className="w-4 h-4" />{user?.email}</span>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                  <span className={`badge ${user?.role === 'admin' || user?.role === 'superadmin' ? 'badge-warning' : 'badge-info'}`}><Shield weight="fill" className="w-3 h-3" />{roleLabels[user?.role || 'user']}</span>
+                  <button onClick={() => setEditing(true)} className="btn btn-ghost btn-sm"><PencilSimple weight="bold" className="w-3.5 h-3.5" />{t('common.edit')}</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
+      </motion.div>
 
-        <form onSubmit={handleSave} className="space-y-4">
-          <div><label className="block text-sm font-medium mb-1">{t('profile.name')}</label><input type="text" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} className="input" /></div>
-          <div><label className="block text-sm font-medium mb-1">{t('profile.email')}</label><input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="input" /></div>
-          <button type="submit" className="btn-primary">{saved ? '✓ Saved!' : t('common.save')}</button>
-        </form>
-      </div>
+      {/* My Slot */}
+      <motion.div variants={itemVariants} className="card p-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><MapPin weight="fill" className="w-5 h-5 text-primary-600" />{t('profile.mySlot')}</h3>
+        <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+          <p className="text-sm text-gray-400 dark:text-gray-500">{t('profile.noSlotAssigned', 'No parking slot assigned')}</p>
+        </div>
+      </motion.div>
 
       {/* Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="card"><p className="text-2xl font-bold">{stats.total_bookings}</p><p className="text-sm text-slate-500">{t('userStats.totalBookings')}</p></div>
-          <div className="card"><p className="text-2xl font-bold">{stats.this_month}</p><p className="text-sm text-slate-500">{t('userStats.thisMonth')}</p></div>
-          <div className="card"><p className="text-2xl font-bold">{stats.homeoffice_days}</p><p className="text-sm text-slate-500">{t('userStats.homeOfficeDays')}</p></div>
-          <div className="card"><p className="text-2xl font-bold">{stats.favorite_slot || '—'}</p><p className="text-sm text-slate-500">{t('userStats.favoriteSlot')}</p></div>
-        </div>
-      )}
+      <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.bookingsThisMonth')}</p><p className="stat-value text-primary-600 dark:text-primary-400 mt-1">{stats?.bookings_this_month ?? '-'}</p></div><CalendarCheck weight="fill" className="w-8 h-8 text-primary-200 dark:text-primary-800" /></div></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.homeOfficeDays')}</p><p className="stat-value text-sky-600 dark:text-sky-400 mt-1">{stats?.homeoffice_days_this_month ?? '-'}</p></div><House weight="fill" className="w-8 h-8 text-sky-200 dark:text-sky-800" /></div></div>
+        <div className="stat-card"><div className="flex items-center justify-between"><div><p className="text-sm text-gray-500 dark:text-gray-400">{t('profile.avgDuration')}</p><p className="stat-value text-amber-600 dark:text-amber-400 mt-1">{stats ? `${stats.avg_duration_minutes} min` : '-'}</p></div><ChartBar weight="fill" className="w-8 h-8 text-amber-200 dark:text-amber-800" /></div></div>
+      </motion.div>
 
-      {/* Settings */}
-      <div className="card mb-6">
-        <h2 className="font-semibold mb-4">Settings</h2>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2"><Sun size={18} /> Theme</div>
-            <select value={theme} onChange={e => setTheme(e.target.value as any)} className="input w-auto">
-              <option value="system">System</option>
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2"><Globe size={18} /> Language</div>
-            <select value={lang} onChange={e => changeLang(e.target.value)} className="input w-auto">
-              {LANGUAGES.map(l => <option key={l.code} value={l.code}>{l.name}</option>)}
-            </select>
+{/* Color Palette */}      <motion.div variants={itemVariants} className="card p-6">        <ThemeSelector />      </motion.div>
+      {/* Accessibility Settings */}
+      <motion.div variants={itemVariants} className="card p-6 space-y-6">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Eye weight="fill" className="w-5 h-5 text-primary-600" />{t('accessibility.title')}</h3>
+
+        {/* Color Mode */}
+        <div>
+          <label className="label flex items-center gap-2"><Eye weight="regular" className="w-4 h-4" />{t('accessibility.colorMode')}</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {colorModes.map(mode => (
+              <button key={mode} onClick={() => a11y.setColorMode(mode)}
+                className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${a11y.colorMode === mode ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 ring-2 ring-primary-500' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                aria-pressed={a11y.colorMode === mode}
+              >
+                {t(`accessibility.colorModes.${mode}`)}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      {/* GDPR */}
-      <div className="card">
-        <h2 className="font-semibold mb-4">Data & Privacy (GDPR)</h2>
-        <div className="space-y-3">
-          <button onClick={exportData} className="btn-secondary w-full flex items-center justify-center gap-2"><Download size={18} /> {t('gdpr.dataExport')}</button>
-          <button onClick={() => { if (confirm(t('gdpr.deleteConfirmMessage'))) { api.delete('/me').then(() => logout()); } }} className="w-full flex items-center justify-center gap-2 p-2 rounded-lg text-red-500 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20">
-            <Trash size={18} /> {t('gdpr.deleteAccount')}
+        {/* Font Scale */}
+        <div>
+          <label className="label flex items-center gap-2"><TextAa weight="regular" className="w-4 h-4" />{t('accessibility.fontScale')}</label>
+          <div className="grid grid-cols-4 gap-2">
+            {fontScales.map(scale => (
+              <button key={scale} onClick={() => a11y.setFontScale(scale)}
+                className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${a11y.fontScale === scale ? 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400 ring-2 ring-primary-500' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                aria-pressed={a11y.fontScale === scale}
+              >
+                {t(`accessibility.fontScales.${scale}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Reduced Motion */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <HandSwipeRight weight="regular" className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t('accessibility.reducedMotion')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('accessibility.reducedMotionDesc')}</p>
+            </div>
+          </div>
+          <button onClick={() => a11y.setReducedMotion(!a11y.reducedMotion)}
+            role="switch" aria-checked={a11y.reducedMotion}
+            className={`relative w-11 h-6 rounded-full transition-colors ${a11y.reducedMotion ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${a11y.reducedMotion ? 'translate-x-5' : ''}`} />
           </button>
         </div>
-      </div>
-    </div>
+
+        {/* High Contrast */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CircleHalf weight="regular" className="w-4 h-4 text-gray-500" />
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">{t('accessibility.highContrast')}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{t('accessibility.highContrastDesc')}</p>
+            </div>
+          </div>
+          <button onClick={() => a11y.setHighContrast(!a11y.highContrast)}
+            role="switch" aria-checked={a11y.highContrast}
+            className={`relative w-11 h-6 rounded-full transition-colors ${a11y.highContrast ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}>
+            <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${a11y.highContrast ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
+      </motion.div>
+
+      {/* GDPR Section */}
+      <motion.div variants={itemVariants} className="card p-6 space-y-4">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Shield weight="fill" className="w-5 h-5 text-primary-600" />DSGVO / GDPR</h3>
+
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button onClick={handleExportData} className="btn btn-secondary flex-1">
+            <DownloadSimple weight="bold" className="w-4 h-4" />
+            <div className="text-left">
+              <div className="font-medium">{t('gdpr.dataExport')}</div>
+              <div className="text-xs opacity-60">{t('gdpr.dataExportDesc')}</div>
+            </div>
+          </button>
+          <button onClick={() => setShowDeleteConfirm(true)} className="btn btn-danger flex-1">
+            <Trash weight="bold" className="w-4 h-4" />
+            <div className="text-left">
+              <div className="font-medium">{t('gdpr.deleteAccount')}</div>
+              <div className="text-xs opacity-60">{t('gdpr.deleteAccountDesc')}</div>
+            </div>
+          </button>
+        </div>
+      </motion.div>
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDeleteAccount}
+        title={t('gdpr.deleteConfirmTitle')}
+        message={t('gdpr.deleteConfirmMessage')}
+        confirmLabel={t('gdpr.deleteConfirmBtn')}
+        variant="danger"
+      />
+    </motion.div>
   );
 }

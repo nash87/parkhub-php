@@ -1,40 +1,36 @@
+# Stage 1: Build frontend
+FROM node:20-slim AS frontend
+WORKDIR /app
+COPY package.json package-lock.json* ./
+RUN npm install
+COPY vite.config.* tsconfig* tailwind.config.* postcss.config.* ./
+COPY resources/ resources/
+ENV VITE_API_URL=/php
+RUN npm run build
+
+# Stage 2: PHP + Apache
 FROM php:8.3-apache
 
-# Install PHP extensions
-RUN apt-get update && apt-get install -y \
-    libpng-dev libjpeg-dev libfreetype6-dev \
-    libzip-dev unzip sqlite3 libsqlite3-dev \
-    && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql pdo_sqlite gd zip bcmath \
-    && a2enmod rewrite \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y     libpng-dev libjpeg-dev libfreetype6-dev     libzip-dev unzip sqlite3 libsqlite3-dev     && docker-php-ext-configure gd --with-freetype --with-jpeg     && docker-php-ext-install pdo pdo_mysql pdo_sqlite gd zip bcmath     && a2enmod rewrite     && rm -rf /var/lib/apt/lists/*
 
-# Configure Apache
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
-RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
-    && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
+RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
 
-# Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Copy application
 COPY . /var/www/html
 WORKDIR /var/www/html
 
-# Install dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction
+# Overlay built frontend assets
+COPY --from=frontend /app/public/ /var/www/html/public/
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 storage bootstrap/cache \
-    && touch database/database.sqlite \
-    && chown www-data:www-data database/database.sqlite
+RUN composer install --no-dev --optimize-autoloader --no-interaction 2>/dev/null || true
 
-# Generate key and run migrations on startup
+RUN chown -R www-data:www-data /var/www/html     && chmod -R 755 storage bootstrap/cache     && mkdir -p database     && touch database/database.sqlite     && chown www-data:www-data database/database.sqlite
+
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 80
-
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"]

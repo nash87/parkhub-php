@@ -13,9 +13,12 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->statefulApi();
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
         $middleware->api(prepend: [
             \App\Http\Middleware\ForceJsonResponse::class,
+            \App\Http\Middleware\ApiResponseWrapper::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

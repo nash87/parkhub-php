@@ -14,11 +14,7 @@ class SetupController extends Controller
 {
     public function status()
     {
-        $completed = Setting::get('setup_completed', 'false');
-        return response()->json([
-            'setup_completed' => $completed === 'true',
-            'has_admin' => User::where('role', 'admin')->orWhere('role', 'superadmin')->exists(),
-        ]);
+$completed = Setting::get("setup_completed", "false") === "true";        $hasAdmin = User::where("role", "admin")->orWhere("role", "superadmin")->exists();        return response()->json([            "setup_complete" => $completed,            "setup_completed" => $completed,            "has_admin" => $hasAdmin,            "has_parking_lots" => \App\Models\ParkingLot::count() > 0,            "has_users" => User::count() > 0,            "needs_password_change" => false,            "total_lots" => \App\Models\ParkingLot::count(),            "total_users" => User::count(),        ]);
     }
 
     public function init(Request $request)
