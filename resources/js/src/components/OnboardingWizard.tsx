@@ -105,7 +105,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
     try {
       // Use setup endpoint (no auth required during initial setup)
-      const res = await fetch('/api/v1/setup/change-password', {
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/setup/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
@@ -165,7 +165,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
     try {
       
       // Step 1: Create lot with CreateLotRequest format
-      const createRes = await fetch('/api/v1/lots', {
+      const createRes = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/lots', {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -204,7 +204,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   async function completeSetup() {
     try {
-      await fetch('/api/v1/setup/complete', {
+      await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/setup/complete', {
         method: 'POST',
         headers: getAuthHeaders(),
       });

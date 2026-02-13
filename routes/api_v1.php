@@ -28,6 +28,27 @@ Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 // Setup
 Route::get('/setup/status', [SetupController::class, 'status']);
 Route::post('/setup', [SetupController::class, 'init']);
+Route::post('/setup/change-password', function(\Illuminate\Http\Request $request) {
+    $request->validate(['current_password' => 'required', 'new_password' => 'required|min:8']);
+    $admin = \App\Models\User::where('role', 'admin')->first();
+    if (!$admin || !\Illuminate\Support\Facades\Hash::check($request->current_password, $admin->password)) {
+        return response()->json(['success' => false, 'error' => ['code' => 'INVALID_PASSWORD', 'message' => 'Current password is incorrect']], 401);
+    }
+    $admin->password = bcrypt($request->new_password);
+    $admin->save();
+    \App\Models\Setting::set('needs_password_change', 'false');
+    $token = $admin->createToken('auth-token');
+    return response()->json(['success' => true, 'data' => [
+        'user' => $admin,
+        'tokens' => ['access_token' => $token->plainTextToken, 'token_type' => 'Bearer', 'expires_at' => now()->addDays(7)->toISOString()],
+    ]]);
+});
+Route::post('/setup/complete', function(\Illuminate\Http\Request $request) {
+    \App\Models\Setting::set('setup_completed', 'true');
+    if ($request->company_name) \App\Models\Setting::set('company_name', $request->company_name);
+    if ($request->use_case) \App\Models\Setting::set('use_case', $request->use_case);
+    return response()->json(['success' => true, 'data' => ['message' => 'Setup completed']]);
+});
 
 // Public
 Route::get('/public/occupancy', [PublicController::class, 'occupancy']);
