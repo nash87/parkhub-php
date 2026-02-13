@@ -29,6 +29,42 @@ class LotController extends Controller
     {
         $lot = ParkingLot::findOrFail($id);
         $lot->available_slots = $this->calculateAvailable($lot);
+
+        // Auto-generate layout from slots if not set (Rust frontend requires layout)
+        if (!$lot->layout) {
+            $slots = $lot->slots()->get();
+            $activeBookings = Booking::where('lot_id', $id)
+                ->whereIn('status', ['confirmed', 'active'])
+                ->where('start_time', '<=', now())
+                ->where('end_time', '>=', now())
+                ->get()
+                ->keyBy('slot_id');
+
+            $slotConfigs = $slots->map(function ($slot) use ($activeBookings) {
+                $booking = $activeBookings->get($slot->id);
+                return [
+                    'id' => $slot->id,
+                    'number' => $slot->slot_number,
+                    'status' => $booking ? 'occupied' : 'available',
+                    'vehiclePlate' => $booking?->vehicle_plate,
+                    'bookedBy' => $booking?->user?->name,
+                ];
+            })->values()->toArray();
+
+            // Split into rows of max 10
+            $chunks = array_chunk($slotConfigs, 10);
+            $rows = [];
+            foreach ($chunks as $i => $chunk) {
+                $rows[] = [
+                    'id' => 'row-' . ($i + 1),
+                    'side' => $i % 2 === 0 ? 'top' : 'bottom',
+                    'slots' => $chunk,
+                    'label' => 'Row ' . ($i + 1),
+                ];
+            }
+            $lot->layout = ['rows' => $rows, 'roadLabel' => 'Main Road'];
+        }
+
         return response()->json($lot);
     }
 
