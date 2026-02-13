@@ -13,7 +13,7 @@ export const useUpdateStore = create<UpdateStore>((set) => ({
   releaseUrl: '',
   checkForUpdates: async (token: string) => {
     try {
-      const res = await fetch('/api/v1/admin/updates/check', {
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/admin/updates/check', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();

@@ -157,7 +157,7 @@ function AppRoutes() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
+      <BrowserRouter basename={import.meta.env.VITE_API_URL || '/'}>
         <ThemeInitializer>
           <BrandingProvider>
             <SetupGuard>

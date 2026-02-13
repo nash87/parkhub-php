@@ -272,7 +272,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append("file", file);
     const token = this.getToken();
-    const resp = await fetch("/api/v1/vacation/import", { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
+    const resp = await fetch(`${API_BASE}/api/v1/vacation/import`, { method: "POST", headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
     return resp.json();
   }
 
@@ -296,7 +296,7 @@ class ApiClient {
     const formData = new FormData();
     formData.append('file', file);
     const token = this.getToken();
-    const resp = await fetch('/api/v1/absences/import', { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
+    const resp = await fetch(, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : {}, body: formData });
     return resp.json();
   }
 
@@ -459,7 +459,7 @@ class ApiClient {
 
   async getLotQrCode(lotId: string): Promise<string> {
     const token = this.getToken();
-    const resp = await fetch(`/api/v1/lots/${lotId}/qr`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    const resp = await fetch(`${API_BASE}/api/v1/lots/${lotId}/qr`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
     return resp.text();
   }
 }

@@ -69,7 +69,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
 
   async function checkSetupStatus() {
     try {
-      const res = await fetch('/api/v1/setup/status');
+      const res = await fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/setup/status');
       const data = await res.json();
       if (data.success && data.data) {
         // setup status loaded
