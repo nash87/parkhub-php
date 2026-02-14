@@ -9,7 +9,7 @@ export function PrivacyPage() {
   const [contactEmail, setContactEmail] = useState('');
 
   useEffect(() => {
-    fetch('/api/v1/branding').then(r => r.json()).then(d => {
+    fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/branding`).then(r => r.json()).then(d => {
       const data = d.data || d;
       if (data.company_name || data.instance_name) setCompanyName(data.company_name || data.instance_name);
       if (data.contact_email || data.admin_email) setContactEmail(data.contact_email || data.admin_email);

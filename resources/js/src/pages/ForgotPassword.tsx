@@ -19,7 +19,7 @@ export function ForgotPasswordPage() {
     if (!email) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/v1/auth/forgot-password", {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),

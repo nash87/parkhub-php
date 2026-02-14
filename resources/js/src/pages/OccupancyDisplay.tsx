@@ -21,7 +21,7 @@ export function OccupancyDisplayPage() {
 
   async function loadOccupancy() {
     try {
-      const res = await fetch('/api/v1/public/occupancy');
+      const res = await fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/public/occupancy`);
       const data = await res.json();
       if (data.success && data.data) setLots(data.data);
     } catch { /* ignore */ }

@@ -110,7 +110,7 @@ export function BookPage() {
       const [lotsRes, vehiclesRes, privacyRes] = await Promise.all([
         api.getLots(),
         api.getVehicles(),
-        fetch('/api/v1/settings/privacy').then(r => r.json()).catch(() => null),
+        fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/settings/privacy`).then(r => r.json()).catch(() => null),
       ]);
       if (privacyRes?.data?.license_plate_entry_mode !== undefined) setLicensePlateEntryMode(Number(privacyRes.data.license_plate_entry_mode));
       if (lotsRes.success && lotsRes.data) { setLots(lotsRes.data); if (preselectedLot) setSelectedLot(preselectedLot); }

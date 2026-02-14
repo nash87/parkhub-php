@@ -114,7 +114,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
       if (data.success) {
         // Re-login with new password to get fresh token
         try {
-          const loginRes = await fetch('/api/v1/auth/login', {
+          const loginRes = await fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: 'admin', password: newPassword }),
@@ -142,7 +142,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
   async function handleCompanySave() {
     if (!companyName.trim()) return true; // Skip if empty
     try {
-      await fetch('/api/v1/admin/branding', {
+      await fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/admin/branding`, {
         method: 'PUT',
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -183,7 +183,7 @@ export function OnboardingWizard({ onComplete }: OnboardingWizardProps) {
           number: `P${i + 1}`,
           status: 'available',
         }));
-        await fetch(`/api/v1/lots/${newLotId}/layout`, {
+        await fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/lots/${newLotId}/layout`, {
           method: 'PUT',
           headers: getAuthHeaders(),
           body: JSON.stringify({

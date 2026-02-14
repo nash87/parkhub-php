@@ -7,6 +7,7 @@ COPY vite.config.* tsconfig* tailwind.config.* postcss.config.* ./
 COPY resources/ resources/
 ARG VITE_BASE_PATH=
 ENV VITE_API_URL=${VITE_BASE_PATH}
+RUN if [ -n "$VITE_BASE_PATH" ]; then echo "VITE_API_URL=${VITE_BASE_PATH}" > .env; fi
 RUN if [ -n "$VITE_BASE_PATH" ]; then npm run build -- --base=$VITE_BASE_PATH/; else npm run build; fi
 
 # Stage 2: PHP + Apache

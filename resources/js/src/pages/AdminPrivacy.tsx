@@ -41,7 +41,7 @@ export function AdminPrivacyPage() {
   useEffect(() => {
     const token = localStorage.getItem('parkhub_token');
     let cancelled = false;
-    fetch('/api/v1/admin/privacy', { headers: { Authorization: 'Bearer ' + token } })
+    fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/admin/privacy`, { headers: { Authorization: 'Bearer ' + token } })
       .then(r => r.json())
       .then(d => {
         if (cancelled) return;
@@ -60,7 +60,7 @@ export function AdminPrivacyPage() {
     setSaved(false);
     try {
       const token = localStorage.getItem('parkhub_token');
-      const res = await fetch('/api/v1/admin/privacy', {
+      const res = await fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/admin/privacy`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(config),

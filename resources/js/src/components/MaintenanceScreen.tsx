@@ -29,10 +29,10 @@ export function MaintenanceScreen({ progress: externalProgress, message: externa
 
     const checkInterval = setInterval(async () => {
       try {
-        const res = await fetch("/api/v1/health");
+        const res = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/health`);
         if (res.ok) {
           // Server is back! Check maintenance
-          const mRes = await fetch("/api/v1/system/maintenance");
+          const mRes = await fetch(`${import.meta.env.VITE_API_URL || ""}/api/v1/system/maintenance`);
           const data = await mRes.json();
           if (!data.maintenance) {
             window.location.href = "/login";

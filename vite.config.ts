@@ -7,6 +7,7 @@ export default defineConfig({
   },
   plugins: [react()],
   root: 'resources/js',
+    envDir: '../../',
   build: {
     outDir: '../../public',
     emptyOutDir: false,
