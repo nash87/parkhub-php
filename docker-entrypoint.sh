@@ -25,7 +25,7 @@ if (\App\Models\User::where('role', 'admin')->orWhere('role', 'superadmin')->cou
     \App\Models\User::create([
         'username' => 'admin',
         'email' => 'admin@parkhub.local',
-        'password' => bcrypt('changeme'),
+        'password' => bcrypt('admin'),
         'name' => 'Admin',
         'role' => 'admin',
         'is_active' => true,
