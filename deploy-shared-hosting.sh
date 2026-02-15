@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # ParkHub PHP Edition - Shared Hosting Deployment Script
