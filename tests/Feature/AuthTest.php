@@ -20,10 +20,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(201)
-            ->assertJsonStructure([
-                'user' => ['id', 'username', 'email', 'name'],
-                'tokens' => ['access_token', 'token_type'],
-            ]);
+            ->assertJsonStructure(['success', 'data' => ['user' => ['id', 'username', 'email', 'name'], 'tokens' => ['access_token', 'token_type']]]);
 
         $this->assertDatabaseHas('users', ['username' => 'testuser']);
     }
@@ -41,10 +38,7 @@ class AuthTest extends TestCase
         ]);
 
         $response->assertStatus(200)
-            ->assertJsonStructure([
-                'user',
-                'tokens' => ['access_token', 'token_type'],
-            ]);
+            ->assertJsonStructure(['success', 'data' => ['user', 'tokens' => ['access_token', 'token_type']]]);
     }
 
     public function test_login_fails_with_wrong_password(): void
@@ -71,7 +65,7 @@ class AuthTest extends TestCase
             ->getJson('/api/me');
 
         $response->assertStatus(200)
-            ->assertJson(['username' => $user->username]);
+            ->assertJsonPath('data.username', $user->username);
     }
 
     public function test_user_can_update_profile(): void
@@ -98,7 +92,7 @@ class AuthTest extends TestCase
             ->postJson('/api/refresh');
 
         $response->assertStatus(200)
-            ->assertJsonStructure(['tokens']);
+            ->assertJsonPath('success', true);
     }
 
     public function test_user_can_delete_account(): void

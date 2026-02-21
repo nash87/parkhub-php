@@ -192,3 +192,32 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/webhooks', [MiscController::class, 'createWebhook']);
     Route::get('/update/check', function() { return response()->json(['update_available' => false, 'current_version' => '1.0.0']); });
 });
+
+// ── New feature-parity routes ──────────────────────────────────────────────
+
+// Health (no auth)
+Route::get('/health/live', [\App\Http\Controllers\Api\HealthController::class, 'live']);
+Route::get('/health/ready', [\App\Http\Controllers\Api\HealthController::class, 'ready']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    // iCal export
+    Route::get('/user/calendar.ics', [\App\Http\Controllers\Api\UserController::class, 'calendarExport']);
+
+    // GDPR data export
+    Route::get('/user/export', [\App\Http\Controllers\Api\UserController::class, 'exportData']);
+
+    // Vehicle photos
+    Route::post('/vehicles/{id}/photo', [\App\Http\Controllers\Api\VehicleController::class, 'uploadPhoto']);
+    Route::get('/vehicles/{id}/photo',  [\App\Http\Controllers\Api\VehicleController::class, 'servePhoto']);
+
+    // City codes (no photo auth needed but put behind auth to avoid abuse)
+    Route::get('/vehicles/city-codes', [\App\Http\Controllers\Api\VehicleController::class, 'cityCodes']);
+
+    // Waitlist
+    Route::get('/waitlist',        [\App\Http\Controllers\Api\WaitlistController::class, 'index']);
+    Route::post('/waitlist',       [\App\Http\Controllers\Api\WaitlistController::class, 'store']);
+    Route::delete('/waitlist/{id}',[\App\Http\Controllers\Api\WaitlistController::class, 'destroy']);
+
+    // Admin CSV export
+    Route::get('/admin/bookings/export', [\App\Http\Controllers\Api\AdminController::class, 'exportBookingsCsv']);
+});

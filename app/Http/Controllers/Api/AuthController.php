@@ -126,6 +126,15 @@ class AuthController extends Controller
         return response()->json($this->userResponse($user->fresh()));
     }
 
+
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+        $user->tokens()->delete();
+        $user->delete();
+        return response()->json(['message' => 'Account deleted']);
+    }
+
     private function userResponse(User $user): array
     {
         return [

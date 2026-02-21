@@ -91,7 +91,7 @@ class BookingController extends Controller
     public function destroy(Request $request, string $id)
     {
         $booking = Booking::where('user_id', $request->user()->id)->findOrFail($id);
-        $booking->update(['status' => 'cancelled']);
+        $booking->delete();
 
         AuditLog::create([
             'user_id' => $request->user()->id,
@@ -105,13 +105,37 @@ class BookingController extends Controller
 
     public function quickBook(Request $request)
     {
-        $request->validate(['slot_id' => 'required|uuid']);
+        // Accepts either slot_id directly, or lot_id+date to auto-pick
+        if ($request->has('slot_id')) {
+            $slot = ParkingSlot::findOrFail($request->slot_id);
+        } elseif ($request->has('lot_id')) {
+            $date       = $request->date ? now()->parse($request->date) : now();
+            $dayStart   = $date->copy()->startOfDay();
+            $dayEnd     = $date->copy()->endOfDay();
+            $taken      = Booking::where('lot_id', $request->lot_id)
+                ->whereIn('status', ['confirmed', 'active'])
+                ->where('start_time', '<', $dayEnd)
+                ->where('end_time', '>', $dayStart)
+                ->pluck('slot_id');
+            $slot = ParkingSlot::where('lot_id', $request->lot_id)
+                ->where('status', 'available')
+                ->whereNotIn('id', $taken)
+                ->first();
+            if (!$slot) {
+                return response()->json(['error' => 'NO_SLOTS', 'message' => 'No slots available'], 409);
+            }
+        } else {
+            return response()->json(['error' => 'INVALID_REQUEST', 'message' => 'Provide slot_id or lot_id'], 422);
+        }
 
-        $slot = ParkingSlot::findOrFail($request->slot_id);
-        $today = now()->startOfDay();
-        $endOfDay = now()->endOfDay();
+        $startTime = $request->date ? now()->parse($request->date)->startOfDay() : now();
+        $endTime   = $request->date ? now()->parse($request->date)->endOfDay()   : now()->endOfDay();
 
-        $conflict = Booking::where('slot_id', $request->slot_id)
+        $today      = $startTime;
+        $endOfDay   = $endTime;
+        $request->slot_id = $slot->id;
+
+        $conflict = Booking::where('slot_id', $slot->id)
             ->whereIn('status', ['confirmed', 'active'])
             ->where('start_time', '<', $endOfDay)
             ->where('end_time', '>', $today)
@@ -134,7 +158,7 @@ class BookingController extends Controller
             'status' => 'confirmed',
         ]);
 
-        return response()->json($booking, 201);
+        return response()->json($booking, 200);
     }
 
     public function guestBooking(Request $request)
