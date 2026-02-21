@@ -45,4 +45,31 @@ class TeamController extends Controller
 
         return response()->json($team);
     }
+
+    public function today(\Illuminate\Http\Request $request)
+    {
+        $today = now()->toDateString();
+        $absences = \App\Models\Absence::with('user')
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->get();
+        $bookings = \App\Models\Booking::with('user')
+            ->whereDate('start_time', $today)
+            ->whereIn('status', ['confirmed', 'active'])
+            ->get();
+        return response()->json([
+            'date'     => $today,
+            'absences' => $absences->map(fn($a) => [
+                'user_id'      => $a->user_id,
+                'user_name'    => $a->user?->name,
+                'absence_type' => $a->absence_type,
+            ])->values(),
+            'bookings' => $bookings->map(fn($b) => [
+                'user_id'   => $b->user_id,
+                'user_name' => $b->user?->name,
+                'slot'      => $b->slot_number,
+                'lot'       => $b->lot_name,
+            ])->values(),
+        ]);
+    }
 }

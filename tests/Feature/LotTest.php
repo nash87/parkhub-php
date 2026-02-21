@@ -61,7 +61,7 @@ class LotTest extends TestCase
             ->getJson('/api/lots/' . $lot->id);
 
         $response->assertStatus(200)
-            ->assertJson(['name' => 'Lot 1']);
+            ->assertJsonPath('data.name', 'Lot 1');
     }
 
     public function test_admin_can_update_lot(): void

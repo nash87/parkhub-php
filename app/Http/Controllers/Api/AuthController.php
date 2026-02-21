@@ -126,6 +126,15 @@ class AuthController extends Controller
         return response()->json($this->userResponse($user->fresh()));
     }
 
+
+    public function deleteAccount(Request $request)
+    {
+        $user = $request->user();
+        $user->tokens()->delete();
+        $user->delete();
+        return response()->json(['message' => 'Account deleted']);
+    }
+
     private function userResponse(User $user): array
     {
         return [
@@ -143,5 +152,46 @@ class AuthController extends Controller
             'is_active' => $user->is_active,
             'department' => $user->department,
         ];
+    }
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+        // In production, send reset email. Here we return generic success to avoid user enumeration.
+        AuditLog::create([
+            'action' => 'forgot_password',
+            'details' => ['email_hash' => md5($request->email)],
+            'ip_address' => $request->ip(),
+        ]);
+        return response()->json(['message' => 'If an account with that email exists, a reset link has been sent.']);
+    }
+
+    public function changePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password' => 'required|string|min:8',
+        ]);
+        $user = $request->user();
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['error' => 'INVALID_PASSWORD', 'message' => 'Current password is incorrect'], 400);
+        }
+        $user->update(['password' => Hash::make($request->new_password)]);
+        $user->tokens()->delete();
+        $token = $user->createToken('auth-token');
+        AuditLog::create([
+            'user_id' => $user->id,
+            'username' => $user->username,
+            'action' => 'password_changed',
+            'ip_address' => $request->ip(),
+        ]);
+        return response()->json([
+            'message' => 'Password changed successfully',
+            'tokens' => [
+                'access_token' => $token->plainTextToken,
+                'token_type' => 'Bearer',
+                'expires_at' => (new \DateTime('+7 days'))->format('c'),
+            ],
+        ]);
     }
 }

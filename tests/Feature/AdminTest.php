@@ -21,12 +21,7 @@ class AdminTest extends TestCase
             ->getJson('/api/admin/stats');
 
         $response->assertStatus(200)
-            ->assertJsonStructure([
-                'total_users',
-                'total_lots',
-                'total_bookings',
-                'available_slots',
-            ]);
+            ->assertJsonStructure(['data' => ['total_users', 'total_lots', 'total_bookings', 'available_slots']]);
     }
 
     public function test_admin_can_get_heatmap(): void

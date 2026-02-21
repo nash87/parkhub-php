@@ -134,4 +134,30 @@ class LotController extends Controller
             ->count();
         return max(0, $totalSlots - $occupied);
     }
+
+    public function qrCode(\Illuminate\Http\Request $request, string $id)
+    {
+        $lot = \App\Models\ParkingLot::findOrFail($id);
+        $data = urlencode(url('/') . '/book?lot=' . $id);
+        // Return QR code as SVG via free API
+        return response()->json([
+            'lot_id'  => $id,
+            'lot_name'=> $lot->name,
+            'qr_url'  => "https://api.qrserver.com/v1/create-qr-code/?data={$data}&size=256x256",
+            'data'    => urldecode($data),
+        ]);
+    }
+
+    public function slotQrCode(\Illuminate\Http\Request $request, string $lotId, string $slotId)
+    {
+        $slot = \App\Models\ParkingSlot::where('lot_id', $lotId)->findOrFail($slotId);
+        $data = urlencode(url('/') . '/book?lot=' . $lotId . '&slot=' . $slotId);
+        return response()->json([
+            'lot_id'     => $lotId,
+            'slot_id'    => $slotId,
+            'slot_number'=> $slot->slot_number,
+            'qr_url'     => "https://api.qrserver.com/v1/create-qr-code/?data={$data}&size=256x256",
+            'data'       => urldecode($data),
+        ]);
+    }
 }
