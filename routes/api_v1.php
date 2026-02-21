@@ -221,3 +221,72 @@ Route::middleware('auth:sanctum')->group(function () {
     // Admin CSV export
     Route::get('/admin/bookings/export', [\App\Http\Controllers\Api\AdminController::class, 'exportBookingsCsv']);
 });
+
+// ── Feature parity batch 2: system, auth, bookings, absences ──────────────
+
+use App\Http\Controllers\Api\SystemController;
+
+// System (public)
+Route::get('/system/version',     [SystemController::class, 'version']);
+Route::get('/system/maintenance', [SystemController::class, 'maintenance']);
+
+// Auth (public)
+Route::post('/auth/forgot-password', [\App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
+
+// Branding logo (public)
+Route::get('/branding/logo', [\App\Http\Controllers\Api\AdminController::class, 'serveBrandingLogo']);
+
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Auth (protected)
+    Route::patch('/users/me/password', [\App\Http\Controllers\Api\AuthController::class, 'changePassword']);
+
+    // Bookings
+    Route::patch('/bookings/{id}',              [BookingController::class, 'update']);
+    Route::post('/bookings/{id}/checkin',       [BookingController::class, 'checkin']);
+    Route::get('/calendar/events',              [BookingController::class, 'calendarEvents']);
+    Route::post('/bookings/{id}/swap-request',  [BookingController::class, 'createSwapRequest']);
+    Route::put('/swap-requests/{id}',           [BookingController::class, 'respondSwapRequest']);
+
+    // iCal import (absences + vacation)
+    Route::post('/absences/import',  [AbsenceController::class, 'importIcal']);
+    Route::post('/vacation/import',  [AbsenceController::class, 'importIcal']);
+
+    // Absence pattern + team
+    Route::get('/absences/pattern',  [AbsenceController::class, 'getPattern']);
+    Route::post('/absences/pattern', [AbsenceController::class, 'setPattern']);
+    Route::get('/absences/team',     [AbsenceController::class, 'teamAbsences']);
+    Route::get('/vacation/team',     [AbsenceController::class, 'teamAbsences']);
+
+    // Team today
+    Route::get('/team/today', [TeamController::class, 'today']);
+
+    // Notifications: mark all read
+    Route::post('/notifications/read-all', [UserController::class, 'markAllNotificationsRead']);
+
+    // Push: unsubscribe
+    Route::delete('/push/unsubscribe', [UserController::class, 'pushUnsubscribe']);
+
+    // QR codes
+    Route::get('/lots/{id}/qr',                   [LotController::class, 'qrCode']);
+    Route::get('/lots/{lotId}/slots/{slotId}/qr',  [LotController::class, 'slotQrCode']);
+
+    // Admin: branding, privacy, reports, charts, settings, reset
+    Route::get('/admin/branding',          [AdminController::class, 'getBranding']);
+    Route::put('/admin/branding',          [AdminController::class, 'updateBranding']);
+    Route::post('/admin/branding/logo',    [AdminController::class, 'uploadBrandingLogo']);
+    Route::get('/admin/privacy',           [AdminController::class, 'getPrivacy']);
+    Route::put('/admin/privacy',           [AdminController::class, 'updatePrivacy']);
+    Route::get('/admin/reports',           [AdminController::class, 'reports']);
+    Route::get('/admin/dashboard/charts',  [AdminController::class, 'dashboardCharts']);
+    Route::post('/admin/reset',            [AdminController::class, 'resetDatabase']);
+    Route::get('/admin/settings/auto-release',  [AdminController::class, 'getAutoReleaseSettings']);
+    Route::put('/admin/settings/auto-release',  [AdminController::class, 'updateAutoReleaseSettings']);
+    Route::get('/admin/settings/email',    [AdminController::class, 'getEmailSettings']);
+    Route::put('/admin/settings/email',    [AdminController::class, 'updateEmailSettings']);
+    Route::get('/admin/settings/webhooks', [AdminController::class, 'getWebhookSettings']);
+    Route::put('/admin/settings/webhooks', [AdminController::class, 'updateWebhookSettings']);
+    Route::patch('/admin/slots/{id}',      [AdminController::class, 'updateSlot']);
+    Route::delete('/admin/lots/{id}',      [AdminController::class, 'deleteLot']);
+    Route::delete('/admin/users/{id}',     [AdminController::class, 'deleteUser']);
+});

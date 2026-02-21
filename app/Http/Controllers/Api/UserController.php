@@ -169,4 +169,16 @@ class UserController extends Controller
             'Content-Disposition' => 'attachment; filename="my-parkhub-data.json"',
         ]);
     }
+
+    public function markAllNotificationsRead(\Illuminate\Http\Request $request)
+    {
+        $request->user()->notifications()->update(['read' => true]);
+        return response()->json(['message' => 'All notifications marked as read']);
+    }
+
+    public function pushUnsubscribe(\Illuminate\Http\Request $request)
+    {
+        \App\Models\PushSubscription::where('user_id', $request->user()->id)->delete();
+        return response()->json(['message' => 'Unsubscribed from push notifications']);
+    }
 }

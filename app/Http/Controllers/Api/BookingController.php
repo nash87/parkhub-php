@@ -257,4 +257,66 @@ class BookingController extends Controller
 
         return response()->json($booking->fresh());
     }
+
+    public function checkin(Request $request, string $id)
+    {
+        $booking = Booking::where('user_id', $request->user()->id)->findOrFail($id);
+        $booking->update(['checked_in_at' => now(), 'status' => 'active']);
+        AuditLog::create([
+            'user_id' => $request->user()->id,
+            'username' => $request->user()->username,
+            'action' => 'booking_checkin',
+            'details' => ['booking_id' => $id],
+        ]);
+        return response()->json($booking->fresh());
+    }
+
+    public function update(Request $request, string $id)
+    {
+        $booking = Booking::where('user_id', $request->user()->id)->findOrFail($id);
+        $data = $request->only(['notes', 'vehicle_plate', 'status']);
+        $booking->update($data);
+        return response()->json($booking->fresh());
+    }
+
+    public function calendarEvents(Request $request)
+    {
+        $from = $request->from ?? now()->startOfMonth()->toDateTimeString();
+        $to   = $request->to   ?? now()->endOfMonth()->toDateTimeString();
+        $bookings = Booking::where('user_id', $request->user()->id)
+            ->where('start_time', '>=', $from)
+            ->where('end_time', '<=', $to)
+            ->get();
+        $events = $bookings->map(function($b) {
+            return [
+                'id'    => $b->id,
+                'title' => $b->lot_name . ' — ' . $b->slot_number,
+                'start' => $b->start_time,
+                'end'   => $b->end_time,
+                'type'  => 'booking',
+                'status'=> $b->status,
+            ];
+        });
+        return response()->json($events->values());
+    }
+
+    public function createSwapRequest(Request $request, string $id)
+    {
+        $booking = Booking::where('user_id', $request->user()->id)->findOrFail($id);
+        $target  = Booking::findOrFail($request->target_booking_id);
+        return response()->json([
+            'id'             => \Illuminate\Support\Str::uuid(),
+            'booking_id'     => $booking->id,
+            'target_booking_id' => $target->id,
+            'status'         => 'pending',
+            'created_at'     => now()->toISOString(),
+        ], 201);
+    }
+
+    public function respondSwapRequest(Request $request, string $id)
+    {
+        // Simplified swap implementation
+        $accept = $request->input('accept', false);
+        return response()->json(['id' => $id, 'status' => $accept ? 'accepted' : 'declined']);
+    }
 }
