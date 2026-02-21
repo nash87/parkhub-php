@@ -18,14 +18,14 @@ class AbsenceTest extends TestCase
 
         $response = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/absences', [
-                'type' => 'vacation',
+                'absence_type' => 'vacation',
                 'start_date' => now()->addDay()->format('Y-m-d'),
                 'end_date' => now()->addDays(5)->format('Y-m-d'),
                 'notes' => 'Summer vacation',
             ]);
 
         $response->assertStatus(201);
-        $this->assertDatabaseHas('absences', ['user_id' => $user->id, 'type' => 'vacation']);
+        $this->assertDatabaseHas('absences', ['user_id' => $user->id, 'absence_type' => 'vacation']);
     }
 
     public function test_all_absence_types_work(): void
@@ -38,7 +38,7 @@ class AbsenceTest extends TestCase
         foreach ($types as $type) {
             $response = $this->withHeader('Authorization', 'Bearer ' . $token)
                 ->postJson('/api/absences', [
-                    'type' => $type,
+                    'absence_type' => $type,
                     'start_date' => now()->addDay()->format('Y-m-d'),
                     'end_date' => now()->addDays(2)->format('Y-m-d'),
                 ]);
