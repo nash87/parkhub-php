@@ -7,7 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.0.0] — 2026-02-28
+## [1.0.1] — 2026-02-27
+
+### Fixed
+
+- **Security**: `Setup.tsx` auto-login bypass — the setup page previously attempted an
+  automatic `admin`/`admin` login for any unauthenticated visitor when `needs_password_change`
+  was set. Now auto-login only occurs when no admin account exists yet (genuine first install).
+  If an admin already exists, the user is redirected to the normal login page.
+- **Frontend**: Bookings page showed 0 items despite the counter displaying the correct total.
+  Backend creates bookings with `status: 'confirmed'` but the filter only matched
+  `status: 'active'`. Both `confirmed` and `active` now display in the Active/Upcoming sections.
+- **Frontend**: Admin Privacy settings tab crashed with "Failed to load privacy settings" due
+  to a template literal syntax error — `(import.meta.env.VITE_API_URL || "")` (parentheses)
+  was used instead of `${import.meta.env.VITE_API_URL || ""}` (template expression), producing
+  a malformed URL that always returned 404.
+- **Frontend**: LicensePlateInput component truncated plates to 3 characters when a full plate
+  string (e.g. `M-AB 1234`) was typed or pasted at once before selecting a city from the
+  dropdown. The component now auto-detects and formats the full plate on input.
+
+---
+
+## [1.0.0] — 2026-02-27
 
 ### Added
 
