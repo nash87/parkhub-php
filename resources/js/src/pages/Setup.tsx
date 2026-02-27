@@ -12,10 +12,22 @@ export function SetupPage() {
   const { setupComplete, recheckSetup } = useSetupStatus();
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const [autoLoginFailed, setAutoLoginFailed] = useState(false);
+  // Track whether an admin account already exists (fetched from setup/status)
+  const [hasAdmin, setHasAdmin] = useState<boolean | null>(null);
 
-  // Auto-login as admin/admin if not authenticated — MUST be before any conditional returns
+  // Fetch setup status to check if an admin exists before attempting auto-login
   useEffect(() => {
-    if (authLoading || isAuthenticated || autoLoginAttempted) return;
+    if (hasAdmin !== null) return;
+    fetch((import.meta.env.VITE_API_URL || '') + '/api/v1/setup/status')
+      .then(r => r.json())
+      .then(d => setHasAdmin(!!d?.data?.has_admin))
+      .catch(() => setHasAdmin(true)); // Assume admin exists on error — fail safe
+  }, [hasAdmin]);
+
+  // Auto-login as admin/admin ONLY when no admin account exists yet (true first install)
+  // If an admin already exists, require the user to log in via /login — prevents auth bypass.
+  useEffect(() => {
+    if (authLoading || isAuthenticated || autoLoginAttempted || hasAdmin === null || hasAdmin) return;
     const id = requestAnimationFrame(() => {
       setAutoLoginAttempted(true);
     });
@@ -25,15 +37,20 @@ export function SetupPage() {
       }
     });
     return () => cancelAnimationFrame(id);
-  }, [authLoading, isAuthenticated, autoLoginAttempted, login]);
+  }, [authLoading, isAuthenticated, autoLoginAttempted, hasAdmin, login]);
 
   // If setup is already complete, redirect to home
   if (setupComplete) {
     return <Navigate to="/" replace />;
   }
 
-  // Show loading while auth is loading or auto-login in progress
-  if (authLoading || (!isAuthenticated && !autoLoginFailed && !autoLoginAttempted)) {
+  // If an admin exists but the user is not authenticated, redirect to normal login
+  if (!authLoading && hasAdmin && !isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Show loading while auth is loading, hasAdmin check is pending, or auto-login in progress
+  if (authLoading || hasAdmin === null || (!isAuthenticated && !autoLoginFailed && !autoLoginAttempted)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-950 gap-3">
         <SpinnerGap weight="bold" className="w-8 h-8 text-primary-600 animate-spin" />

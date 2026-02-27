@@ -14,9 +14,10 @@ import { de, enUS } from 'date-fns/locale';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLocale, now }: { booking: Booking; onCancel: (id: string) => void; cancelling: string | null; vehiclePhoto?: string; t: ReturnType<typeof useTranslation>["t"]; dateFnsLocale: Locale; now: number }) {
-  const isExpiringSoon = booking.status === 'active' && new Date(booking.end_time).getTime() - now < 30 * 60 * 1000 && !isFuture(new Date(booking.start_time));
-  const isUpcoming = booking.status === 'active' && isFuture(new Date(booking.start_time));
-  const isActive = booking.status === 'active' && !isUpcoming;
+  const isActiveOrConfirmed = booking.status === 'active' || booking.status === 'confirmed';
+  const isExpiringSoon = isActiveOrConfirmed && new Date(booking.end_time).getTime() - now < 30 * 60 * 1000 && !isFuture(new Date(booking.start_time));
+  const isUpcoming = isActiveOrConfirmed && isFuture(new Date(booking.start_time));
+  const isActive = isActiveOrConfirmed && !isUpcoming;
   const isPastBooking = booking.status === 'completed' || booking.status === 'cancelled';
 
   const statusConfig: Record<string, { label: string; class: string; icon: ComponentType<{ weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone"; className?: string }> }> = {
@@ -79,7 +80,7 @@ function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLo
         </p>
         <div className="flex items-center gap-2">
           {isActive && <button className="btn btn-sm btn-secondary"><PencilSimple weight="bold" className="w-3.5 h-3.5" />{t('bookings.extend')}</button>}
-          {booking.status === 'active' && (
+          {isActiveOrConfirmed && (
             <button
               onClick={() => onCancel(booking.id)}
               disabled={cancelling === booking.id}
@@ -188,8 +189,9 @@ export function BookingsPage() {
     return true;
   });
 
-  const activeBookings = filteredBookings.filter(b => b.status === 'active' && !isFuture(new Date(b.start_time)));
-  const upcomingBookings = filteredBookings.filter(b => b.status === 'active' && isFuture(new Date(b.start_time)));
+  const isActiveOrConfirmed = (status: string) => status === 'active' || status === 'confirmed';
+  const activeBookings = filteredBookings.filter(b => isActiveOrConfirmed(b.status) && !isFuture(new Date(b.start_time)));
+  const upcomingBookings = filteredBookings.filter(b => isActiveOrConfirmed(b.status) && isFuture(new Date(b.start_time)));
   const pastBookings = filteredBookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
 
   if (loading) return (
