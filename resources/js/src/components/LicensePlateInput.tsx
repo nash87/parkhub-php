@@ -288,7 +288,29 @@ export function LicensePlateInput({ value, onChange, className = '', required, a
       return;
     }
 
-    // No city selected yet — just uppercase letters for city portion
+    // No city selected yet — check if a full plate was pasted/typed at once
+    if (raw.includes('-')) {
+      const dashIdx = raw.indexOf('-');
+      const code = raw.substring(0, dashIdx);
+      if (CITY_MAP.has(code)) {
+        // Auto-select city and format the rest
+        setSelectedCity(code);
+        const afterDash = raw.substring(dashIdx + 1);
+        let letters = '';
+        let numbers = '';
+        let inNumbers = false;
+        for (const ch of afterDash.replace(/[-\s]/g, '')) {
+          if (!inNumbers && /[A-ZÄÖÜ]/.test(ch) && letters.length < 2) { letters += ch; }
+          else if (/\d/.test(ch) && numbers.length < 4) { numbers += ch; inNumbers = true; }
+        }
+        let formatted = code + '-' + letters;
+        if (numbers) formatted += ' ' + numbers;
+        onChange(formatted);
+        setError('');
+        return;
+      }
+    }
+    // Still building the city portion — only allow city code chars
     const cleaned = raw.replace(/[^A-ZÄÖÜ]/g, '').substring(0, 3);
     onChange(cleaned);
     setError('');
