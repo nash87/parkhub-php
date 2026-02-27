@@ -1,6 +1,7 @@
 /vendor/
 /node_modules/
 /.env
+/.env.*
 /database/database.sqlite
 /storage/*.key
 /storage/framework/cache/data/*
@@ -16,3 +17,15 @@ yarn-error.log
 .vscode
 build-shared/
 *.zip
+
+# Certificate and key files — never commit private keys
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+
+# Database files
+*.sqlite
+*.db

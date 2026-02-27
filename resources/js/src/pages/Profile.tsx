@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash } from '@phosphor-icons/react';
+import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash, Eraser } from '@phosphor-icons/react';
 import { useAuth } from '../context/auth-hook';
 import { api, UserStats } from '../api/client';
 import { useAccessibility, ColorMode, FontScale } from '../stores/accessibility';
@@ -11,12 +11,14 @@ import { ThemeSelector } from "../components/ThemeSelector";
 
 export function ProfilePage() {
   const { t } = useTranslation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const a11y = useAccessibility();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({ name: user?.name || '', email: user?.email || '' });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAnonymizeConfirm, setShowAnonymizeConfirm] = useState(false);
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     api.getUserStats().then((res: { success: boolean; data?: UserStats }) => { if (res.success && res.data) setStats(res.data); }).catch(() => {});
@@ -24,28 +26,61 @@ export function ProfilePage() {
 
   function handleSave() { setEditing(false); toast.success(t('profile.updated')); }
 
-  function handleExportData() {
-    const data = {
-      profile: { name: user?.name, email: user?.email, username: user?.username, role: user?.role },
-      preferences: {
-        colorMode: a11y.colorMode,
-        fontScale: a11y.fontScale,
-        reducedMotion: a11y.reducedMotion,
-        highContrast: a11y.highContrast,
-      },
-      exportedAt: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'parkhub-data-export.json'; a.click();
-    URL.revokeObjectURL(url);
-    toast.success(t('gdpr.exported'));
+  async function handleExportData() {
+    setExporting(true);
+    try {
+      const base = (import.meta.env.VITE_API_URL as string) || '';
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch(`${base}/api/v1/user/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'my-parkhub-data.json'; a.click();
+      URL.revokeObjectURL(url);
+      toast.success(t('gdpr.exported'));
+    } catch {
+      toast.error(t('gdpr.exportFailed', 'Export failed'));
+    } finally {
+      setExporting(false);
+    }
   }
 
-  function handleDeleteAccount() {
-    toast.success('Account deletion requested');
+  async function handleDeleteAccount() {
+    try {
+      const base = (import.meta.env.VITE_API_URL as string) || '';
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch(`${base}/api/v1/users/me/delete`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      toast.success(t('gdpr.deleted', 'Account deleted'));
+      logout();
+    } catch {
+      toast.error(t('gdpr.deleteFailed', 'Delete failed'));
+    }
     setShowDeleteConfirm(false);
+  }
+
+  async function handleAnonymizeAccount() {
+    try {
+      const base = (import.meta.env.VITE_API_URL as string) || '';
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch(`${base}/api/v1/users/me/anonymize`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: 'User request (GDPR Art. 17)' }),
+      });
+      if (!res.ok) throw new Error('Anonymization failed');
+      toast.success(t('gdpr.anonymized', 'Persönliche Daten wurden gelöscht (DSGVO Art. 17)'));
+      logout();
+    } catch {
+      toast.error(t('gdpr.anonymizeFailed', 'Anonymisierung fehlgeschlagen'));
+    }
+    setShowAnonymizeConfirm(false);
   }
 
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
@@ -182,14 +217,26 @@ export function ProfilePage() {
 
       {/* GDPR Section */}
       <motion.div variants={itemVariants} className="card p-6 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Shield weight="fill" className="w-5 h-5 text-primary-600" />DSGVO / GDPR</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          <Shield weight="fill" className="w-5 h-5 text-primary-600" />DSGVO / GDPR
+        </h3>
+        <p className="text-xs text-gray-500 dark:text-gray-400">
+          {t('gdpr.rights', 'Ihre Rechte gemäß DSGVO Art. 15, 17 und 20.')}
+        </p>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <button onClick={handleExportData} className="btn btn-secondary flex-1">
+          <button onClick={handleExportData} disabled={exporting} className="btn btn-secondary flex-1">
             <DownloadSimple weight="bold" className="w-4 h-4" />
             <div className="text-left">
               <div className="font-medium">{t('gdpr.dataExport')}</div>
               <div className="text-xs opacity-60">{t('gdpr.dataExportDesc')}</div>
+            </div>
+          </button>
+          <button onClick={() => setShowAnonymizeConfirm(true)} className="btn btn-secondary flex-1 border-amber-300 dark:border-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20">
+            <Eraser weight="bold" className="w-4 h-4 text-amber-600" />
+            <div className="text-left">
+              <div className="font-medium">{t('gdpr.anonymize', 'Daten löschen (Art. 17)')}</div>
+              <div className="text-xs opacity-60">{t('gdpr.anonymizeDesc', 'PII löschen, Buchungen anonymisieren')}</div>
             </div>
           </button>
           <button onClick={() => setShowDeleteConfirm(true)} className="btn btn-danger flex-1">
@@ -209,6 +256,15 @@ export function ProfilePage() {
         title={t('gdpr.deleteConfirmTitle')}
         message={t('gdpr.deleteConfirmMessage')}
         confirmLabel={t('gdpr.deleteConfirmBtn')}
+        variant="danger"
+      />
+      <ConfirmDialog
+        open={showAnonymizeConfirm}
+        onCancel={() => setShowAnonymizeConfirm(false)}
+        onConfirm={handleAnonymizeAccount}
+        title={t('gdpr.anonymizeConfirmTitle', 'Daten anonymisieren?')}
+        message={t('gdpr.anonymizeConfirmMessage', 'Alle persönlichen Daten (Name, E-Mail, Kennzeichen, Abwesenheiten, Fahrzeuge) werden unwiderruflich gelöscht. Buchungsdatensätze bleiben anonymisiert erhalten (steuerrechtliche Aufbewahrungspflicht). Sie werden danach ausgeloggt.')}
+        confirmLabel={t('gdpr.anonymizeConfirmBtn', 'Daten löschen')}
         variant="danger"
       />
     </motion.div>

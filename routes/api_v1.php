@@ -20,10 +20,12 @@ use App\Http\Controllers\Api\ZoneController;
 use App\Http\Controllers\Api\MiscController;
 use Illuminate\Support\Facades\Route;
 
-// Auth
-Route::post('/auth/login', [AuthController::class, 'login']);
-Route::post('/auth/register', [AuthController::class, 'register']);
-Route::post('/auth/refresh', [AuthController::class, 'refresh']);
+// Auth — rate limited: 10 attempts per minute per IP to prevent brute force
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/auth/login',    [AuthController::class, 'login']);
+    Route::post('/auth/register', [AuthController::class, 'register']);
+    Route::post('/auth/refresh',  [AuthController::class, 'refresh']);
+});
 
 // Setup
 Route::get('/setup/status', [SetupController::class, 'status']);
@@ -84,7 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Users
     Route::get('/users/me', [AuthController::class, 'me']);
     Route::put('/users/me', [AuthController::class, 'updateMe']);
-    Route::get('/users/me/export', [UserController::class, 'stats']);
+    Route::get('/users/me/export', [UserController::class, 'exportData']);
     Route::delete('/users/me/delete', [AuthController::class, 'deleteAccount']);
 
     // Lots
@@ -199,9 +201,15 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::get('/health/live', [\App\Http\Controllers\Api\HealthController::class, 'live']);
 Route::get('/health/ready', [\App\Http\Controllers\Api\HealthController::class, 'ready']);
 
+// Impressum — public (DDG § 5 requires it to be freely accessible)
+Route::get('/legal/impressum', [\App\Http\Controllers\Api\AdminController::class, 'publicImpress']);
+
 Route::middleware('auth:sanctum')->group(function () {
     // iCal export
     Route::get('/user/calendar.ics', [\App\Http\Controllers\Api\UserController::class, 'calendarExport']);
+
+    // Invoice (HTML, printer-friendly — use browser "Print → Save as PDF")
+    Route::get('/bookings/{id}/invoice', [\App\Http\Controllers\Api\BookingInvoiceController::class, 'show']);
 
     // GDPR data export
     Route::get('/user/export', [\App\Http\Controllers\Api\UserController::class, 'exportData']);
@@ -230,8 +238,10 @@ use App\Http\Controllers\Api\SystemController;
 Route::get('/system/version',     [SystemController::class, 'version']);
 Route::get('/system/maintenance', [SystemController::class, 'maintenance']);
 
-// Auth (public)
-Route::post('/auth/forgot-password', [\App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
+// Auth (public) — rate limited: 5 password resets per 15 min per IP
+Route::middleware('throttle:5,15')->group(function () {
+    Route::post('/auth/forgot-password', [\App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
+});
 
 // Branding logo (public)
 Route::get('/branding/logo', [\App\Http\Controllers\Api\AdminController::class, 'serveBrandingLogo']);
@@ -267,6 +277,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Push: unsubscribe
     Route::delete('/push/unsubscribe', [UserController::class, 'pushUnsubscribe']);
 
+    // GDPR Art. 17 — Right to Erasure (anonymize, not hard-delete)
+    Route::post('/users/me/anonymize', [UserController::class, 'anonymizeAccount']);
+
     // QR codes
     Route::get('/lots/{id}/qr',                   [LotController::class, 'qrCode']);
     Route::get('/lots/{lotId}/slots/{slotId}/qr',  [LotController::class, 'slotQrCode']);
@@ -277,6 +290,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/admin/branding/logo',    [AdminController::class, 'uploadBrandingLogo']);
     Route::get('/admin/privacy',           [AdminController::class, 'getPrivacy']);
     Route::put('/admin/privacy',           [AdminController::class, 'updatePrivacy']);
+
+    // Impressum admin editor (DDG § 5 fields)
+    Route::get('/admin/impressum',         [AdminController::class, 'getImpress']);
+    Route::put('/admin/impressum',         [AdminController::class, 'updateImpress']);
     Route::get('/admin/reports',           [AdminController::class, 'reports']);
     Route::get('/admin/dashboard/charts',  [AdminController::class, 'dashboardCharts']);
     Route::post('/admin/reset',            [AdminController::class, 'resetDatabase']);

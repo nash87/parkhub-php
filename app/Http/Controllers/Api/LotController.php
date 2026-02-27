@@ -11,10 +11,28 @@ class LotController extends Controller
 {
     public function index()
     {
-        $lots = ParkingLot::all()->map(function ($lot) {
-            $lot->available_slots = $this->calculateAvailable($lot);
+        $now = now();
+
+        // Single query: count total slots per lot
+        $slotCounts = ParkingSlot::selectRaw('lot_id, COUNT(*) as total')
+            ->groupBy('lot_id')
+            ->pluck('total', 'lot_id');
+
+        // Single query: count currently occupied slots per lot
+        $occupiedCounts = Booking::whereIn('status', ['confirmed', 'active'])
+            ->where('start_time', '<=', $now)
+            ->where('end_time', '>=', $now)
+            ->selectRaw('lot_id, COUNT(*) as occupied')
+            ->groupBy('lot_id')
+            ->pluck('occupied', 'lot_id');
+
+        $lots = ParkingLot::all()->map(function ($lot) use ($slotCounts, $occupiedCounts) {
+            $total    = $slotCounts->get($lot->id, 0);
+            $occupied = $occupiedCounts->get($lot->id, 0);
+            $lot->available_slots = max(0, $total - $occupied);
             return $lot;
         });
+
         return response()->json($lots);
     }
 
@@ -33,7 +51,8 @@ class LotController extends Controller
         // Auto-generate layout from slots if not set (Rust frontend requires layout)
         if (!$lot->layout) {
             $slots = $lot->slots()->get();
-            $activeBookings = Booking::where('lot_id', $id)
+            $activeBookings = Booking::with('user')
+                ->where('lot_id', $id)
                 ->whereIn('status', ['confirmed', 'active'])
                 ->where('start_time', '<=', now())
                 ->where('end_time', '>=', now())
@@ -84,19 +103,25 @@ class LotController extends Controller
     public function slots(string $id)
     {
         $lot = ParkingLot::findOrFail($id);
-        $slots = $lot->slots()->get()->map(function ($slot) {
-            $activeBooking = Booking::where('slot_id', $slot->id)
-                ->whereIn('status', ['confirmed', 'active'])
-                ->where('start_time', '<=', now())
-                ->where('end_time', '>=', now())
-                ->first();
+
+        // Fetch all active bookings for this lot in a single query, keyed by slot_id
+        $now = now();
+        $activeBookings = Booking::where('lot_id', $id)
+            ->whereIn('status', ['confirmed', 'active'])
+            ->where('start_time', '<=', $now)
+            ->where('end_time', '>=', $now)
+            ->get()
+            ->keyBy('slot_id');
+
+        $slots = $lot->slots()->get()->map(function ($slot) use ($activeBookings) {
+            $activeBooking = $activeBookings->get($slot->id);
 
             $slot->current_booking = $activeBooking ? [
-                'booking_id' => $activeBooking->id,
-                'user_id' => $activeBooking->user_id,
+                'booking_id'    => $activeBooking->id,
+                'user_id'       => $activeBooking->user_id,
                 'license_plate' => $activeBooking->vehicle_plate,
-                'start_time' => $activeBooking->start_time->toISOString(),
-                'end_time' => $activeBooking->end_time->toISOString(),
+                'start_time'    => $activeBooking->start_time->toISOString(),
+                'end_time'      => $activeBooking->end_time->toISOString(),
             ] : null;
 
             return $slot;

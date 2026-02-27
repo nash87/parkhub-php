@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChartBar, Buildings, Users, ListChecks, Plus, CheckCircle, TrendUp, CaretRight,
   SpinnerGap, MagnifyingGlass, XCircle, Trash, PencilSimple,
-  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit, Palette, GearSix, ArrowsClockwise, ClockCounterClockwise,
+  Lightning, Pulse, ShieldCheck, Clock, House, Prohibit, Palette, GearSix, ArrowsClockwise, ClockCounterClockwise, Article,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, User, Booking, AdminStats } from '../api/client';
 import { LotLayoutEditor } from '../components/LotLayoutEditor';
 import { AdminBrandingPage } from './AdminBranding';
 import { AdminPrivacyPage } from './AdminPrivacy';
+import { AdminImpressPage } from './AdminImpress';
 import { AuditLogPage } from './AuditLog';
 import { useTranslation } from 'react-i18next';
 
@@ -29,6 +30,7 @@ function AdminNav() {
     { name: t('admin.tabs.bookings'), path: '/admin/bookings', icon: ListChecks },
     { name: t('admin.tabs.branding', 'Branding'), path: '/admin/branding', icon: Palette },
     { name: t('admin.tabs.privacy', 'Privacy'), path: '/admin/privacy', icon: ShieldCheck },
+    { name: t('admin.tabs.impressum', 'Impressum'), path: '/admin/impressum', icon: Article },
     { name: t('admin.tabs.system', 'System'), path: '/admin/system', icon: GearSix },
     { name: t('admin.tabs.auditLog', 'Audit Log'), path: '/admin/audit-log', icon: ClockCounterClockwise },
   ];
@@ -673,7 +675,7 @@ export function AdminPage() {
     <div>
       <div className="mb-2"><h1 className="text-2xl font-bold text-gray-900 dark:text-white">{t('admin.title')}</h1><p className="text-gray-500 dark:text-gray-400 mt-1">{t('admin.subtitle')}</p></div>
       <AdminNav />
-      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /><Route path="/privacy" element={<AdminPrivacyPage />} /><Route path="/audit-log" element={<AuditLogPage />} /><Route path="/system" element={<AdminSystem />} /></Routes>
+      <Routes><Route path="/" element={<AdminOverview />} /><Route path="/lots" element={<AdminLots />} /><Route path="/users" element={<AdminUsers />} /><Route path="/bookings" element={<AdminBookings />} /><Route path="/branding" element={<AdminBrandingPage />} /><Route path="/privacy" element={<AdminPrivacyPage />} /><Route path="/impressum" element={<AdminImpressPage />} /><Route path="/audit-log" element={<AuditLogPage />} /><Route path="/system" element={<AdminSystem />} /></Routes>
     </div>
   );
 }

@@ -2,11 +2,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeEmail;
 use App\Models\User;
 use App\Models\AuditLog;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -58,10 +60,10 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $request->validate([
-            'username' => 'required|string|min:3|unique:users',
-            'email' => 'required|email|unique:users',
-            'password' => 'required|string|min:8',
-            'name' => 'required|string',
+            'username' => 'required|string|min:3|max:50|unique:users|alpha_dash',
+            'email'    => 'required|email|max:255|unique:users',
+            'password' => 'required|string|min:8|max:128',
+            'name'     => 'required|string|max:255',
         ]);
 
         $user = User::create([
@@ -82,6 +84,11 @@ class AuthController extends Controller
             'action' => 'register',
             'ip_address' => $request->ip(),
         ]);
+
+        // Send welcome email (queued — non-blocking)
+        if ($user->email) {
+            Mail::to($user->email)->queue(new WelcomeEmail($user));
+        }
 
         return response()->json([
             'user' => $this->userResponse($user),
@@ -116,12 +123,16 @@ class AuthController extends Controller
     public function updateMe(Request $request)
     {
         $user = $request->user();
+
+        $request->validate([
+            'name'       => 'sometimes|string|max:255',
+            'email'      => 'sometimes|email|max:255|unique:users,email,' . $user->id,
+            'phone'      => 'sometimes|nullable|string|max:50',
+            'department' => 'sometimes|nullable|string|max:255',
+            // Password changes should go through /users/me/password (requires current_password)
+        ]);
+
         $data = $request->only(['name', 'email', 'phone', 'department']);
-
-        if ($request->has('password') && $request->password) {
-            $data['password'] = Hash::make($request->password);
-        }
-
         $user->update($data);
         return response()->json($this->userResponse($user->fresh()));
     }
@@ -129,7 +140,23 @@ class AuthController extends Controller
 
     public function deleteAccount(Request $request)
     {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
         $user = $request->user();
+
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json(['error' => 'INVALID_PASSWORD', 'message' => 'Password confirmation failed'], 403);
+        }
+
+        AuditLog::create([
+            'user_id'    => $user->id,
+            'username'   => $user->username,
+            'action'     => 'account_deleted',
+            'ip_address' => $request->ip(),
+        ]);
+
         $user->tokens()->delete();
         $user->delete();
         return response()->json(['message' => 'Account deleted']);

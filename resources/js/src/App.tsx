@@ -37,6 +37,7 @@ const TeamPage = lazy(() => import('./pages/Team').then(m => ({ default: m.TeamP
 const CalendarPage = lazy(() => import('./pages/Calendar').then(m => ({ default: m.CalendarPage })));
 const OccupancyDisplayPage = lazy(() => import('./pages/OccupancyDisplay').then(m => ({ default: m.OccupancyDisplayPage })));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPassword").then(m => ({ default: m.ForgotPasswordPage })));
+const ImpressumPage = lazy(() => import('./pages/Impressum').then(m => ({ default: m.ImpressumPage })));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -131,6 +132,7 @@ function AppRoutes() {
       <Route path="/terms" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><TermsPage /></Suspense></PublicPageWithLayout>} />
       <Route path="/legal" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><LegalPage /></Suspense></PublicPageWithLayout>} />
       <Route path="/about" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><AboutPage /></Suspense></PublicPageWithLayout>} />
+      <Route path="/impressum" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><ImpressumPage /></Suspense></PublicPageWithLayout>} />
       <Route path="/help" element={<ProtectedRoute><Suspense fallback={<LoadingScreen />}><HelpPage /></Suspense></ProtectedRoute>} />
 
       {/* Protected */}

@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\BookingConfirmation;
 use App\Models\Booking;
 use App\Models\ParkingSlot;
 use App\Models\ParkingLot;
@@ -9,6 +10,7 @@ use App\Models\GuestBooking;
 use App\Models\BookingNote;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 class BookingController extends Controller
@@ -25,9 +27,14 @@ class BookingController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'lot_id' => 'required|uuid',
-            'slot_id' => 'nullable|uuid',
-            'start_time' => 'required|date',
+            'lot_id'       => 'required|uuid',
+            'slot_id'      => 'nullable|uuid',
+            'start_time'   => 'required|date',
+            'end_time'     => 'nullable|date|after:start_time',
+            'booking_type' => 'nullable|string|max:50',
+            'notes'        => 'nullable|string|max:2000',
+            'vehicle_plate'=> 'nullable|string|max:20',
+            'license_plate'=> 'nullable|string|max:20',
         ]);
 
         $endTime = $request->end_time ?? now()->addHours(8)->toDateTimeString();
@@ -84,6 +91,12 @@ class BookingController extends Controller
             'action' => 'booking_created',
             'details' => ['booking_id' => $booking->id, 'slot' => $slot->slot_number],
         ]);
+
+        // Send booking confirmation email (queued — non-blocking)
+        $recipient = $request->user();
+        if ($recipient->email) {
+            Mail::to($recipient->email)->queue(new BookingConfirmation($booking, $recipient));
+        }
 
         return response()->json($booking, 201);
     }
@@ -244,14 +257,27 @@ class BookingController extends Controller
 
     public function updateNotes(Request $request, string $id)
     {
-        $booking = Booking::findOrFail($id);
+        // Enforce ownership — regular users may only update their own bookings.
+        // Admins may update any booking's notes.
+        $user = $request->user();
+        if ($user->isAdmin()) {
+            $booking = Booking::findOrFail($id);
+        } else {
+            $booking = Booking::where('user_id', $user->id)->findOrFail($id);
+        }
+
+        $request->validate([
+            'notes' => 'nullable|string|max:2000',
+            'note'  => 'nullable|string|max:2000',
+        ]);
+
         $booking->update(['notes' => $request->notes]);
 
-        if ($request->note) {
+        if ($request->filled('note')) {
             BookingNote::create([
                 'booking_id' => $id,
-                'user_id' => $request->user()->id,
-                'note' => $request->note,
+                'user_id'    => $user->id,
+                'note'       => $request->note,
             ]);
         }
 

@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   CalendarBlank, Clock, Car, X, SpinnerGap, CheckCircle, XCircle, ArrowClockwise,
   Warning, MapPin, CalendarPlus, Repeat, PencilSimple, Timer, CalendarCheck,
-  MagnifyingGlass, Funnel,
+  MagnifyingGlass, Funnel, Receipt,
 } from '@phosphor-icons/react';
 import { api, Booking, Vehicle } from '../api/client';
 import { useTranslation } from 'react-i18next';
@@ -80,8 +80,43 @@ function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLo
         <div className="flex items-center gap-2">
           {isActive && <button className="btn btn-sm btn-secondary"><PencilSimple weight="bold" className="w-3.5 h-3.5" />{t('bookings.extend')}</button>}
           {booking.status === 'active' && (
-            <button onClick={() => onCancel(booking.id)} disabled={cancelling === booking.id} className="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-              {cancelling === booking.id ? <SpinnerGap weight="bold" className="w-4 h-4 animate-spin" /> : <><X weight="bold" className="w-4 h-4" />{t('bookings.cancelBtn')}</>}
+            <button
+              onClick={() => onCancel(booking.id)}
+              disabled={cancelling === booking.id}
+              aria-busy={cancelling === booking.id}
+              aria-label={`${t('bookings.cancelBtn')} – ${booking.lot_name} ${t('dashboard.slot')} ${booking.slot_number}`}
+              className="btn btn-sm btn-ghost text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            >
+              {cancelling === booking.id ? (
+                <SpinnerGap weight="bold" className="w-4 h-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <>
+                  <X weight="bold" className="w-4 h-4" aria-hidden="true" />
+                  {t('bookings.cancelBtn')}
+                </>
+              )}
+            </button>
+          )}
+          {booking.status === 'completed' && (
+            <button
+              className="btn btn-sm btn-secondary"
+              title={t('bookings.invoice', 'Rechnung öffnen')}
+              onClick={async () => {
+                const base = (import.meta.env.VITE_API_URL as string) || '';
+                const token = localStorage.getItem('parkhub_token');
+                const res = await fetch(`${base}/api/v1/bookings/${booking.id}/invoice`, {
+                  headers: { Authorization: `Bearer ${token}` },
+                });
+                if (res.ok) {
+                  const blob = await res.blob();
+                  const url = URL.createObjectURL(blob);
+                  window.open(url, '_blank');
+                  setTimeout(() => URL.revokeObjectURL(url), 60000);
+                }
+              }}
+            >
+              <Receipt weight="bold" className="w-3.5 h-3.5" />
+              {t('bookings.invoice', 'Rechnung')}
             </button>
           )}
         </div>
@@ -90,8 +125,14 @@ function BookingCard({ booking, onCancel, cancelling, vehiclePhoto, t, dateFnsLo
   );
 }
 
-function SectionHeader({ icon: Icon, title, count, color }: { icon: ComponentType<{ weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone"; className?: string }>; title: string; count: number; color: string }) {
-  return <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Icon weight="fill" className={`w-5 h-5 ${color}`} />{title}<span className="badge badge-gray text-xs">{count}</span></h2>;
+function SectionHeader({ icon: Icon, title, count, color, headingId }: { icon: ComponentType<{ weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone"; className?: string }>; title: string; count: number; color: string; headingId?: string }) {
+  return (
+    <h2 id={headingId} className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+      <Icon weight="fill" className={`w-5 h-5 ${color}`} aria-hidden="true" />
+      {title}
+      <span className="badge badge-gray text-xs" aria-label={`${count} Einträge`}>{count}</span>
+    </h2>
+  );
 }
 
 function EmptySection({ icon: Icon, text, showAction = false, t }: { icon: ComponentType<{ weight?: "thin" | "light" | "regular" | "bold" | "fill" | "duotone"; className?: string }>; text: string; showAction?: boolean; t: ReturnType<typeof useTranslation>["t"] }) {
@@ -151,7 +192,13 @@ export function BookingsPage() {
   const upcomingBookings = filteredBookings.filter(b => b.status === 'active' && isFuture(new Date(b.start_time)));
   const pastBookings = filteredBookings.filter(b => b.status === 'completed' || b.status === 'cancelled');
 
-  if (loading) return <div className="space-y-6"><div className="h-8 w-64 skeleton" />{[1,2,3].map(i => <div key={i} className="h-40 skeleton rounded-2xl" />)}</div>;
+  if (loading) return (
+    <div className="space-y-6" role="status" aria-label={t('bookings.loading', 'Buchungen werden geladen')} aria-busy="true">
+      <div className="h-8 w-64 skeleton" aria-hidden="true" />
+      {[1,2,3].map(i => <div key={i} className="h-40 skeleton rounded-2xl" aria-hidden="true" />)}
+      <span className="sr-only">{t('bookings.loading', 'Buchungen werden geladen…')}</span>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -185,26 +232,26 @@ export function BookingsPage() {
         </div>
       </div>
 
-      <div>
-        <SectionHeader icon={Clock} title={t('bookings.active')} count={activeBookings.length} color="text-emerald-600" />
+      <section aria-labelledby="active-section-heading">
+        <SectionHeader icon={Clock} title={t('bookings.active')} count={activeBookings.length} color="text-emerald-600" headingId="active-section-heading" />
         {activeBookings.length === 0 ? <EmptySection icon={CalendarBlank} text={t('bookings.noActive')} showAction t={t} /> : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"><AnimatePresence>{activeBookings.map(bk => <BookingCard key={bk.id} booking={bk} now={Date.now()} onCancel={(id) => setConfirmCancelId(id)} cancelling={cancelling} vehiclePhoto={getVehiclePhoto(bk.vehicle_plate)} t={t} dateFnsLocale={dateFnsLocale} />)}</AnimatePresence></div>
         )}
-      </div>
+      </section>
 
-      <div>
-        <SectionHeader icon={CalendarPlus} title={t('bookings.upcoming')} count={upcomingBookings.length} color="text-primary-600" />
+      <section aria-labelledby="upcoming-section-heading">
+        <SectionHeader icon={CalendarPlus} title={t('bookings.upcoming')} count={upcomingBookings.length} color="text-primary-600" headingId="upcoming-section-heading" />
         {upcomingBookings.length === 0 ? <EmptySection icon={CalendarCheck} text={t('bookings.noUpcoming')} t={t} /> : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4"><AnimatePresence>{upcomingBookings.map(bk => <BookingCard key={bk.id} booking={bk} now={Date.now()} onCancel={(id) => setConfirmCancelId(id)} cancelling={cancelling} vehiclePhoto={getVehiclePhoto(bk.vehicle_plate)} t={t} dateFnsLocale={dateFnsLocale} />)}</AnimatePresence></div>
         )}
-      </div>
+      </section>
 
-      <div>
-        <SectionHeader icon={CalendarBlank} title={t('bookings.past')} count={pastBookings.length} color="text-gray-400" />
+      <section aria-labelledby="past-section-heading">
+        <SectionHeader icon={CalendarBlank} title={t('bookings.past')} count={pastBookings.length} color="text-gray-400" headingId="past-section-heading" />
         {pastBookings.length === 0 ? <EmptySection icon={CheckCircle} text={t('bookings.noPast')} t={t} /> : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">{pastBookings.map(bk => <BookingCard key={bk.id} booking={bk} now={Date.now()} onCancel={(id) => setConfirmCancelId(id)} cancelling={cancelling} vehiclePhoto={getVehiclePhoto(bk.vehicle_plate)} t={t} dateFnsLocale={dateFnsLocale} />)}</div>
         )}
-      </div>
+      </section>
 
       <ConfirmDialog open={!!confirmCancelId} title={t('confirm.cancelBookingTitle')} message={t('confirm.cancelBookingMessage')} confirmLabel={t('confirm.cancelBookingConfirm')} variant="danger"
         onConfirm={() => { if (confirmCancelId) handleCancel(confirmCancelId); setConfirmCancelId(null); }} onCancel={() => setConfirmCancelId(null)} />

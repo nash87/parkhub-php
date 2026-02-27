@@ -676,6 +676,22 @@ export const de = {
     },
   },
 
+  // Impressum (DDG § 5 — Angaben gemäß § 5 DDG)
+  impressum: {
+    title: 'Impressum',
+    subtitle: 'Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz)',
+    provider: 'Anbieter',
+    contact: 'Kontakt',
+    register: 'Handelsregister & Steuern',
+    registerCourt: 'Registergericht',
+    registerNumber: 'Registernummer',
+    vatId: 'Umsatzsteuer-ID',
+    responsible: 'Verantwortliche Person',
+    legalBasis: 'Angaben gemäß § 5 DDG. Jeder Betreiber dieser ParkHub-Instanz ist verpflichtet, diese Seite mit eigenen Angaben zu befüllen.',
+    notConfigured: 'Impressum noch nicht konfiguriert',
+    configureHint: 'Bitte füllen Sie die Impressum-Daten unter Admin → Einstellungen → Impressum aus.',
+  },
+
   // Über
   about: {
     title: 'Über ParkHub',

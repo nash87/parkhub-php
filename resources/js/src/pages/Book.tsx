@@ -20,17 +20,52 @@ function BookingSuccessModal({ open, onDashboard, onNewBooking, summary }: {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: 'spring', damping: 20, stiffness: 300 }} className="relative w-full max-w-md card p-8 shadow-2xl text-center">
-            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2, type: 'spring', damping: 12 }} className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="success-modal-title"
+        >
+          <motion.div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+            className="relative w-full max-w-md card p-8 shadow-2xl text-center"
+          >
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring', damping: 12 }}
+              className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-6"
+              aria-hidden="true"
+            >
               <motion.div initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} transition={{ delay: 0.4, type: 'spring', damping: 15 }}>
                 <CheckCircle weight="fill" className="w-12 h-12 text-emerald-500" />
               </motion.div>
             </motion.div>
-            <motion.h2 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{t('bookingSuccess.title')}</motion.h2>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-gray-500 dark:text-gray-400 mb-6">{t('bookingSuccess.subtitle')}</motion.p>
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }} className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-6 text-left space-y-2">
+            <motion.h2
+              id="success-modal-title"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="text-2xl font-bold text-gray-900 dark:text-white mb-2"
+            >
+              {t('bookingSuccess.title')}
+            </motion.h2>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="text-gray-500 dark:text-gray-400 mb-6">
+              {t('bookingSuccess.subtitle')}
+            </motion.p>
+            <motion.dl
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 mb-6 text-left space-y-2"
+            >
               {[
                 [t('bookingSuccess.parkingLot'), summary.lot],
                 [t('bookingSuccess.slot'), summary.slot],
@@ -39,14 +74,14 @@ function BookingSuccessModal({ open, onDashboard, onNewBooking, summary }: {
                 [t('bookingSuccess.plate'), summary.plate],
               ].map(([label, val], i) => (
                 <div key={i} className="flex justify-between text-sm">
-                  <span className="text-gray-500 dark:text-gray-400">{label}</span>
-                  <span className={`font-medium text-gray-900 dark:text-white ${i === 1 ? 'font-bold text-primary-600 dark:text-primary-400' : ''} ${i === 4 ? 'font-mono' : ''}`}>{val}</span>
+                  <dt className="text-gray-500 dark:text-gray-400">{label}</dt>
+                  <dd className={`font-medium text-gray-900 dark:text-white ${i === 1 ? 'font-bold text-primary-600 dark:text-primary-400' : ''} ${i === 4 ? 'font-mono' : ''}`}>{val}</dd>
                 </div>
               ))}
-            </motion.div>
+            </motion.dl>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }} className="flex gap-3">
               <button onClick={onNewBooking} className="btn btn-secondary flex-1">{t('bookingSuccess.newBooking')}</button>
-              <button onClick={onDashboard} className="btn btn-primary flex-1">{t('bookingSuccess.toDashboard')}</button>
+              <button onClick={onDashboard} autoFocus className="btn btn-primary flex-1">{t('bookingSuccess.toDashboard')}</button>
             </motion.div>
           </motion.div>
         </motion.div>
@@ -221,23 +256,59 @@ export function BookPage() {
       {/* Step 1 */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card p-6">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center"><span className="text-sm font-bold text-primary-600 dark:text-primary-400">1</span></div>
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('book.step1')}</h2>
+          <div className="w-8 h-8 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center" aria-hidden="true">
+            <span className="text-sm font-bold text-primary-600 dark:text-primary-400">1</span>
+          </div>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white" id="step1-label">{t('book.step1')}</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {lots.map((lot) => (
-            <button key={lot.id} onClick={() => { setSelectedLot(lot.id); setSelectedSlot(null); setDetailedLot(null); }}
-              className={`p-4 rounded-xl border-2 text-left transition-all ${selectedLot === lot.id ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'}`}>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <MapPin weight="fill" className="w-5 h-5 text-gray-400" />
-                  <div><p className="font-medium text-gray-900 dark:text-white">{lot.name}</p><p className="text-sm text-gray-500 dark:text-gray-400">{lot.address}</p></div>
-                </div>
-                <div className={`badge ${lot.available_slots === 0 ? 'badge-error' : 'badge-success'}`}>{lot.available_slots} {t('common.free')}</div>
-              </div>
-            </button>
-          ))}
-        </div>
+        {lots.length === 0 ? (
+          <p className="text-gray-500 dark:text-gray-400 py-4">{t('book.noLots', 'Keine Parkplätze verfügbar.')}</p>
+        ) : (
+          <div role="radiogroup" aria-labelledby="step1-label" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {lots.map((lot) => {
+              const isSelected = selectedLot === lot.id;
+              const isFull = lot.available_slots === 0;
+              return (
+                <button
+                  key={lot.id}
+                  role="radio"
+                  aria-checked={isSelected}
+                  aria-disabled={isFull}
+                  onClick={() => {
+                    if (!isFull) {
+                      setSelectedLot(lot.id);
+                      setSelectedSlot(null);
+                      setDetailedLot(null);
+                    }
+                  }}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    isSelected
+                      ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20'
+                      : isFull
+                      ? 'border-gray-200 dark:border-gray-700 opacity-60 cursor-not-allowed'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <MapPin weight="fill" className="w-5 h-5 text-gray-400" aria-hidden="true" />
+                      <div>
+                        <p className="font-medium text-gray-900 dark:text-white">{lot.name}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{lot.address}</p>
+                      </div>
+                    </div>
+                    <div
+                      className={`badge ${isFull ? 'badge-error' : 'badge-success'}`}
+                      aria-label={isFull ? t('book.full', 'Ausgebucht') : `${lot.available_slots} ${t('common.free')}`}
+                    >
+                      {isFull ? t('book.full', 'Voll') : `${lot.available_slots} ${t('common.free')}`}
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </motion.div>
 
       {/* Step 2 */}
@@ -274,16 +345,25 @@ export function BookPage() {
             <div className="space-y-6">
               {/* Booking type */}
               <div>
-                <label className="label flex items-center gap-2"><CalendarBlank weight="regular" className="w-4 h-4" />{t('book.bookingType')}</label>
-                <div className="grid grid-cols-3 gap-2">
+                <label id="booking-type-label" className="label flex items-center gap-2">
+                  <CalendarBlank weight="regular" className="w-4 h-4" aria-hidden="true" />
+                  {t('book.bookingType')}
+                </label>
+                <div role="radiogroup" aria-labelledby="booking-type-label" className="grid grid-cols-3 gap-2">
                   {([
                     { value: 'einmalig' as const, label: t('book.single'), icon: Clock },
                     { value: 'mehrtaegig' as const, label: t('book.multiDay'), icon: CalendarBlank },
                     { value: 'dauer' as const, label: t('book.recurring'), icon: Repeat },
                   ]).map(({ value, label, icon: Icon }) => (
-                    <button key={value} onClick={() => setBookingType(value)}
-                      className={`py-3 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${bookingType === value ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}>
-                      <Icon weight={bookingType === value ? 'fill' : 'regular'} className="w-4 h-4" />{label}
+                    <button
+                      key={value}
+                      role="radio"
+                      aria-checked={bookingType === value}
+                      onClick={() => setBookingType(value)}
+                      className={`py-3 px-4 rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 ${bookingType === value ? 'bg-primary-600 text-white' : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'}`}
+                    >
+                      <Icon weight={bookingType === value ? 'fill' : 'regular'} className="w-4 h-4" aria-hidden="true" />
+                      {label}
                     </button>
                   ))}
                 </div>
@@ -389,27 +469,52 @@ export function BookPage() {
         )}
       </AnimatePresence>
 
+      {/* Slot selection live announcement */}
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {selectedSlot ? `${t('book.slotSelectedAnnouncement', 'Stellplatz')} ${selectedSlot.number} ${t('book.selected', 'ausgewählt')}.` : ''}
+      </div>
+
       {/* Summary */}
       <AnimatePresence>
         {selectedSlot && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="card bg-gradient-to-br from-primary-600 to-primary-700 p-6 text-white">
             <h2 className="text-lg font-semibold mb-4">{t('book.summary')}</h2>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div><p className="text-white/70 text-sm">{t('book.parkingLot')}</p><p className="font-medium">{selectedLotData?.name}</p></div>
-              <div><p className="text-white/70 text-sm">{t('book.parkingSlot')}</p><p className="font-medium">{selectedSlot.number}</p></div>
-              <div><p className="text-white/70 text-sm">{t('book.type')}</p><p className="font-medium">{bookingType === 'einmalig' ? t('book.single') : bookingType === 'mehrtaegig' ? t('book.multiDay') : t('book.recurring')}</p></div>
+            <dl className="grid grid-cols-2 gap-4 mb-6">
+              <div><dt className="text-white/70 text-sm">{t('book.parkingLot')}</dt><dd className="font-medium">{selectedLotData?.name}</dd></div>
+              <div><dt className="text-white/70 text-sm">{t('book.parkingSlot')}</dt><dd className="font-medium">{selectedSlot.number}</dd></div>
+              <div><dt className="text-white/70 text-sm">{t('book.type')}</dt><dd className="font-medium">{bookingType === 'einmalig' ? t('book.single') : bookingType === 'mehrtaegig' ? t('book.multiDay') : t('book.recurring')}</dd></div>
               <div>
-                <p className="text-white/70 text-sm">{bookingType === 'einmalig' ? t('book.durationLabel') : bookingType === 'mehrtaegig' ? t('book.periodLabel') : t('book.intervalLabel')}</p>
-                <p className="font-medium">
+                <dt className="text-white/70 text-sm">{bookingType === 'einmalig' ? t('book.durationLabel') : bookingType === 'mehrtaegig' ? t('book.periodLabel') : t('book.intervalLabel')}</dt>
+                <dd className="font-medium">
                   {bookingType === 'einmalig' && <>{format(new Date(bookingDate), 'd. MMM yyyy', { locale: dateFnsLocale })} — {timeOption === 'fullDay' ? t('booking.fullDay') : timeOption === 'morning' ? t('booking.morning') : timeOption === 'afternoon' ? t('booking.afternoon') : `${customStartTime} – ${customEndTime}`}</>}
                   {bookingType === 'mehrtaegig' && <>{format(new Date(startDate), 'd. MMM', { locale: dateFnsLocale })} — {format(new Date(endDate), 'd. MMM yyyy', { locale: dateFnsLocale })}</>}
                   {bookingType === 'dauer' && <>{dauerInterval === 'weekly' ? `${t('book.weeklyShort')} (${dauerDays.map(d => dayNames[d]).join(', ')})` : t('book.monthly')} ab {format(new Date(startDate), 'd. MMM yyyy', { locale: dateFnsLocale })}</>}
-                </p>
+                </dd>
               </div>
-              <div className="col-span-2"><p className="text-white/70 text-sm">{t('book.licensePlate')}</p><p className="font-medium">{selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.plate : customPlate || '—'}</p></div>
-            </div>
-            <button type="button" onClick={(e) => { e.preventDefault(); handleBook(); }} disabled={booking || (!selectedVehicle && licensePlateEntryMode === 1 && !customPlate)} className="btn bg-white text-primary-700 hover:bg-white/90 w-full justify-center">
-              {booking ? <SpinnerGap weight="bold" className="w-5 h-5 animate-spin" /> : <><CheckCircle weight="bold" className="w-5 h-5" />{t('book.bookNow')}</>}
+              <div className="col-span-2">
+                <dt className="text-white/70 text-sm">{t('book.licensePlate')}</dt>
+                <dd className="font-medium font-mono">{selectedVehicle ? vehicles.find(v => v.id === selectedVehicle)?.plate : customPlate || '—'}</dd>
+              </div>
+            </dl>
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); handleBook(); }}
+              disabled={booking || (!selectedVehicle && licensePlateEntryMode === 1 && !customPlate)}
+              aria-busy={booking}
+              aria-disabled={booking || (!selectedVehicle && licensePlateEntryMode === 1 && !customPlate)}
+              className="btn bg-white text-primary-700 hover:bg-white/90 w-full justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {booking ? (
+                <>
+                  <SpinnerGap weight="bold" className="w-5 h-5 animate-spin" aria-hidden="true" />
+                  <span>{t('book.bookingInProgress', 'Buchung wird gespeichert…')}</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle weight="bold" className="w-5 h-5" aria-hidden="true" />
+                  {t('book.bookNow')}
+                </>
+              )}
             </button>
           </motion.div>
         )}

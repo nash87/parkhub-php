@@ -93,6 +93,8 @@ function Autocomplete({ value, onChange, options, placeholder, label }: {
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('');
   const ref = useRef<HTMLDivElement>(null);
+  const inputId = label ? `autocomplete-${label.replace(/\s+/g, '-').toLowerCase()}` : undefined;
+  const listId = inputId ? `${inputId}-list` : undefined;
 
   const filtered = options.filter(o =>
     o.toLowerCase().includes((filter || value).toLowerCase())
@@ -108,9 +110,14 @@ function Autocomplete({ value, onChange, options, placeholder, label }: {
 
   return (
     <div ref={ref} className="relative">
-      {label && <label className="label">{label}</label>}
+      {label && <label htmlFor={inputId} className="label">{label}</label>}
       <input
+        id={inputId}
         type="text"
+        role="combobox"
+        aria-expanded={open && filtered.length > 0}
+        aria-autocomplete="list"
+        aria-controls={listId}
         value={value}
         onChange={(e) => {
           onChange(e.target.value);
@@ -118,30 +125,37 @@ function Autocomplete({ value, onChange, options, placeholder, label }: {
           setOpen(true);
         }}
         onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') setOpen(false);
+        }}
         placeholder={placeholder}
         className="input"
         autoComplete="off"
       />
       <AnimatePresence>
         {open && filtered.length > 0 && (
-          <motion.div
+          <motion.ul
+            id={listId}
+            role="listbox"
+            aria-label={label}
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg"
+            className="absolute z-50 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg list-none p-0 m-0"
           >
             {filtered.map(option => (
-              <button
-                key={option}
-                type="button"
-                onClick={() => { onChange(option); setFilter(''); setOpen(false); }}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors first:rounded-t-xl last:rounded-b-xl"
-              >
-                {option}
-              </button>
+              <li key={option} role="option" aria-selected={value === option}>
+                <button
+                  type="button"
+                  onClick={() => { onChange(option); setFilter(''); setOpen(false); }}
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                >
+                  {option}
+                </button>
+              </li>
             ))}
-          </motion.div>
+          </motion.ul>
         )}
       </AnimatePresence>
     </div>
@@ -214,17 +228,20 @@ function PhotoUpload({ photoUrl, color, onPhotoChange, t }: { photoUrl?: string;
 function ColorPicker({ value, onChange, t }: { value: string; onChange: (v: string) => void; t: ReturnType<typeof useTranslation>["t"] }) {
   return (
     <div>
-      <label className="label">{t('vehicles.color')}</label>
-      <div className="flex flex-wrap gap-2 mt-1">
+      <label id="color-picker-label" className="label">{t('vehicles.color')}</label>
+      <div role="radiogroup" aria-labelledby="color-picker-label" className="flex flex-wrap gap-2 mt-1">
         {COLOR_OPTIONS.map(c => {
           const selected = value === c.value;
           const i18nKey = colorI18nMap[c.value];
+          const colorLabel = i18nKey ? t(i18nKey) : c.value;
           return (
             <button
               key={c.value}
               type="button"
+              role="radio"
+              aria-checked={selected}
+              aria-label={selected ? `${colorLabel} – ${t('vehicles.colorSelected', 'ausgewählt')}` : colorLabel}
               onClick={() => onChange(selected ? '' : c.value)}
-              title={i18nKey ? t(i18nKey) : c.value}
               className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center ${
                 selected
                   ? 'border-primary-500 ring-2 ring-primary-300 scale-110'
@@ -232,13 +249,13 @@ function ColorPicker({ value, onChange, t }: { value: string; onChange: (v: stri
               }`}
               style={{ backgroundColor: c.hex }}
             >
-              {selected && <CheckCircle weight="fill" className="w-4 h-4 text-white drop-shadow" />}
+              {selected && <CheckCircle weight="fill" className="w-4 h-4 text-white drop-shadow" aria-hidden="true" />}
             </button>
           );
         })}
       </div>
       {value && (
-        <span className="text-xs text-gray-500 mt-1 block">
+        <span className="text-xs text-gray-500 mt-1 block" aria-live="polite">
           {colorI18nMap[value] ? t(colorI18nMap[value]) : value}
         </span>
       )}
@@ -295,12 +312,25 @@ function AddVehicleModal({ open, onClose, onSave }: { open: boolean; onClose: ()
   return (
     <AnimatePresence>
       {open && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-vehicle-title"
+        >
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
           <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', damping: 25, stiffness: 300 }} className="relative w-full max-w-lg card p-0 shadow-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 sticky top-0 bg-white dark:bg-gray-900 z-10">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Car weight="fill" className="w-5 h-5 text-primary-600" />{t('vehicles.newVehicle')}</h2>
-              <button onClick={onClose} className="btn btn-ghost btn-icon"><X weight="bold" className="w-5 h-5" /></button>
+              <h2 id="add-vehicle-title" className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Car weight="fill" className="w-5 h-5 text-primary-600" aria-hidden="true" />
+                {t('vehicles.newVehicle')}
+              </h2>
+              <button onClick={onClose} aria-label={t('common.close', 'Schließen')} className="btn btn-ghost btn-icon">
+                <X weight="bold" className="w-5 h-5" aria-hidden="true" />
+              </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <PhotoUpload photoUrl={photoDataUrl} color={formData.color} onPhotoChange={setPhotoDataUrl} t={t} />
@@ -406,9 +436,33 @@ export function VehiclesPage() {
                       {vehicle.photo_url ? <img src={vehicle.photo_url} alt={vehicle.plate} className="w-20 h-20 rounded-2xl object-cover" /> : (
                         <div className={`w-20 h-20 rounded-2xl flex items-center justify-center ${colorClass || 'bg-gray-100 dark:bg-gray-800'}`}><Car weight="fill" className="w-10 h-10 text-white/40" /></div>
                       )}
-                      <button onClick={(e) => { e.stopPropagation(); const input = document.createElement('input'); input.type = 'file'; input.accept = 'image/*'; input.onchange = async () => { if (input.files?.[0]) { try { const resized = await resizeImage(input.files[0]); const res = await api.uploadVehiclePhoto(vehicle.id, input.files[0]); if (res.success && res.data) { setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, photo_url: res.data!.url } : v)); } else { setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, photo_url: resized } : v)); } } catch { setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, photo_url: URL.createObjectURL(input.files![0]) } : v)); } } }; input.click(); }}
-                        className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                        <PencilSimple weight="bold" className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'image/*';
+                          input.onchange = async () => {
+                            if (input.files?.[0]) {
+                              try {
+                                const resized = await resizeImage(input.files[0]);
+                                const res = await api.uploadVehiclePhoto(vehicle.id, input.files[0]);
+                                if (res.success && res.data) {
+                                  setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, photo_url: res.data!.url } : v));
+                                } else {
+                                  setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, photo_url: resized } : v));
+                                }
+                              } catch {
+                                setVehicles(prev => prev.map(v => v.id === vehicle.id ? { ...v, photo_url: URL.createObjectURL(input.files![0]) } : v));
+                              }
+                            }
+                          };
+                          input.click();
+                        }}
+                        aria-label={`Foto für ${vehicle.plate} ändern`}
+                        className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/40 focus:bg-black/40 transition-colors flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset"
+                      >
+                        <PencilSimple weight="bold" className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity" aria-hidden="true" />
                       </button>
                       <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${colorClass} ring-2 ring-white dark:ring-gray-900`} />
                     </div>
@@ -418,7 +472,13 @@ export function VehiclesPage() {
                       {vehicle.color && <div className="flex items-center gap-1.5 mt-1"><div className={`w-2.5 h-2.5 rounded-full ${colorClass}`} /><span className="text-xs text-gray-500 dark:text-gray-500">{vehicle.color}</span></div>}
                     </div>
                   </div>
-                  <button onClick={() => setConfirmDeleteId(vehicle.id)} className="btn btn-ghost btn-icon text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"><Trash weight="regular" className="w-5 h-5" /></button>
+                  <button
+                    onClick={() => setConfirmDeleteId(vehicle.id)}
+                    aria-label={`${vehicle.plate} ${t('vehicles.deleteVehicle', 'löschen')}`}
+                    className="btn btn-ghost btn-icon text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  >
+                    <Trash weight="regular" className="w-5 h-5" aria-hidden="true" />
+                  </button>
                 </div>
                 {vehicle.is_default && <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800"><span className="badge badge-info"><Star weight="fill" className="w-3 h-3" />{t('vehicles.isDefault')}</span></div>}
               </motion.div>

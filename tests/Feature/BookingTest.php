@@ -144,4 +144,134 @@ class BookingTest extends TestCase
         $response->assertStatus(200);
         $this->assertDatabaseHas('bookings', ['notes' => 'Test note']);
     }
+
+    /**
+     * Core safety test: two bookings for the same slot at overlapping times must be rejected.
+     */
+    public function test_double_booking_same_slot_is_rejected(): void
+    {
+        list($user, $lot, $slot) = $this->createUserAndLot();
+        $user2 = User::factory()->create(['role' => 'user']);
+
+        $start = now()->addHour()->toISOString();
+        $end   = now()->addHours(3)->toISOString();
+
+        // First booking succeeds
+        $token1 = $user->createToken('test')->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer ' . $token1)
+            ->postJson('/api/bookings', [
+                'lot_id'       => $lot->id,
+                'slot_id'      => $slot->id,
+                'start_time'   => $start,
+                'end_time'     => $end,
+                'booking_type' => 'single',
+            ])
+            ->assertStatus(201);
+
+        // Second booking for the exact same slot and time window must be rejected with 409
+        $token2 = $user2->createToken('test')->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer ' . $token2)
+            ->postJson('/api/bookings', [
+                'lot_id'       => $lot->id,
+                'slot_id'      => $slot->id,
+                'start_time'   => $start,
+                'end_time'     => $end,
+                'booking_type' => 'single',
+            ])
+            ->assertStatus(409);
+
+        // Only one booking should exist in the database
+        $this->assertDatabaseCount('bookings', 1);
+    }
+
+    /**
+     * Partially overlapping booking for the same slot must also be rejected.
+     */
+    public function test_partial_overlap_booking_is_rejected(): void
+    {
+        list($user, $lot, $slot) = $this->createUserAndLot();
+        $user2 = User::factory()->create(['role' => 'user']);
+
+        // First booking: 10:00–14:00
+        $token1 = $user->createToken('test')->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer ' . $token1)
+            ->postJson('/api/bookings', [
+                'lot_id'       => $lot->id,
+                'slot_id'      => $slot->id,
+                'start_time'   => now()->setHour(10)->setMinute(0)->toISOString(),
+                'end_time'     => now()->setHour(14)->setMinute(0)->toISOString(),
+                'booking_type' => 'single',
+            ])
+            ->assertStatus(201);
+
+        // Second booking: 12:00–16:00 overlaps the first — must fail
+        $token2 = $user2->createToken('test')->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer ' . $token2)
+            ->postJson('/api/bookings', [
+                'lot_id'       => $lot->id,
+                'slot_id'      => $slot->id,
+                'start_time'   => now()->setHour(12)->setMinute(0)->toISOString(),
+                'end_time'     => now()->setHour(16)->setMinute(0)->toISOString(),
+                'booking_type' => 'single',
+            ])
+            ->assertStatus(409);
+    }
+
+    /**
+     * Non-overlapping bookings for the same slot on the same day must be allowed.
+     */
+    public function test_non_overlapping_bookings_same_slot_are_allowed(): void
+    {
+        list($user, $lot, $slot) = $this->createUserAndLot();
+        $user2 = User::factory()->create(['role' => 'user']);
+
+        // First booking: 08:00–12:00
+        $token1 = $user->createToken('test')->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer ' . $token1)
+            ->postJson('/api/bookings', [
+                'lot_id'       => $lot->id,
+                'slot_id'      => $slot->id,
+                'start_time'   => now()->setHour(8)->setMinute(0)->toISOString(),
+                'end_time'     => now()->setHour(12)->setMinute(0)->toISOString(),
+                'booking_type' => 'single',
+            ])
+            ->assertStatus(201);
+
+        // Second booking: 13:00–17:00 — no overlap, must succeed
+        $token2 = $user2->createToken('test')->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer ' . $token2)
+            ->postJson('/api/bookings', [
+                'lot_id'       => $lot->id,
+                'slot_id'      => $slot->id,
+                'start_time'   => now()->setHour(13)->setMinute(0)->toISOString(),
+                'end_time'     => now()->setHour(17)->setMinute(0)->toISOString(),
+                'booking_type' => 'single',
+            ])
+            ->assertStatus(201);
+
+        $this->assertDatabaseCount('bookings', 2);
+    }
+
+    /**
+     * A user must not be able to update notes on another user's booking.
+     */
+    public function test_user_cannot_update_notes_on_another_users_booking(): void
+    {
+        list($owner, $lot, $slot) = $this->createUserAndLot();
+        $attacker = User::factory()->create(['role' => 'user']);
+
+        $booking = Booking::create([
+            'user_id'      => $owner->id,
+            'lot_id'       => $lot->id,
+            'slot_id'      => $slot->id,
+            'start_time'   => now()->addHour(),
+            'end_time'     => now()->addHours(3),
+            'booking_type' => 'single',
+        ]);
+
+        $attackerToken = $attacker->createToken('test')->plainTextToken;
+        $this->withHeader('Authorization', 'Bearer ' . $attackerToken)
+            ->putJson('/api/bookings/' . $booking->id . '/notes', ['notes' => 'Hacked'])
+            ->assertStatus(404); // findOrFail scoped to user_id should return 404
+    }
 }

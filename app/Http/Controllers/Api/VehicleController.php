@@ -50,20 +50,30 @@ class VehicleController extends Controller
         $vehicle = Vehicle::where('user_id', $request->user()->id)->findOrFail($id);
 
         $request->validate([
-            'photo' => 'required_without:photo_base64',
-            'photo_base64' => 'required_without:photo|string',
+            'photo'        => 'required_without:photo_base64|image|mimes:jpeg,png,gif,webp|max:5120',
+            'photo_base64' => 'required_without:photo|string|max:8388608', // 8 MB base64 cap
         ]);
 
         if ($request->hasFile('photo')) {
             $imageData = file_get_contents($request->file('photo')->getRealPath());
         } else {
             $base64 = $request->photo_base64;
-            // Strip data URL prefix if present
+            // Strip data URL prefix if present (e.g. "data:image/jpeg;base64,...")
             if (str_contains($base64, ',')) {
                 $base64 = explode(',', $base64, 2)[1];
             }
             $imageData = base64_decode($base64);
+            if ($imageData === false) {
+                return response()->json(['error' => 'INVALID_IMAGE', 'message' => 'Invalid base64 data'], 422);
+            }
         }
+
+        // Validate image content via GD — prevents polyglot/PHP file uploads
+        $src = @imagecreatefromstring($imageData);
+        if ($src === false) {
+            return response()->json(['error' => 'INVALID_IMAGE', 'message' => 'File is not a valid image'], 422);
+        }
+        imagedestroy($src);
 
         // Resize using GD to max 800px
         $imageData = $this->resizeImage($imageData, 800);
@@ -79,8 +89,15 @@ class VehicleController extends Controller
         return response()->json(['success' => true, 'data' => ['photo_url' => $photoUrl]]);
     }
 
-    public function servePhoto(string $id)
+    public function servePhoto(Request $request, string $id)
     {
+        // Verify ownership before serving — prevents IDOR where any authenticated
+        // user could enumerate and download other users' vehicle photos by UUID.
+        $vehicle = Vehicle::where('user_id', $request->user()->id)->find($id);
+        if (!$vehicle) {
+            return response()->json(['error' => 'Photo not found'], 404);
+        }
+
         $path = storage_path("app/vehicles/{$id}.jpg");
 
         if (!file_exists($path)) {

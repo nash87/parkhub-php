@@ -13,14 +13,15 @@ use App\Models\Announcement;
 use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AdminController extends Controller
 {
 
 
-    private function requireAdmin($request)
+    private function requireAdmin($request): void
     {
-        if (!$request->user() || $request->user()->role !== 'admin') {
+        if (!$request->user() || !$request->user()->isAdmin()) {
             abort(403, 'Admin access required');
         }
     }
@@ -53,11 +54,24 @@ class AdminController extends Controller
     {
         $this->requireAdmin($request);
 
-        $days = $request->get('days', 30);
-        $bookings = Booking::where('created_at', '>=', now()->subDays($days))
-            ->selectRaw('CAST(strftime("%w", start_time) AS INTEGER) as day_of_week, CAST(strftime("%H", start_time) AS INTEGER) as hour, COUNT(*) as count')
-            ->groupBy('day_of_week', 'hour')
-            ->get();
+        $request->validate(['days' => 'integer|min:1|max:365']);
+        $days = (int) $request->get('days', 30);
+
+        // Use DB-agnostic expressions: DAYOFWEEK (MySQL) vs strftime (SQLite)
+        $driver = \Illuminate\Support\Facades\DB::getDriverName();
+
+        if ($driver === 'sqlite') {
+            $bookings = Booking::where('start_time', '>=', now()->subDays($days))
+                ->selectRaw('CAST(strftime("%w", start_time) AS INTEGER) as day_of_week, CAST(strftime("%H", start_time) AS INTEGER) as hour, COUNT(*) as count')
+                ->groupBy('day_of_week', 'hour')
+                ->get();
+        } else {
+            // MySQL / MariaDB (DAYOFWEEK returns 1=Sunday…7=Saturday, normalise to 0=Sunday…6=Saturday)
+            $bookings = Booking::where('start_time', '>=', now()->subDays($days))
+                ->selectRaw('(DAYOFWEEK(start_time) - 1) as day_of_week, HOUR(start_time) as hour, COUNT(*) as count')
+                ->groupBy('day_of_week', 'hour')
+                ->get();
+        }
 
         return response()->json($bookings);
     }
@@ -81,8 +95,9 @@ class AdminController extends Controller
         return response()->json($query->paginate($request->get('per_page', 50)));
     }
 
-    public function announcements()
+    public function announcements(Request $request)
     {
+        $this->requireAdmin($request);
         return response()->json(Announcement::orderBy('created_at', 'desc')->get());
     }
 
@@ -90,7 +105,11 @@ class AdminController extends Controller
     {
         $this->requireAdmin($request);
 
-        $request->validate(['title' => 'required|string', 'message' => 'required|string']);
+        $request->validate([
+            'title'    => 'required|string|max:255',
+            'message'  => 'required|string|max:10000',
+            'severity' => 'nullable|in:info,warning,error,success',
+        ]);
         $ann = Announcement::create(array_merge(
             $request->only(['title', 'message', 'severity']),
             ['created_by' => $request->user()->id, 'active' => true]
@@ -100,13 +119,21 @@ class AdminController extends Controller
 
     public function updateAnnouncement(Request $request, string $id)
     {
+        $this->requireAdmin($request);
+        $request->validate([
+            'title'    => 'sometimes|string|max:255',
+            'message'  => 'sometimes|string',
+            'severity' => 'sometimes|in:info,warning,error,success',
+            'active'   => 'sometimes|boolean',
+        ]);
         $ann = Announcement::findOrFail($id);
         $ann->update($request->only(['title', 'message', 'severity', 'active']));
         return response()->json($ann);
     }
 
-    public function deleteAnnouncement(string $id)
+    public function deleteAnnouncement(Request $request, string $id)
     {
+        $this->requireAdmin($request);
         Announcement::findOrFail($id)->delete();
         return response()->json(['message' => 'Deleted']);
     }
@@ -115,22 +142,31 @@ class AdminController extends Controller
     {
         $this->requireAdmin($request);
 
-        $request->validate(['users' => 'required|array']);
+        $request->validate([
+            'users'              => 'required|array|max:500',
+            'users.*.username'   => 'required|string|min:3|max:50|alpha_dash',
+            'users.*.email'      => 'required|email|max:255',
+            'users.*.name'       => 'nullable|string|max:255',
+            'users.*.role'       => 'nullable|in:user,admin',
+            'users.*.department' => 'nullable|string|max:255',
+            'users.*.password'   => 'nullable|string|min:8|max:128',
+        ]);
+
         $imported = 0;
 
         foreach ($request->users as $userData) {
-            if (User::where('username', $userData['username'] ?? '')->orWhere('email', $userData['email'] ?? '')->exists()) {
+            if (User::where('username', $userData['username'])->orWhere('email', $userData['email'])->exists()) {
                 continue;
             }
             User::create([
-                'username' => $userData['username'],
-                'email' => $userData['email'],
-                'password' => Hash::make($userData['password'] ?? 'changeme123'),
-                'name' => $userData['name'] ?? $userData['username'],
-                'role' => $userData['role'] ?? 'user',
-                'is_active' => true,
+                'username'   => $userData['username'],
+                'email'      => $userData['email'],
+                'password'   => Hash::make($userData['password'] ?? \Illuminate\Support\Str::random(16)),
+                'name'       => $userData['name'] ?? $userData['username'],
+                'role'       => $userData['role'] ?? 'user',
+                'is_active'  => true,
                 'department' => $userData['department'] ?? null,
-                'preferences' => ['language' => 'en', 'theme' => 'system'],
+                'preferences'=> ['language' => 'en', 'theme' => 'system'],
             ]);
             $imported++;
         }
@@ -138,8 +174,10 @@ class AdminController extends Controller
         return response()->json(['imported' => $imported]);
     }
 
-public function getSettings()
+public function getSettings(Request $request)
     {
+        $this->requireAdmin($request);
+
         $settings = Setting::all()->pluck('value', 'key')->toArray();
         $defaults = [
             'company_name' => 'ParkHub',
@@ -161,30 +199,66 @@ public function getSettings()
     {
         $this->requireAdmin($request);
 
-        foreach ($request->all() as $key => $value) {
-            Setting::set($key, is_array($value) ? json_encode($value) : $value);
+        // Allowlist of keys that can be set via this endpoint.
+        // Prevents injection of arbitrary/internal settings keys.
+        $allowed = [
+            'company_name', 'use_case', 'self_registration', 'license_plate_mode',
+            'display_name_format', 'max_bookings_per_day', 'allow_guest_bookings',
+            'auto_release_minutes', 'require_vehicle', 'primary_color', 'secondary_color',
+        ];
+
+        $request->validate([
+            'company_name'         => 'sometimes|string|max:255',
+            'use_case'             => 'sometimes|in:corporate,university,residential,other',
+            'self_registration'    => 'sometimes|in:true,false',
+            'license_plate_mode'   => 'sometimes|in:required,optional,disabled',
+            'display_name_format'  => 'sometimes|in:first_name,full_name,username',
+            'max_bookings_per_day' => 'sometimes|integer|min:1|max:50',
+            'allow_guest_bookings' => 'sometimes|in:true,false',
+            'auto_release_minutes' => 'sometimes|integer|min:0|max:480',
+            'require_vehicle'      => 'sometimes|in:true,false',
+            'primary_color'        => 'sometimes|string|regex:/^#[0-9a-fA-F]{6}$/',
+            'secondary_color'      => 'sometimes|string|regex:/^#[0-9a-fA-F]{6}$/',
+        ]);
+
+        foreach ($request->only($allowed) as $key => $value) {
+            Setting::set($key, is_array($value) ? json_encode($value) : (string) $value);
         }
         return response()->json(['message' => 'Settings updated']);
     }
 
-    public function users()
+    public function users(Request $request)
     {
-        return response()->json(User::all()->map(fn ($u) => collect($u)->except(['password'])));
+        $this->requireAdmin($request);
+        // toArray() respects $hidden (password, remember_token) defined on the model
+        return response()->json(User::all()->map(fn ($u) => $u->toArray()));
     }
 
     public function updateUser(Request $request, string $id)
     {
+        $this->requireAdmin($request);
+        $request->validate([
+            'name'       => 'sometimes|string|max:255',
+            'email'      => 'sometimes|email|max:255|unique:users,email,' . $id,
+            'role'       => 'sometimes|in:user,admin,superadmin',
+            'is_active'  => 'sometimes|boolean',
+            'department' => 'sometimes|nullable|string|max:255',
+            'password'   => 'sometimes|string|min:8',
+        ]);
         $user = User::findOrFail($id);
         $data = $request->only(['name', 'email', 'role', 'is_active', 'department']);
-        if ($request->has('password') && $request->password) {
+        if ($request->filled('password')) {
             $data['password'] = Hash::make($request->password);
         }
         $user->update($data);
-        return response()->json($user->fresh());
+        // Return via toArray() to respect $hidden
+        return response()->json($user->fresh()->toArray());
     }
 
-    public function exportBookingsCsv()
+    public function exportBookingsCsv(Request $request)
     {
+        $this->requireAdmin($request);
+
         $bookings = \App\Models\Booking::with('user')->orderBy('start_time', 'desc')->get();
 
         $headers = ['ID', 'User', 'Lot', 'Slot', 'Vehicle', 'Start', 'End', 'Status', 'Type'];
@@ -433,5 +507,81 @@ public function getSettings()
         }
         User::findOrFail($id)->delete();
         return response()->json(['message' => 'User deleted']);
+    }
+
+    // ── Impressum (DDG § 5 — legally required for German operators) ──────────
+
+    public function getImpress(Request $request)
+    {
+        $this->requireAdmin($request);
+        return response()->json([
+            'provider_name'       => Setting::get('impressum_provider_name', ''),
+            'provider_legal_form' => Setting::get('impressum_legal_form', ''),
+            'street'              => Setting::get('impressum_street', ''),
+            'zip_city'            => Setting::get('impressum_zip_city', ''),
+            'country'             => Setting::get('impressum_country', 'Deutschland'),
+            'email'               => Setting::get('impressum_email', ''),
+            'phone'               => Setting::get('impressum_phone', ''),
+            'register_court'      => Setting::get('impressum_register_court', ''),
+            'register_number'     => Setting::get('impressum_register_number', ''),
+            'vat_id'              => Setting::get('impressum_vat_id', ''),
+            'responsible_person'  => Setting::get('impressum_responsible', ''),
+            'custom_text'         => Setting::get('impressum_custom_text', ''),
+        ]);
+    }
+
+    public function updateImpress(Request $request)
+    {
+        $this->requireAdmin($request);
+        $fields = [
+            'provider_name', 'provider_legal_form', 'street', 'zip_city', 'country',
+            'email', 'phone', 'register_court', 'register_number', 'vat_id',
+            'responsible_person', 'custom_text',
+        ];
+        $keyMap = [
+            'provider_name'       => 'impressum_provider_name',
+            'provider_legal_form' => 'impressum_legal_form',
+            'street'              => 'impressum_street',
+            'zip_city'            => 'impressum_zip_city',
+            'country'             => 'impressum_country',
+            'email'               => 'impressum_email',
+            'phone'               => 'impressum_phone',
+            'register_court'      => 'impressum_register_court',
+            'register_number'     => 'impressum_register_number',
+            'vat_id'              => 'impressum_vat_id',
+            'responsible_person'  => 'impressum_responsible',
+            'custom_text'         => 'impressum_custom_text',
+        ];
+        foreach ($fields as $field) {
+            if ($request->has($field)) {
+                Setting::set($keyMap[$field], (string)$request->input($field));
+            }
+        }
+        AuditLog::create([
+            'user_id'    => $request->user()->id,
+            'username'   => $request->user()->username,
+            'action'     => 'impressum_updated',
+            'ip_address' => $request->ip(),
+        ]);
+        return response()->json(['message' => 'Impressum updated']);
+    }
+
+    // Public Impressum endpoint (no auth — must be accessible to all visitors)
+    public function publicImpress()
+    {
+        return response()->json([
+            'provider_name'       => Setting::get('impressum_provider_name', ''),
+            'provider_legal_form' => Setting::get('impressum_legal_form', ''),
+            'street'              => Setting::get('impressum_street', ''),
+            'zip_city'            => Setting::get('impressum_zip_city', ''),
+            'country'             => Setting::get('impressum_country', 'Deutschland'),
+            'email'               => Setting::get('impressum_email', ''),
+            'phone'               => Setting::get('impressum_phone', ''),
+            'register_court'      => Setting::get('impressum_register_court', ''),
+            'register_number'     => Setting::get('impressum_register_number', ''),
+            'vat_id'              => Setting::get('impressum_vat_id', ''),
+            'responsible_person'  => Setting::get('impressum_responsible', ''),
+            'custom_text'         => Setting::get('impressum_custom_text', ''),
+        ]);
     }
 }

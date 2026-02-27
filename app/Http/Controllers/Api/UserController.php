@@ -10,6 +10,7 @@ use App\Models\Notification;
 use App\Models\Setting;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -20,8 +21,26 @@ class UserController extends Controller
 
     public function updatePreferences(Request $request)
     {
+        $request->validate([
+            'language'               => 'sometimes|string|max:10',
+            'theme'                  => 'sometimes|in:light,dark,system',
+            'notifications_enabled'  => 'sometimes|boolean',
+            'email_notifications'    => 'sometimes|boolean',
+            'push_notifications'     => 'sometimes|boolean',
+            'show_plate_in_calendar' => 'sometimes|boolean',
+            'default_lot_id'         => 'sometimes|nullable|uuid',
+            'locale'                 => 'sometimes|string|max:10',
+            'timezone'               => 'sometimes|string|max:64',
+        ]);
+
+        $allowed = [
+            'language', 'theme', 'notifications_enabled', 'email_notifications',
+            'push_notifications', 'show_plate_in_calendar', 'default_lot_id',
+            'locale', 'timezone',
+        ];
+
         $user  = $request->user();
-        $prefs = array_merge($user->preferences ?? [], $request->all());
+        $prefs = array_merge($user->preferences ?? [], $request->only($allowed));
         $user->update(['preferences' => $prefs]);
         return response()->json($prefs);
     }
@@ -180,5 +199,66 @@ class UserController extends Controller
     {
         \App\Models\PushSubscription::where('user_id', $request->user()->id)->delete();
         return response()->json(['message' => 'Unsubscribed from push notifications']);
+    }
+
+    /**
+     * GDPR Art. 17 — Right to Erasure.
+     * Anonymizes all personal data while preserving anonymized booking records for audit/accounting.
+     * Unlike deleteAccount() which CASCADE-deletes everything, this keeps booking records
+     * with PII replaced by placeholder values (required for German tax law — 7-year retention).
+     */
+    public function anonymizeAccount(\Illuminate\Http\Request $request)
+    {
+        $request->validate([
+            'password' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
+            return response()->json(['error' => 'INVALID_PASSWORD', 'message' => 'Password confirmation failed'], 403);
+        }
+
+        $anonymousId = 'deleted-' . substr($user->id, 0, 8);
+
+        // Anonymize all bookings (keep for accounting, strip PII)
+        \App\Models\Booking::where('user_id', $user->id)->update([
+            'vehicle_plate' => '[GELÖSCHT]',
+            'notes'         => null,
+        ]);
+
+        // Delete truly personal data tables
+        Absence::where('user_id', $user->id)->delete();
+        Vehicle::where('user_id', $user->id)->delete();
+        \App\Models\Favorite::where('user_id', $user->id)->delete();
+        \App\Models\Notification::where('user_id', $user->id)->delete();
+        \App\Models\PushSubscription::where('user_id', $user->id)->delete();
+
+        // Invalidate all tokens
+        $user->tokens()->delete();
+
+        // Audit log before anonymizing (records the action for compliance)
+        \App\Models\AuditLog::create([
+            'user_id'    => $user->id,
+            'username'   => $user->username,
+            'action'     => 'gdpr_erasure',
+            'details'    => ['reason' => $request->input('reason', 'User request')],
+            'ip_address' => $request->ip(),
+        ]);
+
+        // Anonymize the user record itself (don't hard-delete — bookings still reference it)
+        $user->update([
+            'name'        => '[Gelöschter Nutzer]',
+            'email'       => $anonymousId . '@deleted.invalid',
+            'username'    => $anonymousId,
+            'password'    => \Illuminate\Support\Str::random(64), // unguessable
+            'phone'       => null,
+            'picture'     => null,
+            'department'  => null,
+            'preferences' => [],
+            'is_active'   => false,
+        ]);
+
+        return response()->json(['message' => 'Account anonymized. Personal data erased per GDPR Art. 17.'], 200);
     }
 }

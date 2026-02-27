@@ -108,20 +108,41 @@ export function LoginPage() {
               <label htmlFor="password" className="label">{t('login.password')}</label>
               <div className="relative">
                 <input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} className="input pr-12" placeholder="••••••••" required autoComplete="current-password" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                  {showPassword ? <EyeSlash weight="regular" className="w-5 h-5" /> : <Eye weight="regular" className="w-5 h-5" />}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? t('login.hidePassword', 'Passwort verbergen') : t('login.showPassword', 'Passwort anzeigen')}
+                  aria-pressed={showPassword}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded"
+                >
+                  {showPassword ? <EyeSlash weight="regular" className="w-5 h-5" aria-hidden="true" /> : <Eye weight="regular" className="w-5 h-5" aria-hidden="true" />}
                 </button>
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
+              <label htmlFor="php-remember-me" className="flex items-center gap-2 cursor-pointer">
+                <input id="php-remember-me" type="checkbox" className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
                 <span className="text-sm text-gray-600 dark:text-gray-400">{t('login.rememberMe')}</span>
               </label>
               <Link to="/forgot-password" className="text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400">{t('login.forgotPassword')}</Link>
             </div>
-            <button type="submit" disabled={loading} className="btn btn-primary w-full justify-center">
-              {loading ? <SpinnerGap weight="bold" className="w-5 h-5 animate-spin" /> : <>{t('login.submit')} <ArrowRight weight="bold" className="w-5 h-5" /></>}
+            <button
+              type="submit"
+              disabled={loading}
+              aria-busy={loading}
+              className="btn btn-primary w-full justify-center disabled:opacity-60"
+            >
+              {loading ? (
+                <>
+                  <SpinnerGap weight="bold" className="w-5 h-5 animate-spin" aria-hidden="true" />
+                  <span>{t('login.loggingIn', 'Anmeldung läuft…')}</span>
+                </>
+              ) : (
+                <>
+                  {t('login.submit')}
+                  <ArrowRight weight="bold" className="w-5 h-5" aria-hidden="true" />
+                </>
+              )}
             </button>
           </form>
 

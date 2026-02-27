@@ -639,6 +639,22 @@ export const en = {
     },
   },
 
+  // Legal Notice / Impressum
+  impressum: {
+    title: 'Legal Notice',
+    subtitle: 'Provider information pursuant to § 5 DDG (German Digital Services Act)',
+    provider: 'Provider',
+    contact: 'Contact',
+    register: 'Commercial Register & Tax',
+    registerCourt: 'Register Court',
+    registerNumber: 'Register Number',
+    vatId: 'VAT ID',
+    responsible: 'Responsible Person',
+    legalBasis: 'Information pursuant to § 5 DDG. Every operator of a ParkHub instance is required to fill this page with their own details.',
+    notConfigured: 'Legal notice not yet configured',
+    configureHint: 'Please fill in the legal notice details under Admin → Settings → Legal Notice.',
+  },
+
   // About
   about: {
     title: 'About ParkHub',

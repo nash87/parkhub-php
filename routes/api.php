@@ -16,9 +16,11 @@ use App\Http\Controllers\Api\ZoneController;
 use App\Http\Controllers\Api\MiscController;
 use Illuminate\Support\Facades\Route;
 
-// Public routes (no auth)
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/register', [AuthController::class, 'register']);
+// Public routes (no auth) — rate limited to prevent brute-force and registration spam
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/register', [AuthController::class, 'register']);
+});
 Route::get('/setup/status', [SetupController::class, 'status']);
 Route::post('/setup/init', [SetupController::class, 'init']);
 Route::get('/public/occupancy', [PublicController::class, 'occupancy']);

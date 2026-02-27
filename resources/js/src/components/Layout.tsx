@@ -139,13 +139,18 @@ export function Layout({ children }: LayoutProps) {
               <span className="text-lg font-bold text-gray-900 dark:text-white">{branding.company_name}</span>
             </Link>
 
-            <nav role="navigation" aria-label="Main navigation" className="hidden md:flex items-center gap-1">
+            <nav role="navigation" aria-label={t('nav.mainLabel', 'Hauptnavigation')} className="hidden md:flex items-center gap-1">
               {navigationKeys.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.href;
                 return (
-                  <Link key={item.href} to={item.href} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
-                    <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" />
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}
+                  >
+                    <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" aria-hidden="true" />
                     {t(item.key)}
                   </Link>
                 );
@@ -154,8 +159,13 @@ export function Layout({ children }: LayoutProps) {
                 const Icon = item.icon;
                 const isActive = location.pathname.startsWith(item.href);
                 return (
-                  <Link key={item.href} to={item.href} className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
-                    <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" />
+                  <Link
+                    key={item.href}
+                    to={item.href}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}
+                  >
+                    <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" aria-hidden="true" />
                     {t(item.key)}
                   </Link>
                 );
@@ -266,35 +276,57 @@ export function Layout({ children }: LayoutProps) {
 
               {/* User Menu */}
               <div className="relative hidden md:block">
-                <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <div className="avatar text-sm">{user?.name?.charAt(0).toUpperCase()}</div>
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  aria-expanded={userMenuOpen}
+                  aria-haspopup="menu"
+                  aria-label={`${t('nav.userMenuLabel', 'Benutzermenü für')} ${user?.name}`}
+                  className="flex items-center gap-2 p-1.5 pr-3 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  <div className="avatar text-sm" aria-hidden="true">{user?.name?.charAt(0).toUpperCase()}</div>
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{user?.name?.split(' ')[0]}</span>
-                  <CaretDown weight="bold" className="w-4 h-4 text-gray-400" />
+                  <CaretDown weight="bold" className="w-4 h-4 text-gray-400" aria-hidden="true" />
                 </button>
 
                 <AnimatePresence>
                   {userMenuOpen && (
-                    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute right-0 mt-2 w-56 card p-2 shadow-lg">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      role="menu"
+                      aria-label={t('nav.userMenuOptions', 'Benutzeroptionen')}
+                      className="absolute right-0 mt-2 w-56 card p-2 shadow-lg"
+                    >
                       <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-800 mb-2">
                         <p className="font-medium text-gray-900 dark:text-white">{user?.name}</p>
                         <p className="text-sm text-gray-500">{user?.email}</p>
                       </div>
-                      <Link to="/profile" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
-                        <User weight="regular" className="w-4 h-4" /> {t('nav.profile')}
+                      <Link to="/profile" role="menuitem" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <User weight="regular" className="w-4 h-4" aria-hidden="true" />
+                        {t('nav.profile')}
                       </Link>
-                      <Link to="/settings" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
-                        <GearSix weight="regular" className="w-4 h-4" /> {t('nav.settings')}
+                      <Link to="/settings" role="menuitem" className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                        <GearSix weight="regular" className="w-4 h-4" aria-hidden="true" />
+                        {t('nav.settings')}
                       </Link>
-                      <button onClick={logout} className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-                        <SignOut weight="regular" className="w-4 h-4" /> {t('nav.logout')}
+                      <button onClick={logout} role="menuitem" className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+                        <SignOut weight="regular" className="w-4 h-4" aria-hidden="true" />
+                        {t('nav.logout')}
                       </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
 
-              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden btn btn-ghost btn-icon" aria-label="Toggle menu">
-                {mobileMenuOpen ? <X weight="bold" className="w-5 h-5" /> : <List weight="bold" className="w-5 h-5" />}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden btn btn-ghost btn-icon"
+                aria-expanded={mobileMenuOpen}
+                aria-controls="mobile-nav-php"
+                aria-label={mobileMenuOpen ? t('nav.closeMenu', 'Menü schließen') : t('nav.openMenu', 'Menü öffnen')}
+              >
+                {mobileMenuOpen ? <X weight="bold" className="w-5 h-5" aria-hidden="true" /> : <List weight="bold" className="w-5 h-5" aria-hidden="true" />}
               </button>
             </div>
           </div>
@@ -303,14 +335,26 @@ export function Layout({ children }: LayoutProps) {
         {/* Mobile Navigation */}
         <AnimatePresence>
           {mobileMenuOpen && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="md:hidden overflow-hidden border-t border-gray-100 dark:border-gray-800">
-              <div className="px-4 py-3 space-y-1">
+            <motion.div
+              id="mobile-nav-php"
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="md:hidden overflow-hidden border-t border-gray-100 dark:border-gray-800"
+            >
+              <nav role="navigation" aria-label={t('nav.mobileNavLabel', 'Mobile Navigation')} className="px-4 py-3 space-y-1">
                 {navigationKeys.map((item) => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.href;
                   return (
-                    <Link key={item.href} to={item.href} className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
-                      <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" /> {t(item.key)}
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      aria-current={isActive ? 'page' : undefined}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium ${isActive ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}
+                    >
+                      <Icon weight={isActive ? 'fill' : 'regular'} className="w-5 h-5" aria-hidden="true" />
+                      {t(item.key)}
                     </Link>
                   );
                 })}
@@ -318,16 +362,18 @@ export function Layout({ children }: LayoutProps) {
                   const Icon = item.icon;
                   return (
                     <Link key={item.href} to={item.href} className="flex items-center gap-3 px-4 py-3 rounded-xl text-base font-medium text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800">
-                      <Icon weight="regular" className="w-5 h-5" /> {t(item.key)}
+                      <Icon weight="regular" className="w-5 h-5" aria-hidden="true" />
+                      {t(item.key)}
                     </Link>
                   );
                 })}
                 <div className="pt-3 border-t border-gray-100 dark:border-gray-800">
                   <button onClick={logout} className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-base font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
-                    <SignOut weight="regular" className="w-5 h-5" /> {t('nav.logout')}
+                    <SignOut weight="regular" className="w-5 h-5" aria-hidden="true" />
+                    {t('nav.logout')}
                   </button>
                 </div>
-              </div>
+              </nav>
             </motion.div>
           )}
         </AnimatePresence>
@@ -354,7 +400,7 @@ export function Layout({ children }: LayoutProps) {
               <Link to="/about" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.about')}</Link>
               <Link to="/privacy" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.privacy')}</Link>
               <Link to="/terms" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.terms')}</Link>
-              <Link to="/legal" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.imprint')}</Link>
+              <Link to="/impressum" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{t('footer.imprint')}</Link>
               <a href="https://github.com/nash87/parkhub" target="_blank" rel="noopener noreferrer" className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors"><GithubLogo weight="regular" className="w-4 h-4" /></a>
             </div>
           </div>
