@@ -1,8 +1,25 @@
-# Configuration Reference
+# Configuration Reference — ParkHub PHP
 
 All `.env` variables for ParkHub PHP, grouped by category.
 
-Copy `.env.example` to `.env` and edit before first run. The Docker container reads these values from environment variables passed at runtime.
+Copy `.env.example` to `.env` and edit before first run.
+In Docker, pass variables as container environment variables instead of using a file.
+
+---
+
+## Table of Contents
+
+- [Application](#application)
+- [Database](#database)
+- [Session](#session)
+- [Cache](#cache)
+- [Queue](#queue)
+- [Mail](#mail)
+- [Logging](#logging)
+- [Filesystem](#filesystem)
+- [Frontend Build](#frontend-build)
+- [SQLite vs MySQL](#sqlite-vs-mysql)
+- [Minimal Production `.env`](#minimal-production-env)
 
 ---
 
@@ -10,15 +27,15 @@ Copy `.env.example` to `.env` and edit before first run. The Docker container re
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
-| `APP_NAME` | `Laravel` | No | Display name (shown in emails and browser tab title) |
-| `APP_ENV` | `local` | Yes | `local`, `production`, or `testing`. Set `production` in live deployments. |
-| `APP_KEY` | _(empty)_ | Yes | 32-byte base64-encoded encryption key. Generate with `php artisan key:generate`. Auto-generated in Docker. |
-| `APP_DEBUG` | `true` | Yes | `true` in development, **`false` in production**. Exposing debug output to users is a security risk. |
-| `APP_URL` | `http://localhost` | Yes | Public base URL including scheme and port (if non-standard). Used to generate QR code links and email links. Example: `https://parking.company.com` |
-| `APP_LOCALE` | `en` | No | Default locale for translations and date formatting. |
+| `APP_NAME` | `Laravel` | No | Application display name. Shown in emails and the browser tab title. |
+| `APP_ENV` | `local` | Yes | `local`, `production`, or `testing`. Always set `production` in live deployments. |
+| `APP_KEY` | _(empty)_ | Yes | 32-byte base64-encoded encryption key. Generate with `php artisan key:generate`. Auto-generated in the Docker entrypoint. |
+| `APP_DEBUG` | `true` | Yes | `true` in development only. **Set `false` in production** — exposing stack traces to users is a security risk. |
+| `APP_URL` | `http://localhost` | Yes | Public base URL including scheme and port if non-standard. Used for QR code links, email links, and API responses. Example: `https://parking.company.com` |
+| `APP_LOCALE` | `en` | No | Default locale for date formatting and translations. |
 | `APP_FALLBACK_LOCALE` | `en` | No | Fallback locale when a translation is missing. |
-| `APP_MAINTENANCE_DRIVER` | `file` | No | `file` or `cache`. Driver for maintenance mode state. |
-| `BCRYPT_ROUNDS` | `12` | No | Number of bcrypt hashing rounds. 10–14 is the practical range. Higher is slower but more secure. |
+| `APP_MAINTENANCE_DRIVER` | `file` | No | `file` or `cache`. Driver for maintenance mode state storage. |
+| `BCRYPT_ROUNDS` | `12` | No | bcrypt hashing cost factor. Range 10–14. Higher = slower but more brute-force-resistant. 12 is the recommended production value. |
 
 ---
 
@@ -28,14 +45,16 @@ Copy `.env.example` to `.env` and edit before first run. The Docker container re
 
 ```dotenv
 DB_CONNECTION=sqlite
-# DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD are unused
+# All other DB_* variables are unused
 ```
 
-The SQLite file is created at `database/database.sqlite`. No server process is needed.
+The SQLite file is created at `database/database.sqlite`. No server process required.
 
-**Note:** SQLite is unsuitable for multi-process deployments (multiple web workers writing simultaneously). Use MySQL for production.
+> SQLite uses WAL mode and tolerates moderate read concurrency, but is **not suitable for
+> multi-process deployments** (multiple PHP-FPM workers writing simultaneously).
+> Use MySQL 8 for production.
 
-### MySQL 8 (production / Docker Compose)
+### MySQL 8 (production)
 
 ```dotenv
 DB_CONNECTION=mysql
@@ -49,11 +68,11 @@ DB_PASSWORD=your-secure-password
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_CONNECTION` | `sqlite` | `sqlite` or `mysql` |
-| `DB_HOST` | `127.0.0.1` | MySQL host. Use `db` when running via Docker Compose. |
+| `DB_HOST` | `127.0.0.1` | MySQL hostname. Use `db` when running via Docker Compose. |
 | `DB_PORT` | `3306` | MySQL port |
 | `DB_DATABASE` | `laravel` | Database name |
 | `DB_USERNAME` | `root` | Database user |
-| `DB_PASSWORD` | _(empty)_ | Database password |
+| `DB_PASSWORD` | _(empty)_ | Database password. Always set in production. |
 
 ---
 
@@ -61,11 +80,11 @@ DB_PASSWORD=your-secure-password
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `SESSION_DRIVER` | `database` | `file`, `database`, `redis`, or `cookie`. `database` stores sessions in the `sessions` table. |
-| `SESSION_LIFETIME` | `120` | Session lifetime in minutes. Inactive sessions expire after this. |
-| `SESSION_ENCRYPT` | `false` | Encrypt session data at rest. |
-| `SESSION_PATH` | `/` | Cookie path. |
-| `SESSION_DOMAIN` | `null` | Cookie domain. Set to your domain in production. |
+| `SESSION_DRIVER` | `database` | `file`, `database`, `redis`, or `cookie`. `database` stores sessions in the `sessions` table — recommended. |
+| `SESSION_LIFETIME` | `120` | Session lifetime in minutes. Inactive sessions expire after this period. |
+| `SESSION_ENCRYPT` | `false` | Encrypt session data at rest in the sessions table. |
+| `SESSION_PATH` | `/` | Session cookie path. |
+| `SESSION_DOMAIN` | `null` | Session cookie domain. Set to `.yourdomain.com` in production to allow subdomains. |
 
 ---
 
@@ -74,26 +93,29 @@ DB_PASSWORD=your-secure-password
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CACHE_STORE` | `database` | `file`, `database`, `redis`, or `array`. `database` uses the `cache` table. |
-| `REDIS_HOST` | `127.0.0.1` | Redis host (if `CACHE_STORE=redis` or `QUEUE_CONNECTION=redis`) |
+| `REDIS_HOST` | `127.0.0.1` | Redis host (only needed if `CACHE_STORE=redis` or `QUEUE_CONNECTION=redis`) |
 | `REDIS_PORT` | `6379` | Redis port |
-| `REDIS_PASSWORD` | `null` | Redis password |
-| `REDIS_CLIENT` | `phpredis` | `phpredis` (requires ext-redis) or `predis` (pure PHP, no extension needed) |
+| `REDIS_PASSWORD` | `null` | Redis authentication password |
+| `REDIS_CLIENT` | `phpredis` | `phpredis` (requires PHP `ext-redis`) or `predis` (pure PHP, no extension needed) |
 
 ---
 
 ## Queue
 
-Email notifications (welcome email, booking confirmation) are processed by the queue. Choose a driver:
+Email notifications (welcome email on registration, booking confirmation) are processed
+asynchronously via the queue. Choose a driver based on your needs:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `QUEUE_CONNECTION` | `database` | `sync` (inline, no worker), `database` (async, requires worker), `redis` (async, requires Redis + worker) |
+| `QUEUE_CONNECTION` | `database` | `sync`, `database`, or `redis` |
 
-**`sync`**: Emails are sent inline during the HTTP request. Simple but blocks the response for the duration of the SMTP call. Good for low-traffic installs.
+**`sync`** — Jobs execute inline in the HTTP request. No worker needed. Blocks the response
+for the duration of the SMTP call. Good for low-traffic installs or Kubernetes single-pod.
 
-**`database`**: Jobs are stored in the `jobs` table and processed by a `php artisan queue:work` worker. Recommended for production.
+**`database`** — Jobs are stored in the `jobs` table and processed by a `php artisan queue:work`
+worker process. Recommended for production.
 
-**`redis`**: Like `database` but uses Redis for the job queue. Higher throughput.
+**`redis`** — Like `database` but uses Redis. Higher throughput, requires Redis.
 
 ---
 
@@ -101,14 +123,14 @@ Email notifications (welcome email, booking confirmation) are processed by the q
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `MAIL_MAILER` | `log` | `log` (dev: writes to log file), `smtp`, `sendmail`, `mailgun`, `ses` |
-| `MAIL_SCHEME` | `null` | `null`, `tls`, or `ssl`. Use `tls` for port 587 (STARTTLS), `ssl` for port 465. |
+| `MAIL_MAILER` | `log` | Transport: `log` (writes to log file, no emails sent), `smtp`, `sendmail`, `mailgun`, `ses` |
+| `MAIL_SCHEME` | `null` | TLS scheme: `null` (no encryption), `tls` (STARTTLS on port 587), `ssl` (implicit TLS on port 465) |
 | `MAIL_HOST` | `127.0.0.1` | SMTP server hostname |
-| `MAIL_PORT` | `2525` | SMTP port. Common values: 587 (STARTTLS), 465 (SSL), 25 (plain) |
+| `MAIL_PORT` | `2525` | SMTP port. Common: 587 (STARTTLS), 465 (SSL), 25 (plain) |
 | `MAIL_USERNAME` | `null` | SMTP authentication username |
 | `MAIL_PASSWORD` | `null` | SMTP authentication password |
-| `MAIL_FROM_ADDRESS` | `hello@example.com` | From address shown in outgoing emails |
-| `MAIL_FROM_NAME` | `${APP_NAME}` | From name shown in outgoing emails |
+| `MAIL_FROM_ADDRESS` | `hello@example.com` | Sender address shown in outgoing emails |
+| `MAIL_FROM_NAME` | `${APP_NAME}` | Sender name shown in outgoing emails |
 
 ### Example — Gmail SMTP
 
@@ -118,20 +140,33 @@ MAIL_SCHEME=tls
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
 MAIL_USERNAME=you@gmail.com
-MAIL_PASSWORD=your-app-password
+MAIL_PASSWORD=your-16-character-app-password
 MAIL_FROM_ADDRESS=parking@yourdomain.com
 MAIL_FROM_NAME="ParkHub"
 ```
 
-Use a Gmail App Password, not your account password. Enable 2FA first.
+Use a Gmail App Password (16 characters, created in Google Account → Security → App Passwords).
+Not your regular Gmail password. Requires 2FA to be enabled.
 
 ### Example — Mailgun
 
 ```dotenv
 MAIL_MAILER=mailgun
 MAILGUN_DOMAIN=mg.yourdomain.com
-MAILGUN_SECRET=key-xxxxxxxxxxxxxxxx
+MAILGUN_SECRET=key-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
+
+### Example — Amazon SES
+
+```dotenv
+MAIL_MAILER=ses
+AWS_ACCESS_KEY_ID=your-key-id
+AWS_SECRET_ACCESS_KEY=your-secret
+AWS_DEFAULT_REGION=eu-central-1
+```
+
+Note: If using SES or Mailgun as SMTP processors, they become data processors under DSGVO.
+An Auftragsverarbeitungsvertrag (AVV) is required. A template is in `legal/avv-template.md`.
 
 ---
 
@@ -140,10 +175,11 @@ MAILGUN_SECRET=key-xxxxxxxxxxxxxxxx
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `LOG_CHANNEL` | `stack` | Log channel: `stack`, `single`, `daily`, `syslog`, `errorlog`, `stderr` |
-| `LOG_STACK` | `single` | Channels to include when `LOG_CHANNEL=stack` |
+| `LOG_STACK` | `single` | Channels included when `LOG_CHANNEL=stack` |
 | `LOG_LEVEL` | `debug` | Minimum log level: `debug`, `info`, `notice`, `warning`, `error`, `critical` |
 
-In production, set `LOG_LEVEL=warning` to reduce log volume.
+In production, set `LOG_CHANNEL=daily` and `LOG_LEVEL=warning` to reduce log volume and
+enable automatic log rotation by day.
 
 ---
 
@@ -151,11 +187,13 @@ In production, set `LOG_LEVEL=warning` to reduce log volume.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `FILESYSTEM_DISK` | `local` | Default filesystem disk for file storage. `local` stores under `storage/app/`. |
+| `FILESYSTEM_DISK` | `local` | Default storage disk. `local` stores files under `storage/app/`. |
 
-Vehicle photos and branding logos are stored under `storage/app/vehicles/` and `storage/app/public/branding/` respectively.
+Vehicle photos are stored at `storage/app/vehicles/{uuid}.jpg`.
+Branding logos are stored at `storage/app/public/branding/logo.{ext}`.
 
-Run `php artisan storage:link` once after installation to create the `public/storage` symlink for serving public files.
+Run `php artisan storage:link` once after installation to create the `public/storage`
+symlink so files in `storage/app/public/` are web-accessible.
 
 ---
 
@@ -163,22 +201,22 @@ Run `php artisan storage:link` once after installation to create the `public/sto
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VITE_APP_NAME` | `${APP_NAME}` | Exposed to the React frontend as `import.meta.env.VITE_APP_NAME` |
+| `VITE_APP_NAME` | `${APP_NAME}` | Exposed to React frontend as `import.meta.env.VITE_APP_NAME` |
 
 ---
 
-## SQLite vs. MySQL Differences
+## SQLite vs MySQL
 
 | Aspect | SQLite | MySQL 8 |
 |--------|--------|---------|
 | Server required | No | Yes |
-| Multi-process safe | No (WAL mode OK for low concurrency) | Yes |
-| Performance | Good for < 100 users | Excellent |
+| Multi-process safe | No (WAL mode for limited concurrency) | Yes |
+| Max users (practical) | ~100 | Thousands |
 | Admin heatmap query | Uses `strftime()` | Uses `DAYOFWEEK()` / `HOUR()` |
-| Migration notes | None | Ensure `utf8mb4` charset |
-| Production suitability | Small / single-node only | Recommended |
+| Recommended for | Development, demos, small offices | Production |
 
-The heatmap query in `AdminController` automatically detects the database driver and uses the correct date functions for each.
+The booking heatmap query in `AdminController` auto-detects the database driver and
+uses the correct date functions for each.
 
 ---
 
@@ -187,7 +225,7 @@ The heatmap query in `AdminController` automatically detects the database driver
 ```dotenv
 APP_NAME="ParkHub"
 APP_ENV=production
-APP_KEY=base64:GENERATED_BY_ARTISAN_KEY_GENERATE
+APP_KEY=base64:GENERATED_BY_PHP_ARTISAN_KEY_GENERATE
 APP_DEBUG=false
 APP_URL=https://parking.yourdomain.com
 
@@ -196,7 +234,7 @@ DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=parkhub
 DB_USERNAME=parkhub
-DB_PASSWORD=your-very-secure-password
+DB_PASSWORD=your-very-secure-database-password
 
 SESSION_DRIVER=database
 CACHE_STORE=file

@@ -1,6 +1,20 @@
 # Contributing to ParkHub PHP
 
-Development setup, testing, and pull request process.
+Development setup, testing, code style, and pull request process.
+
+---
+
+## Table of Contents
+
+- [Development Environment](#development-environment)
+- [Project Structure](#project-structure)
+- [Running Tests](#running-tests)
+- [Code Style](#code-style)
+- [Frontend Development](#frontend-development)
+- [Adding a New API Endpoint](#adding-a-new-api-endpoint)
+- [Database Migrations](#database-migrations)
+- [Pull Request Process](#pull-request-process)
+- [Reporting Bugs](#reporting-bugs)
 
 ---
 
@@ -8,24 +22,40 @@ Development setup, testing, and pull request process.
 
 ### Prerequisites
 
-- PHP 8.3+ with extensions: `pdo_sqlite`, `mbstring`, `xml`, `gd`, `bcmath`, `zip`
-- Composer 2.x
-- Node.js 20 LTS + npm 10+
-- Git
+| Tool | Version |
+|------|---------|
+| PHP | 8.3+ |
+| PHP extensions | `pdo_sqlite`, `mbstring`, `xml`, `gd`, `bcmath`, `zip` |
+| Composer | 2.x |
+| Node.js | 20 LTS |
+| npm | 10+ |
+| Git | any recent |
 
 A `shell.nix` is included for Nix / NixOS users.
 
-### First-time setup
+### First-Time Setup
 
 ```bash
-git clone https://github.com/your-repo/parkhub-php.git
+git clone https://github.com/nash87/parkhub-php.git
 cd parkhub-php
 
-# Install PHP and JS dependencies
+# One-command setup
+composer setup
+```
+
+This runs: `composer install`, `.env` creation from `.env.example`, `php artisan key:generate`,
+`php artisan migrate`, `npm install`, `npm run build`.
+
+Or step by step:
+
+```bash
+# PHP dependencies
 composer install
+
+# JavaScript dependencies
 npm install
 
-# Create .env and generate app key
+# Environment config
 cp .env.example .env
 php artisan key:generate
 
@@ -33,11 +63,11 @@ php artisan key:generate
 touch database/database.sqlite
 php artisan migrate
 
-# Optionally seed demo data
+# Optionally seed German demo data (10 lots, 200 users, ~3500 bookings)
 php artisan db:seed --class=ProductionSimulationSeeder
 ```
 
-### Run the development server
+### Start the Development Server
 
 All four processes in parallel (recommended):
 
@@ -46,12 +76,12 @@ composer dev
 ```
 
 This runs concurrently via `npx concurrently`:
-- `php artisan serve` — Laravel backend on http://localhost:8000
+- `php artisan serve` — Laravel API on http://localhost:8000
+- `npm run dev` — Vite frontend with hot reload
 - `php artisan queue:listen` — Queue worker for email jobs
 - `php artisan pail` — Log viewer
-- `npm run dev` — Vite frontend dev server with hot reload
 
-Or start each process individually:
+Or run each process individually:
 
 ```bash
 # Terminal 1 — API backend
@@ -60,17 +90,11 @@ php artisan serve
 # Terminal 2 — Frontend hot reload
 npm run dev
 
-# Terminal 3 — Queue worker (for email testing)
+# Terminal 3 — Queue worker
 php artisan queue:listen --tries=1
 ```
 
-### One-command setup (from `composer.json`)
-
-```bash
-composer setup
-```
-
-This runs: `composer install`, `.env` creation, `php artisan key:generate`, `php artisan migrate`, `npm install`, `npm run build`.
+Open **http://localhost:5173** (Vite proxy) or **http://localhost:8000** directly.
 
 ---
 
@@ -79,32 +103,38 @@ This runs: `composer install`, `.env` creation, `php artisan key:generate`, `php
 ```
 parkhub-php/
 ├── app/
-│   ├── Http/Controllers/Api/    # API controllers (one per resource group)
+│   ├── Http/Controllers/Api/    # API controllers (one file per resource group)
+│   │   ├── AuthController.php
+│   │   ├── BookingController.php
+│   │   ├── AdminController.php
+│   │   └── ...
 │   ├── Mail/                    # Mailables (WelcomeEmail, BookingConfirmation)
-│   └── Models/                  # Eloquent models
+│   └── Models/                  # Eloquent models (User, ParkingLot, Booking, ...)
 ├── database/
-│   ├── migrations/              # Database schema
+│   ├── migrations/              # Database schema (numbered, ordered)
 │   └── seeders/                 # Demo data seeders
-├── docs/                        # Documentation
+├── docs/                        # Documentation (this directory)
 ├── legal/                       # German legal document templates
 ├── resources/js/                # React 19 frontend
 │   └── src/
 │       ├── api/                 # API client functions
 │       ├── components/          # Shared UI components
-│       ├── context/             # React context providers
+│       ├── context/             # React context providers (AuthContext)
 │       ├── hooks/               # Custom hooks
-│       ├── i18n/                # Translations
-│       ├── pages/               # Page components (one per route)
+│       ├── i18n/                # Translation strings
+│       ├── pages/               # Page components (one file per route)
 │       └── stores/              # State stores
 ├── routes/
-│   ├── api.php                  # Legacy API routes
-│   └── api_v1.php               # V1 API routes (Rust-compatible)
-└── tests/                       # PHPUnit / Pest tests
+│   ├── api.php                  # Legacy /api/* routes
+│   └── api_v1.php               # Primary /api/v1/* routes (Rust-compatible)
+└── tests/
+    ├── Feature/                 # Full HTTP request tests
+    └── Unit/                    # Isolated class tests
 ```
 
 ---
 
-## Testing
+## Running Tests
 
 ### Run all tests
 
@@ -122,7 +152,7 @@ php artisan test tests/Feature/AuthTest.php
 
 ### Test database
 
-Tests use SQLite in-memory by default (configured in `phpunit.xml`). No separate test database is needed.
+Tests use SQLite in-memory (configured in `phpunit.xml`). No separate test database needed:
 
 ```xml
 <!-- phpunit.xml -->
@@ -130,11 +160,7 @@ Tests use SQLite in-memory by default (configured in `phpunit.xml`). No separate
 <env name="DB_DATABASE" value=":memory:"/>
 ```
 
-### Writing tests
-
-PHPUnit is the default test runner. Feature tests in `tests/Feature/` test full HTTP requests through the application. Unit tests in `tests/Unit/` test isolated classes.
-
-Example feature test:
+### Writing feature tests
 
 ```php
 <?php
@@ -142,6 +168,8 @@ Example feature test:
 namespace Tests\Feature;
 
 use App\Models\User;
+use App\Models\ParkingLot;
+use App\Models\ParkingSlot;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -149,13 +177,13 @@ class BookingTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_can_create_a_booking(): void
+    public function test_user_can_create_booking(): void
     {
-        $user = User::factory()->create(['role' => 'user', 'is_active' => true]);
+        $user  = User::factory()->create(['role' => 'user', 'is_active' => true]);
         $token = $user->createToken('test')->plainTextToken;
 
-        $lot = \App\Models\ParkingLot::factory()->create();
-        $slot = \App\Models\ParkingSlot::factory()->create(['lot_id' => $lot->id]);
+        $lot  = ParkingLot::factory()->create();
+        $slot = ParkingSlot::factory()->create(['lot_id' => $lot->id]);
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
             ->postJson('/api/v1/bookings', [
@@ -174,33 +202,42 @@ class BookingTest extends TestCase
 
 ## Code Style
 
-PHP code follows **PSR-12**. Enforce with Laravel Pint (included as a dev dependency):
+### PHP — Laravel Pint (PSR-12)
 
 ```bash
+# Fix all formatting issues
 vendor/bin/pint
-```
 
-Check without fixing:
-
-```bash
+# Check without fixing (for CI)
 vendor/bin/pint --test
 ```
 
-TypeScript/React code follows the existing ESLint and Prettier configuration.
+### TypeScript / React
+
+- TypeScript strict mode is enabled — do not relax it
+- Functional components only (no class components)
+- No inline styles — use Tailwind CSS utility classes
+- ESLint runs via `npm run lint`
 
 ---
 
 ## Frontend Development
 
-The frontend is a React 19 SPA built with Vite 6. The source is under `resources/js/src/`.
-
-Build for production:
+The frontend is a React 19 SPA built with Vite 6. Source is at `resources/js/src/`.
 
 ```bash
-npm run build
-```
+# Development with hot reload
+npm run dev
 
-The built assets are output to `public/build/` and served by Laravel's asset handling.
+# Production build (output to public/build/)
+npm run build
+
+# Type checking without building
+npm run type-check
+
+# ESLint
+npm run lint
+```
 
 Rebuild the frontend inside the Docker image:
 
@@ -210,47 +247,14 @@ docker build -t parkhub-php .
 
 ---
 
-## Pull Request Process
-
-1. Fork the repository and create a feature branch from `main`:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-2. Write tests for any new functionality. Ensure all existing tests pass:
-   ```bash
-   composer test
-   ```
-
-3. Run the code formatter:
-   ```bash
-   vendor/bin/pint
-   ```
-
-4. Update the relevant documentation:
-   - `docs/API.md` for new or changed endpoints
-   - `docs/CONFIGURATION.md` for new `.env` variables
-   - `docs/CHANGELOG.md` under an `[Unreleased]` section
-
-5. Commit with a clear, descriptive message. Reference any related issues.
-
-6. Open a pull request against `main`. The PR description should:
-   - Explain what the change does and why
-   - Link to any related issues
-   - Note any breaking changes
-   - Include migration steps if the database schema changed
-
-7. All CI checks must pass before merge.
-
----
-
 ## Adding a New API Endpoint
 
 1. Create or update the controller in `app/Http/Controllers/Api/`
-2. Add the route in `routes/api.php` (legacy) and `routes/api_v1.php` (v1 / primary)
-3. Add request validation with `$request->validate()`
-4. Check authorization (either via `auth:sanctum` middleware or `$this->requireAdmin($request)` inside the method)
-5. Add a test in `tests/Feature/`
+2. Add request validation with `$request->validate()`
+3. Check authorization — either via `auth:sanctum` middleware (route level) or
+   `$this->requireAdmin($request)` inside the method (controller level)
+4. Add the route to `routes/api_v1.php` (and optionally `routes/api.php` for legacy)
+5. Write a feature test in `tests/Feature/`
 6. Document the endpoint in `docs/API.md`
 
 ---
@@ -258,26 +262,96 @@ docker build -t parkhub-php .
 ## Database Migrations
 
 ```bash
-# Create a migration
-php artisan make:migration add_column_to_table
+# Create a new migration
+php artisan make:migration add_notes_to_bookings_table
 
 # Run migrations
 php artisan migrate
 
-# Rollback
+# Rollback one migration
 php artisan migrate:rollback
+
+# Fresh install (destroys all data — development only)
+php artisan migrate:fresh --seed
 ```
 
 Always write both `up()` and `down()` methods. Test rollback before submitting a PR.
+
+For schema changes in PRs:
+- Check whether the migration is backwards-compatible
+- Document any required data migration steps
+- Test with both SQLite and MySQL if the migration uses DB-specific syntax
+
+---
+
+## Pull Request Process
+
+1. Fork the repository and create a feature branch from `main`:
+
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+
+   Branch naming:
+   - `feature/` — new functionality
+   - `fix/` — bug fixes
+   - `docs/` — documentation only
+   - `refactor/` — code without behavior change
+   - `security/` — security fixes (coordinate via responsible disclosure first)
+
+2. Write tests for any new functionality. Ensure all existing tests pass:
+
+   ```bash
+   composer test
+   ```
+
+3. Run the code formatter:
+
+   ```bash
+   vendor/bin/pint
+   npm run lint
+   ```
+
+4. Update documentation:
+   - `docs/API.md` for new or changed endpoints
+   - `docs/CONFIGURATION.md` for new `.env` variables
+   - `docs/CHANGELOG.md` under `[Unreleased]`
+
+5. Commit with a clear, descriptive message in the imperative mood:
+
+   ```
+   Add recurring booking support for EU holidays
+   Fix GDPR export missing absences field
+   Update admin stats to include waitlist count
+   ```
+
+6. Open a PR against `main`. The PR description should:
+   - Explain what the change does and why
+   - Link to any related issues
+   - Note any breaking changes (API, .env, database schema)
+   - Include migration steps if schema changed
+
+7. All CI checks must pass before merge.
 
 ---
 
 ## Reporting Bugs
 
 Open a GitHub issue with:
-- PHP version and OS
-- Steps to reproduce
-- Expected vs. actual behaviour
-- Relevant log output from `storage/logs/laravel.log`
 
-For security vulnerabilities, follow the process in [SECURITY.md](SECURITY.md) — do not create a public issue.
+- PHP version: `php --version`
+- Operating system and deployment method (Docker, VPS, etc.)
+- Steps to reproduce
+- Expected vs actual behaviour
+- Log output from `storage/logs/laravel.log`
+
+For security vulnerabilities, follow the process in [SECURITY.md](SECURITY.md).
+Do not open a public issue for security reports.
+
+---
+
+## License
+
+By contributing, you agree that your contributions will be licensed under the MIT License.
+
+See [LICENSE](../LICENSE).
