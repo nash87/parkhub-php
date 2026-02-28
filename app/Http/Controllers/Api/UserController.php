@@ -274,9 +274,6 @@ class UserController extends Controller
             'guest_name' => 'Anonymous',
         ]);
 
-        // Invalidate all tokens
-        $user->tokens()->delete();
-
         // Audit log before anonymizing (records the action for compliance)
         \App\Models\AuditLog::create([
             'user_id'    => $user->id,
@@ -285,6 +282,9 @@ class UserController extends Controller
             'details'    => ['reason' => $request->input('reason', 'User request')],
             'ip_address' => $request->ip(),
         ]);
+
+        // Build the response BEFORE invalidating tokens so the session is still valid when serialized
+        $response = response()->json(['success' => true, 'data' => ['message' => 'Account deleted successfully'], 'error' => null, 'meta' => null], 200);
 
         // Anonymize the user record itself (don't hard-delete — bookings still reference it)
         $user->preferences = null;
@@ -300,6 +300,9 @@ class UserController extends Controller
             'is_active'   => false,
         ]);
 
-        return response()->json(['message' => 'Account anonymized. Personal data erased per GDPR Art. 17.'], 200);
+        // Invalidate all tokens AFTER building the response
+        $user->tokens()->delete();
+
+        return $response;
     }
 }

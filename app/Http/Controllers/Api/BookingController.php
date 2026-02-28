@@ -38,6 +38,16 @@ class BookingController extends Controller
             'license_plate'=> 'nullable|string|max:20',
         ]);
 
+        $startTime = \Carbon\Carbon::parse($request->start_time);
+        if ($startTime->isPast()) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => ['code' => 'INVALID_BOOKING_TIME', 'message' => 'Booking start time must be in the future.'],
+                'meta' => null
+            ], 422);
+        }
+
         $endTime = $request->end_time ?? now()->addHours(8)->toDateTimeString();
         $slotId  = $request->slot_id;
 
@@ -114,6 +124,21 @@ class BookingController extends Controller
         }
 
         return response()->json($booking, 201);
+    }
+
+    public function show(Request $request, string $id)
+    {
+        $booking = Booking::find($id);
+
+        if (!$booking) {
+            return response()->json(['success' => false, 'data' => null, 'error' => ['code' => 'NOT_FOUND', 'message' => 'Booking not found.'], 'meta' => null], 404);
+        }
+
+        if ($booking->user_id !== $request->user()->id) {
+            return response()->json(['success' => false, 'data' => null, 'error' => ['code' => 'FORBIDDEN', 'message' => 'You do not have access to this booking.'], 'meta' => null], 403);
+        }
+
+        return response()->json($booking);
     }
 
     public function destroy(Request $request, string $id)

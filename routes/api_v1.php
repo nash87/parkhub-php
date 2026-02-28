@@ -73,12 +73,14 @@ Route::get('/public/display', [PublicController::class, 'display']);
 // Announcements (public)
 Route::get('/announcements/active', function() {
     $announcements = \App\Models\Announcement::where('active', true)
-        ->where(function($q) {
-            $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
-        })
         ->orderBy('created_at', 'desc')
         ->get();
-    return response()->json($announcements);
+    return response()->json([
+        'success' => true,
+        'data' => $announcements,
+        'error' => null,
+        'meta' => null,
+    ]);
 });
 
 // Protected
@@ -112,6 +114,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Bookings
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::post('/bookings', [BookingController::class, 'store']);
+    Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
     Route::post('/bookings/quick', [BookingController::class, 'quickBook']);
     Route::post('/bookings/guest', [BookingController::class, 'guestBooking']);

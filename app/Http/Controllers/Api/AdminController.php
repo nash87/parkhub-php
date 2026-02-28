@@ -232,8 +232,19 @@ public function getSettings(Request $request)
     public function users(Request $request)
     {
         $this->requireAdmin($request);
-        // toArray() respects $hidden (password, remember_token) defined on the model
-        return response()->json(User::all()->map(fn ($u) => $u->toArray()));
+        $perPage = min((int) request('per_page', 20), 100);
+        $users = User::paginate($perPage);
+        return response()->json([
+            'success' => true,
+            'data' => $users->items(),
+            'error' => null,
+            'meta' => [
+                'current_page' => $users->currentPage(),
+                'per_page' => $users->perPage(),
+                'total' => $users->total(),
+                'last_page' => $users->lastPage(),
+            ],
+        ]);
     }
 
     public function bookings(Request $request)
