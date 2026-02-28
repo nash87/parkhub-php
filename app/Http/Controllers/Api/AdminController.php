@@ -86,9 +86,10 @@ class AdminController extends Controller
             $query->where('action', $request->action);
         }
         if ($request->has('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('username', 'like', '%' . $request->search . '%')
-                  ->orWhere('action', 'like', '%' . $request->search . '%');
+            $search = addcslashes($request->search, '%_\\');
+            $query->where(function ($q) use ($search) {
+                $q->where('username', 'like', '%' . $search . '%')
+                  ->orWhere('action', 'like', '%' . $search . '%');
             });
         }
 
@@ -616,6 +617,50 @@ public function getSettings(Request $request)
             'ip_address' => $request->ip(),
         ]);
         return response()->json(['message' => 'Impressum updated']);
+    }
+
+    // Route-named aliases expected by api.php
+    public function getImpressum(Request $request)
+    {
+        return $this->getImpress($request);
+    }
+
+    public function updateImpressum(Request $request)
+    {
+        return $this->updateImpress($request);
+    }
+
+    public function exportUsersCsv(Request $request)
+    {
+        $this->requireAdmin($request);
+
+        $users = User::orderBy('name')->get();
+
+        $headers = ['ID', 'Username', 'Name', 'Email', 'Role', 'Department', 'Active', 'Created'];
+        $rows = $users->map(fn($u) => [
+            $u->id,
+            $u->username,
+            $u->name,
+            $u->email,
+            $u->role,
+            $u->department ?? '',
+            $u->is_active ? 'yes' : 'no',
+            optional($u->created_at)->format('Y-m-d'),
+        ]);
+
+        $output = fopen('php://output', 'w');
+        ob_start();
+        fputcsv($output, $headers);
+        foreach ($rows as $row) {
+            fputcsv($output, $row);
+        }
+        fclose($output);
+        $csv = ob_get_clean();
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="users-export.csv"',
+        ]);
     }
 
     // Public Impressum endpoint (no auth — must be accessible to all visitors)

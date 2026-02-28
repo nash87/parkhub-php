@@ -1,0 +1,79 @@
+# Koyeb deployment manifest for ParkHub PHP
+# Deploy with: koyeb app deploy --file koyeb.yaml
+#
+# Prerequisites:
+#   1. Get API token: https://app.koyeb.com/account/api
+#   2. Install CLI: curl -fsSL https://raw.githubusercontent.com/koyeb/koyeb-cli/master/install.sh | sh
+#   3. Login: koyeb login
+#   4. Set required secrets in Koyeb dashboard before deploying:
+#      - APP_KEY: run locally: php artisan key:generate --show
+#      - DB_PASSWORD: your database password
+#      - PARKHUB_ADMIN_PASSWORD: initial admin password
+#   5. Deploy: koyeb app deploy --file koyeb.yaml
+#
+# Database options:
+#   - SQLite (free, ephemeral): set DB_CONNECTION=sqlite, no DB_HOST needed
+#   - Koyeb managed MySQL (paid): set DB_* vars to Koyeb DB connection details
+#   - PlanetScale (free tier): set DB_CONNECTION=mysql + PlanetScale credentials
+#   - Neon.tech (free PostgreSQL): set DB_CONNECTION=pgsql + Neon credentials
+
+name: parkhub-php
+
+services:
+  - name: web
+    type: web
+    git:
+      repository: github.com/nash87/parkhub-php
+      branch: main
+      build_command: "composer install --no-dev --optimize-autoloader && npm ci && npm run build"
+      run_command: "bash docker-entrypoint.sh apache2-foreground"
+    ports:
+      - port: 80
+        protocol: http
+    env:
+      - key: APP_NAME
+        value: "ParkHub"
+      - key: APP_ENV
+        value: "production"
+      - key: APP_DEBUG
+        value: "false"
+      # APP_KEY: set as secret in Koyeb dashboard
+      # Generate with: php artisan key:generate --show
+      - key: APP_KEY
+        value: ""
+      - key: APP_URL
+        value: "https://parkhub-php-<your-org>.koyeb.app"
+      # Database — use SQLite for free tier (ephemeral) or configure MySQL/PostgreSQL
+      - key: DB_CONNECTION
+        value: "sqlite"
+      - key: DB_DATABASE
+        value: "/var/www/html/storage/database.sqlite"
+      - key: SESSION_DRIVER
+        value: "file"
+      - key: CACHE_STORE
+        value: "file"
+      - key: QUEUE_CONNECTION
+        value: "sync"
+      - key: PARKHUB_ADMIN_EMAIL
+        value: "admin@parkhub.local"
+      # PARKHUB_ADMIN_PASSWORD: set as secret in Koyeb dashboard
+      - key: PARKHUB_ADMIN_PASSWORD
+        value: ""
+    health_checks:
+      - port: 80
+        protocol: http
+        path: /health/live
+        interval: 10
+        timeout: 5
+        healthy_threshold: 1
+        unhealthy_threshold: 3
+    instance_types:
+      - type: nano
+    regions:
+      - fra
+    scaling:
+      min: 0
+      max: 1
+    routes:
+      - path: /
+        port: 80

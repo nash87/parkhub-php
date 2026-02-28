@@ -23,6 +23,9 @@ chown -R www-data:www-data storage bootstrap/cache
 # Run migrations
 php artisan migrate --force 2>/dev/null || true
 
+# Prune expired Sanctum tokens (7 day expiry = 168 hours)
+php artisan sanctum:prune-expired --hours=168 2>/dev/null || true
+
 # Create default admin if none exists
 # Credentials configurable via PARKHUB_ADMIN_EMAIL and PARKHUB_ADMIN_PASSWORD env vars
 ADMIN_EMAIL="${PARKHUB_ADMIN_EMAIL:-admin@parkhub.local}"

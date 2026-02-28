@@ -19,7 +19,7 @@ services:
       - DB_PASSWORD=secret
       - SESSION_DRIVER=file
       - CACHE_STORE=file
-      - QUEUE_CONNECTION=sync
+      - QUEUE_CONNECTION=database
       # Change PARKHUB_ADMIN_EMAIL and PARKHUB_ADMIN_PASSWORD before first start!
       - PARKHUB_ADMIN_EMAIL=admin@parkhub.local
       - PARKHUB_ADMIN_PASSWORD=admin
@@ -76,6 +76,81 @@ services:
           memory: 512M
         reservations:
           memory: 128M
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    environment:
+      - APP_NAME=ParkHub
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8080
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=parkhub
+      - DB_USERNAME=parkhub
+      - DB_PASSWORD=secret
+      - SESSION_DRIVER=file
+      - CACHE_STORE=file
+      - QUEUE_CONNECTION=database
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - app-storage:/var/www/html/storage
+    networks:
+      - parkhub-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+        reservations:
+          memory: 64M
+
+  scheduler:
+    build: .
+    restart: unless-stopped
+    command: >
+      sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    environment:
+      - APP_NAME=ParkHub
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8080
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=parkhub
+      - DB_USERNAME=parkhub
+      - DB_PASSWORD=secret
+      - SESSION_DRIVER=file
+      - CACHE_STORE=file
+      - QUEUE_CONNECTION=database
+    depends_on:
+      app:
+        condition: service_healthy
+    volumes:
+      - app-storage:/var/www/html/storage
+    networks:
+      - parkhub-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
 
 networks:
   parkhub-internal:

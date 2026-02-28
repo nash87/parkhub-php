@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\TeamController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\ZoneController;
 use App\Http\Controllers\Api\MiscController;
+use App\Http\Controllers\Api\WaitlistController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes (no auth) — rate limited to prevent brute-force and registration spam
@@ -105,6 +106,24 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/settings', [AdminController::class, 'updateSettings']);
         Route::get('/users', [AdminController::class, 'users']);
         Route::put('/users/{id}', [AdminController::class, 'updateUser']);
+        Route::get('/bookings', [AdminController::class, 'bookings']);
+        Route::delete('/bookings/{id}', [AdminController::class, 'cancelBooking']);
+        Route::get('/bookings/export-csv', [AdminController::class, 'exportBookingsCsv']);
+        Route::get('/reports', [AdminController::class, 'reports']);
+        Route::get('/dashboard-charts', [AdminController::class, 'dashboardCharts']);
+        Route::get('/branding', [AdminController::class, 'getBranding']);
+        Route::put('/branding', [AdminController::class, 'updateBranding']);
+        Route::post('/branding/logo', [AdminController::class, 'uploadBrandingLogo']);
+        Route::get('/privacy', [AdminController::class, 'getPrivacy']);
+        Route::put('/privacy', [AdminController::class, 'updatePrivacy']);
+        Route::get('/impressum', [AdminController::class, 'getImpressum']);
+        Route::put('/impressum', [AdminController::class, 'updateImpressum']);
+        Route::post('/database/reset', [AdminController::class, 'resetDatabase']);
+        Route::get('/auto-release', [AdminController::class, 'getAutoReleaseSettings']);
+        Route::put('/auto-release', [AdminController::class, 'updateAutoReleaseSettings']);
+        Route::get('/email-settings', [AdminController::class, 'getEmailSettings']);
+        Route::put('/email-settings', [AdminController::class, 'updateEmailSettings']);
+        Route::post('/users/export-csv', [AdminController::class, 'exportUsersCsv']);
     });
 
     // User
@@ -143,6 +162,36 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/webhooks', [MiscController::class, 'createWebhook']);
     Route::put('/webhooks/{id}', [MiscController::class, 'updateWebhook']);
     Route::delete('/webhooks/{id}', [MiscController::class, 'deleteWebhook']);
+
+    // Booking detail
+    Route::get('/bookings/{id}', [BookingController::class, 'show']);
+
+    // User export / calendar
+    Route::get('/user/export', [UserController::class, 'export']);
+    Route::get('/user/calendar-export', [UserController::class, 'calendarExport']);
+
+    // Absence iCal import
+    Route::get('/absences/import-ical', [AbsenceController::class, 'importIcal']);
+
+    // Vehicle photos
+    Route::get('/vehicles/{id}/photo', [VehicleController::class, 'servePhoto']);
+    Route::post('/vehicles/{id}/photo', [VehicleController::class, 'uploadPhoto']);
+
+    // Team today
+    Route::get('/team/today', [TeamController::class, 'today']);
+
+    // Active announcements
+    Route::get('/announcements/active', function () {
+        return response()->json(\App\Models\Announcement::where('active', true)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })->orderBy('created_at', 'desc')->get());
+    });
+
+    // Waitlist
+    Route::get('/waitlist', [WaitlistController::class, 'index']);
+    Route::post('/waitlist', [WaitlistController::class, 'store']);
+    Route::delete('/waitlist/{id}', [WaitlistController::class, 'destroy']);
 });
 
 // V1 compatibility routes (same endpoints as Rust edition)

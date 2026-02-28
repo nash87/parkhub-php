@@ -7,6 +7,30 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.0] - 2026-02-28
+
+### Added
+- **Missing admin routes wired**: `/admin/bookings`, `/admin/reports`, `/admin/dashboard-charts`, `/admin/branding`, `/admin/privacy`, `/admin/impressum`, `/admin/database/reset`, `/admin/auto-release`, `/admin/email-settings`, `/admin/users/export-csv`, `/admin/bookings/export-csv`
+- **Waitlist routes**: `GET/POST /waitlist`, `DELETE /waitlist/{id}` now wired to WaitlistController
+- **Single booking endpoint**: `GET /bookings/{id}` now accessible (was in controller but not in routes)
+- **User endpoints**: `GET /user/export`, `GET /user/calendar-export`, `GET /absences/import-ical`, `GET /team/today`
+- **Vehicle photo endpoints**: `GET/POST /vehicles/{id}/photo` now accessible
+- **Announcements endpoint**: `GET /announcements/active` with proper `expires_at` null-safe filter
+- **Queue worker**: New `worker` service in docker-compose.yml for async email/webhook processing
+- **Scheduler service**: New `scheduler` service in docker-compose.yml for scheduled jobs
+- **SendWebhookJob**: Webhooks are now actually delivered via a queued HTTP job with HMAC-SHA256 signing and 3 retries
+- **AutoReleaseBookingsJob**: Scheduled every 5 minutes — auto-cancels bookings with no check-in after timeout
+- **ExpandRecurringBookingsJob**: Daily at 01:00 — pre-creates bookings from recurring patterns for the next 7 days
+- **Sanctum token pruning**: Expired tokens pruned on container start and daily via scheduler
+- **Koyeb deployment**: Added `koyeb.yaml` for one-command Koyeb deployment
+
+### Fixed
+- **LIKE injection**: `auditLog()` search now escapes `%`, `_`, `\` characters before interpolation
+- **N+1 query**: `PublicController::occupancy()` and `display()` now use single aggregation queries (was N+1 per lot)
+- **QUEUE_CONNECTION**: Changed from `sync` to `database` so queued jobs actually queue
+
+---
+
 ## [1.1.0] — 2026-02-28
 
 ### Security

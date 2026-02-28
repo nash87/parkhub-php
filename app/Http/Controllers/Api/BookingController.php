@@ -123,6 +123,19 @@ class BookingController extends Controller
             Mail::to($recipient->email)->queue(new BookingConfirmation($booking, $recipient));
         }
 
+        // Dispatch webhook events
+        foreach (\App\Models\Webhook::where('active', true)->get() as $webhook) {
+            if (in_array('booking.created', $webhook->events ?? [])) {
+                \App\Jobs\SendWebhookJob::dispatch($webhook->id, 'booking.created', [
+                    'booking_id' => $booking->id,
+                    'user_id'    => $booking->user_id,
+                    'slot_id'    => $booking->slot_id,
+                    'start_time' => $booking->start_time,
+                    'end_time'   => $booking->end_time,
+                ]);
+            }
+        }
+
         return response()->json($booking, 201);
     }
 
@@ -157,6 +170,15 @@ class BookingController extends Controller
 
         // Notify waitlist users that a slot has become available in this lot
         $this->notifyWaitlist($booking->lot_id, $booking->slot_id);
+
+        // Dispatch webhook events
+        foreach (\App\Models\Webhook::where('active', true)->get() as $webhook) {
+            if (in_array('booking.cancelled', $webhook->events ?? [])) {
+                \App\Jobs\SendWebhookJob::dispatch($webhook->id, 'booking.cancelled', [
+                    'booking_id' => $booking->id,
+                ]);
+            }
+        }
 
         return response()->json(['message' => 'Booking cancelled']);
     }
