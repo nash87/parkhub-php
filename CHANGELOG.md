@@ -215,3 +215,32 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 **Demo data**
 - `ProductionSimulationSeeder`: 10 German parking lots (München, Stuttgart, Köln, Frankfurt, Hamburg, Nürnberg, Karlsruhe, Heidelberg, Dortmund, Leipzig), 200 German-named users across 10 departments, ~3500 bookings over 30 days
+
+---
+
+## [1.1.1] — 2026-02-28
+
+### Critical Bug Fixes
+
+- **`/api/v1/health/ready` HTTP 500**: Readiness probe now gracefully falls back to `1.0.0-php` when `VERSION` file is absent in container
+- **`/api/v1/announcements/active` HTTP 500**: Removed filter on non-existent `expires_at` column; returns all active announcements
+- **`password_confirmation` ignored on registration**: Added `confirmed` validation rule — password and password_confirmation must now match
+- **Past booking accepted**: `POST /api/v1/bookings` now rejects `start_time` in the past with HTTP 422 `INVALID_BOOKING_TIME`
+- **Profile save lost on refresh**: `Profile.tsx handleSave()` now calls `PUT /api/v1/users/me` — profile changes persist
+- **Vehicle creation always failed**: `api/client.ts` was sending `license_plate` but backend requires `plate` — corrected
+- **New lots had 0 slots**: `LotController::store()` now auto-generates `total_slots` slot records (001..N) on lot creation
+
+### Security
+
+- **Apache security headers**: `X-Content-Type-Options`, `X-Frame-Options`, `Content-Security-Policy`, `HSTS`, `Referrer-Policy`, `Permissions-Policy` added via `.htaccess`
+- **Server/framework version hidden**: `X-Powered-By: PHP` and `Server: Apache` response headers suppressed
+
+### Other Improvements
+
+- Added `GET /api/v1/bookings/{id}` single-booking detail endpoint
+- GDPR account deletion response now returns `{"success":true}` instead of `Unauthenticated` error
+- CORS restricted from wildcard `*` to specific allowed origins
+- Admin users list now paginated (default 20, max 100 per page)
+- Login page: removed duplicate theme toggle button
+- Router: `/datenschutz` redirects to `/privacy`, `/agb` redirects to `/terms`
+- Removed stale `.backup` development files from production image
