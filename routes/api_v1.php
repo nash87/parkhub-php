@@ -165,6 +165,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/admin/users', [AdminController::class, 'users']);
     Route::put('/admin/users/{id}', [AdminController::class, 'updateUser']);
     Route::post('/admin/users/import', [AdminController::class, 'importUsers']);
+    Route::get('/admin/bookings', [AdminController::class, 'bookings']);
+    Route::patch('/admin/bookings/{id}/cancel', [AdminController::class, 'cancelBooking']);
     Route::get('/admin/announcements', [AdminController::class, 'announcements']);
     Route::post('/admin/announcements', [AdminController::class, 'createAnnouncement']);
     Route::put('/admin/announcements/{id}', [AdminController::class, 'updateAnnouncement']);

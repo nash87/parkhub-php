@@ -5,6 +5,7 @@ import {
   ChartBar, Buildings, Users, ListChecks, Plus, CheckCircle, TrendUp, CaretRight,
   SpinnerGap, MagnifyingGlass, XCircle, Trash, PencilSimple,
   Lightning, Pulse, ShieldCheck, Clock, House, Prohibit, Palette, GearSix, ArrowsClockwise, ClockCounterClockwise, Article,
+  DownloadSimple, FloppyDisk, X,
 } from '@phosphor-icons/react';
 import { api, ParkingLot, ParkingLotDetailed, User, Booking, AdminStats } from '../api/client';
 import { LotLayoutEditor } from '../components/LotLayoutEditor';
@@ -279,21 +280,64 @@ function AdminLots() {
   );
 }
 
+type EditableUser = User & { is_active?: boolean; department?: string };
+
 function AdminUsers() {
   const { t } = useTranslation();
-  const [users, setUsers] = useState<(User & { vehicles?: number; status?: string })[]>([]);
+  const [users, setUsers] = useState<EditableUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'user'>('all');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<{ role: string; is_active: boolean; name: string }>({ role: 'user', is_active: true, name: '' });
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.getAdminUsers();
-        if (res.success && res.data) setUsers(res.data);
-      } finally { setLoading(false); }
-    })();
-  }, []);
+  async function loadUsers() {
+    try {
+      const res = await api.getAdminUsers();
+      if (res.success && res.data) setUsers(res.data as EditableUser[]);
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { void loadUsers(); }, []);
+
+  function startEdit(user: EditableUser) {
+    setEditingId(user.id);
+    setEditForm({ role: user.role, is_active: user.is_active ?? true, name: user.name });
+  }
+
+  async function saveEdit(userId: string) {
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, ...data } : u));
+        setEditingId(null);
+      }
+    } finally { setSaving(false); }
+  }
+
+  async function handleDelete(userId: string, userName: string) {
+    if (!confirm(t('admin.users.confirmDelete', `Benutzer "${userName}" wirklich löschen?`))) return;
+    setDeletingId(userId);
+    try {
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setUsers(prev => prev.filter(u => u.id !== userId));
+      }
+    } finally { setDeletingId(null); }
+  }
 
   const filtered = users.filter(u => {
     if (search && !u.name.toLowerCase().includes(search.toLowerCase()) && !u.email.toLowerCase().includes(search.toLowerCase())) return false;
@@ -307,7 +351,6 @@ function AdminUsers() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('admin.users.title')}</h2>
-        <button className="btn btn-primary"><Plus weight="bold" className="w-4 h-4" />{t('admin.users.addUser')}</button>
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1"><MagnifyingGlass weight="regular" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" /><input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('admin.users.searchPlaceholder')} className="input pl-11" /></div>
@@ -322,11 +365,50 @@ function AdminUsers() {
       </tr></thead><tbody className="divide-y divide-gray-100 dark:divide-gray-800">
         {filtered.map((user, i) => (
           <motion.tr key={user.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }} className="hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors">
-            <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="avatar text-sm">{user.name?.charAt(0) || '?'}</div><span className="font-medium text-gray-900 dark:text-white">{user.name}</span></div></td>
-            <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
-            <td className="px-6 py-4"><span className={`badge ${user.role === 'admin' || user.role === 'superadmin' ? 'badge-error' : 'badge-info'}`}>{user.role === 'admin' || user.role === 'superadmin' ? 'Admin' : 'User'}</span></td>
-            <td className="px-6 py-4"><span className="badge badge-success">{t('common.active')}</span></td>
-            <td className="px-6 py-4 text-right"><div className="flex items-center justify-end gap-1"><button className="btn btn-ghost btn-icon btn-sm"><PencilSimple weight="regular" className="w-4 h-4" /></button><button className="btn btn-ghost btn-icon btn-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"><Trash weight="regular" className="w-4 h-4" /></button></div></td>
+            {editingId === user.id ? (
+              <>
+                <td className="px-6 py-3">
+                  <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))} className="input text-sm py-1" />
+                </td>
+                <td className="px-6 py-3 text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
+                <td className="px-6 py-3">
+                  <select value={editForm.role} onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))} className="input text-sm py-1 w-auto">
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </td>
+                <td className="px-6 py-3">
+                  <select value={editForm.is_active ? 'active' : 'inactive'} onChange={e => setEditForm(f => ({ ...f, is_active: e.target.value === 'active' }))} className="input text-sm py-1 w-auto">
+                    <option value="active">{t('common.active')}</option>
+                    <option value="inactive">{t('common.inactive', 'Inaktiv')}</option>
+                  </select>
+                </td>
+                <td className="px-6 py-3 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => saveEdit(user.id)} disabled={saving} className="btn btn-primary btn-sm">
+                      {saving ? <SpinnerGap weight="bold" className="w-3.5 h-3.5 animate-spin" /> : <FloppyDisk weight="bold" className="w-3.5 h-3.5" />}
+                      {t('common.save')}
+                    </button>
+                    <button onClick={() => setEditingId(null)} className="btn btn-secondary btn-sm"><X weight="bold" className="w-3.5 h-3.5" /></button>
+                  </div>
+                </td>
+              </>
+            ) : (
+              <>
+                <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="avatar text-sm">{user.name?.charAt(0) || '?'}</div><span className="font-medium text-gray-900 dark:text-white">{user.name}</span></div></td>
+                <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{user.email}</td>
+                <td className="px-6 py-4"><span className={`badge ${user.role === 'admin' || user.role === 'superadmin' ? 'badge-error' : 'badge-info'}`}>{user.role === 'admin' || user.role === 'superadmin' ? 'Admin' : 'User'}</span></td>
+                <td className="px-6 py-4"><span className={`badge ${(user.is_active ?? true) ? 'badge-success' : 'badge-gray'}`}>{(user.is_active ?? true) ? t('common.active') : t('common.inactive', 'Inaktiv')}</span></td>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <button onClick={() => startEdit(user)} className="btn btn-ghost btn-icon btn-sm"><PencilSimple weight="regular" className="w-4 h-4" /></button>
+                    <button onClick={() => handleDelete(user.id, user.name)} disabled={deletingId === user.id} className="btn btn-ghost btn-icon btn-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
+                      {deletingId === user.id ? <SpinnerGap weight="bold" className="w-4 h-4 animate-spin" /> : <Trash weight="regular" className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </td>
+              </>
+            )}
           </motion.tr>
         ))}
       </tbody></table></div>
@@ -343,24 +425,66 @@ function AdminBookings() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'completed' | 'cancelled'>('all');
   const [lotFilter, setLotFilter] = useState('all');
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await api.getAdminBookings();
-        if (res.success && res.data) setBookings(res.data);
-      } finally { setLoading(false); }
-    })();
-  }, []);
+  async function loadBookings() {
+    try {
+      const res = await api.getAdminBookings();
+      if (res.success && res.data) setBookings(res.data);
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { void loadBookings(); }, []);
+
+  async function handleCancelBooking(bookingId: string) {
+    if (!confirm(t('confirm.cancelBookingMessage', 'Diese Buchung wirklich stornieren?'))) return;
+    setCancellingId(bookingId);
+    try {
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/admin/bookings/${bookingId}/cancel`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setBookings(prev => prev.map(b => b.id === bookingId ? { ...b, status: 'cancelled' as const } : b));
+        setSelected(prev => { const next = new Set(prev); next.delete(bookingId); return next; });
+      }
+    } finally { setCancellingId(null); }
+  }
+
+  async function handleExportCsv() {
+    setExporting(true);
+    try {
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/v1/admin/bookings/export`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `bookings-export-${new Date().toISOString().slice(0, 10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } finally { setExporting(false); }
+  }
 
   const bookingStatusConfig: Record<string, { label: string; class: string }> = {
     active: { label: t('bookings.statusActive'), class: 'badge-success' },
+    confirmed: { label: t('bookings.statusActive'), class: 'badge-success' },
     completed: { label: t('bookings.statusCompleted'), class: 'badge-gray' },
     cancelled: { label: t('bookings.statusCancelled'), class: 'badge-error' },
   };
 
   const lotNames = [...new Set(bookings.map(b => b.lot_name))];
-  const filtered = bookings.filter(b => { if (statusFilter !== 'all' && b.status !== statusFilter) return false; if (lotFilter !== 'all' && b.lot_name !== lotFilter) return false; return true; });
+  const filtered = bookings.filter(b => {
+    if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+    if (lotFilter !== 'all' && b.lot_name !== lotFilter) return false;
+    return true;
+  });
   function toggleSelect(id: string) { setSelected(prev => { const next = new Set(prev); if (next.has(id)) { next.delete(id); } else { next.add(id); } return next; }); }
   function toggleAll() { if (selected.size === filtered.length) { setSelected(new Set()); return; } setSelected(new Set(filtered.map(b => b.id))); }
 
@@ -370,14 +494,32 @@ function AdminBookings() {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('admin.bookings.title')}</h2>
-        {selected.size > 0 && <div className="flex items-center gap-2"><span className="text-sm text-gray-500">{t('admin.bookings.selected', { count: selected.size })}</span><button className="btn btn-sm btn-danger"><XCircle weight="bold" className="w-4 h-4" />{t('bookings.cancelBtn')}</button></div>}
+        <button
+          onClick={handleExportCsv}
+          disabled={exporting}
+          className="btn btn-secondary"
+        >
+          {exporting ? <SpinnerGap weight="bold" className="w-4 h-4 animate-spin" /> : <DownloadSimple weight="bold" className="w-4 h-4" />}
+          {t('admin.bookings.exportCsv', 'CSV Export')}
+        </button>
       </div>
       <div className="flex flex-col sm:flex-row gap-3">
         <select value={lotFilter} onChange={(e) => setLotFilter(e.target.value)} className="input w-auto">
           <option value="all">{t('admin.bookings.allLots')}</option>
           {lotNames.map(name => <option key={name} value={name}>{name}</option>)}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'completed' | 'cancelled')} className="input w-auto"><option value="all">{t('admin.bookings.allStatus')}</option><option value="active">{t('bookings.statusActive')}</option><option value="completed">{t('bookings.statusCompleted')}</option><option value="cancelled">{t('bookings.statusCancelled')}</option></select>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'completed' | 'cancelled')} className="input w-auto">
+          <option value="all">{t('admin.bookings.allStatus')}</option>
+          <option value="active">{t('bookings.statusActive')}</option>
+          <option value="confirmed">{t('bookings.statusActive')}</option>
+          <option value="completed">{t('bookings.statusCompleted')}</option>
+          <option value="cancelled">{t('bookings.statusCancelled')}</option>
+        </select>
+        {selected.size > 0 && (
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-sm text-gray-500">{t('admin.bookings.selected', { count: selected.size })}</span>
+          </div>
+        )}
       </div>
       <div className="card overflow-hidden"><div className="overflow-x-auto"><table className="w-full"><thead><tr className="bg-gray-50 dark:bg-gray-800/50">
         <th className="px-6 py-3 text-left"><input type="checkbox" checked={selected.size === filtered.length && filtered.length > 0} onChange={toggleAll} className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500" /></th>
@@ -396,7 +538,20 @@ function AdminBookings() {
             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{b.booking_type || '-'}</td>
             <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">{new Date(b.start_time).toLocaleDateString()} – {new Date(b.end_time).toLocaleDateString()}</td>
             <td className="px-6 py-4"><span className={`badge ${sc.class}`}>{sc.label}</span></td>
-            <td className="px-6 py-4 text-right">{b.status === 'active' && <button className="btn btn-ghost btn-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"><XCircle weight="bold" className="w-4 h-4" />{t('bookings.cancelBtn')}</button>}</td>
+            <td className="px-6 py-4 text-right">
+              {(b.status === 'active' || b.status === 'confirmed') && (
+                <button
+                  onClick={() => handleCancelBooking(b.id)}
+                  disabled={cancellingId === b.id}
+                  className="btn btn-ghost btn-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+                >
+                  {cancellingId === b.id
+                    ? <SpinnerGap weight="bold" className="w-4 h-4 animate-spin" />
+                    : <XCircle weight="bold" className="w-4 h-4" />}
+                  {t('bookings.cancelBtn')}
+                </button>
+              )}
+            </td>
           </motion.tr>
         ); })}
       </tbody></table></div>

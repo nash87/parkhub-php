@@ -2,11 +2,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PasswordResetEmail;
 use App\Mail\WelcomeEmail;
 use App\Models\User;
 use App\Models\AuditLog;
 use App\Models\Setting;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
@@ -184,12 +186,37 @@ class AuthController extends Controller
     public function forgotPassword(Request $request)
     {
         $request->validate(['email' => 'required|email']);
-        // In production, send reset email. Here we return generic success to avoid user enumeration.
+
         AuditLog::create([
-            'action' => 'forgot_password',
-            'details' => ['email_hash' => md5($request->email)],
+            'action'     => 'forgot_password',
+            'details'    => ['email_hash' => md5($request->email)],
             'ip_address' => $request->ip(),
         ]);
+
+        // Look up user — use generic response regardless to prevent user enumeration
+        $user = User::where('email', $request->email)->first();
+
+        if ($user) {
+            // Delete any existing token for this email, then insert a fresh one
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+            $token = Str::random(64);
+
+            DB::table('password_reset_tokens')->insert([
+                'email'      => $user->email,
+                'token'      => Hash::make($token),
+                'created_at' => now(),
+            ]);
+
+            $appUrl = config('app.url', 'http://localhost');
+
+            // Queue the email — non-blocking, fails silently if mail not configured
+            if ($user->email) {
+                Mail::to($user->email)
+                    ->queue(new PasswordResetEmail($user->name, $token, $appUrl));
+            }
+        }
+
         return response()->json(['message' => 'If an account with that email exists, a reset link has been sent.']);
     }
 

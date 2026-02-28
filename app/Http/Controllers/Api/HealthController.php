@@ -22,7 +22,8 @@ class HealthController extends Controller
             $dbStatus = 'error';
         }
 
-        $version = trim(file_get_contents(base_path('VERSION')) ?: '0.0.0');
+        $versionFile = base_path('VERSION');
+        $version = file_exists($versionFile) ? trim(file_get_contents($versionFile)) : '0.0.0';
 
         $status = $dbStatus === 'ok' ? 200 : 503;
 

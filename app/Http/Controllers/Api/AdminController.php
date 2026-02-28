@@ -234,6 +234,45 @@ public function getSettings(Request $request)
         return response()->json(User::all()->map(fn ($u) => $u->toArray()));
     }
 
+    public function bookings(Request $request)
+    {
+        $this->requireAdmin($request);
+
+        $query = Booking::with('user')->orderBy('start_time', 'desc');
+
+        if ($request->has('status') && $request->status !== 'all') {
+            $query->where('status', $request->status);
+        }
+        if ($request->has('lot_name') && $request->lot_name !== 'all') {
+            $query->where('lot_name', $request->lot_name);
+        }
+        if ($request->has('from_date')) {
+            $query->where('start_time', '>=', $request->from_date);
+        }
+        if ($request->has('to_date')) {
+            $query->where('end_time', '<=', $request->to_date . ' 23:59:59');
+        }
+
+        return response()->json($query->get());
+    }
+
+    public function cancelBooking(Request $request, string $id)
+    {
+        $this->requireAdmin($request);
+
+        $booking = Booking::findOrFail($id);
+        $booking->update(['status' => 'cancelled']);
+
+        AuditLog::create([
+            'user_id'  => $request->user()->id,
+            'username' => $request->user()->username,
+            'action'   => 'admin_booking_cancelled',
+            'details'  => ['booking_id' => $id],
+        ]);
+
+        return response()->json($booking->fresh());
+    }
+
     public function updateUser(Request $request, string $id)
     {
         $this->requireAdmin($request);
