@@ -220,6 +220,54 @@ class AuthController extends Controller
         return response()->json(['message' => 'If an account with that email exists, a reset link has been sent.']);
     }
 
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token'                 => 'required|string',
+            'password'              => 'required|string|min:8',
+            'password_confirmation' => 'required|same:password',
+        ]);
+
+        // Find a matching token in the password_reset_tokens table
+        $record = DB::table('password_reset_tokens')
+            ->where('created_at', '>', now()->subMinutes(60)) // 60-minute expiry
+            ->get();
+
+        $matched = null;
+        foreach ($record as $row) {
+            if (Hash::check($request->token, $row->token)) {
+                $matched = $row;
+                break;
+            }
+        }
+
+        if (!$matched) {
+            return response()->json([
+                'error'   => 'INVALID_TOKEN',
+                'message' => 'Der Reset-Link ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen Link an.',
+            ], 422);
+        }
+
+        $user = User::where('email', $matched->email)->first();
+        if (!$user) {
+            return response()->json(['error' => 'USER_NOT_FOUND', 'message' => 'Benutzer nicht gefunden.'], 404);
+        }
+
+        $user->update(['password' => Hash::make($request->password)]);
+        $user->tokens()->delete(); // Invalidate all existing sessions
+
+        DB::table('password_reset_tokens')->where('email', $matched->email)->delete();
+
+        AuditLog::create([
+            'user_id'    => $user->id,
+            'username'   => $user->username,
+            'action'     => 'password_reset',
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['message' => 'Passwort erfolgreich zurückgesetzt. Sie können sich nun anmelden.']);
+    }
+
     public function changePassword(Request $request)
     {
         $request->validate([

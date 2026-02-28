@@ -11,9 +11,10 @@ interface ConfirmDialogProps {
   variant?: 'danger' | 'warning';
   onConfirm: () => void;
   onCancel: () => void;
+  children?: React.ReactNode;
 }
 
-export function ConfirmDialog({ open, title, message, confirmLabel, cancelLabel, variant = 'danger', onConfirm, onCancel }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, title, message, confirmLabel, cancelLabel, variant = 'danger', onConfirm, onCancel, children }: ConfirmDialogProps) {
   const { t } = useTranslation();
   const confirm = confirmLabel || t('common.confirm');
   const cancel = cancelLabel || t('common.cancel');
@@ -53,6 +54,7 @@ export function ConfirmDialog({ open, title, message, confirmLabel, cancelLabel,
               <div className="flex-1">
                 <h3 id="confirm-dialog-title" className="text-lg font-semibold text-gray-900 dark:text-white">{title}</h3>
                 <p id="confirm-dialog-desc" className="text-sm text-gray-500 dark:text-gray-400 mt-1">{message}</p>
+                {children && <div className="mt-3">{children}</div>}
               </div>
               <button onClick={onCancel} aria-label="Schließen" className="btn btn-ghost btn-icon -mt-1 -mr-1">
                 <X weight="bold" className="w-5 h-5" aria-hidden="true" />

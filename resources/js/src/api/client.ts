@@ -103,21 +103,24 @@ class ApiClient {
     if (this.refreshingPromise) return this.refreshingPromise;
 
     this.refreshingPromise = (async () => {
-      const refreshToken = localStorage.getItem('parkhub_refresh_token');
-      if (!refreshToken) return false;
+      // Sanctum uses single access tokens (no separate refresh token).
+      // The /auth/refresh endpoint rotates the current token — requires the existing token.
+      const currentToken = this.getToken();
+      if (!currentToken) return false;
       try {
         const response = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ refresh_token: refreshToken }),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${currentToken}`,
+          },
         });
         if (!response.ok) return false;
         const result = await response.json();
-        if (result.success && result.data) {
-          this.setToken(result.data.access_token);
-          if (result.data.refresh_token) {
-            localStorage.setItem('parkhub_refresh_token', result.data.refresh_token);
-          }
+        // Backend returns { tokens: { access_token, ... } }
+        const newToken = result?.tokens?.access_token || result?.data?.tokens?.access_token;
+        if (newToken) {
+          this.setToken(newToken);
           return true;
         }
         return false;
@@ -347,7 +350,7 @@ class ApiClient {
 
   // Recurring Bookings
   async createRecurringBooking(data: RecurringBookingData): Promise<ApiResponse<Booking[]>> {
-    return this.request<Booking[]>('/api/v1/bookings/recurring', {
+    return this.request<Booking[]>('/api/v1/recurring-bookings', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -363,11 +366,11 @@ class ApiClient {
 
   // Favorites
   async addFavoriteSlot(slotId: string): Promise<ApiResponse<void>> {
-    return this.request<void>(`/api/v1/users/me/favorites/${slotId}`, { method: 'POST' });
+    return this.request<void>('/api/v1/user/favorites', { method: 'POST', body: JSON.stringify({ slot_id: slotId }) });
   }
 
   async removeFavoriteSlot(slotId: string): Promise<ApiResponse<void>> {
-    return this.request<void>(`/api/v1/users/me/favorites/${slotId}`, { method: 'DELETE' });
+    return this.request<void>(`/api/v1/user/favorites/${slotId}`, { method: 'DELETE' });
   }
 
   // Auto-Release Settings
@@ -410,11 +413,11 @@ class ApiClient {
   }
 
   async getUserStats(): Promise<ApiResponse<UserStats>> {
-    return this.request<UserStats>('/api/v1/users/me/stats');
+    return this.request<UserStats>('/api/v1/user/stats');
   }
 
   async getAdminHeatmap(): Promise<ApiResponse<HeatmapEntry[]>> {
-    return this.request<HeatmapEntry[]>('/api/v1/admin/stats/heatmap');
+    return this.request<HeatmapEntry[]>('/api/v1/admin/heatmap');
   }
 
   async getNotifications(): Promise<ApiResponse<ApiNotification[]>> {
@@ -450,11 +453,11 @@ class ApiClient {
   }
 
   async getUserPreferences(): Promise<ApiResponse<UserPreferences>> {
-    return this.request<UserPreferences>('/api/v1/users/me/preferences');
+    return this.request<UserPreferences>('/api/v1/user/preferences');
   }
 
   async updateUserPreferences(prefs: UserPreferences): Promise<ApiResponse<UserPreferences>> {
-    return this.request<UserPreferences>('/api/v1/users/me/preferences', { method: 'PUT', body: JSON.stringify(prefs) });
+    return this.request<UserPreferences>('/api/v1/user/preferences', { method: 'PUT', body: JSON.stringify(prefs) });
   }
 
   async getLotQrCode(lotId: string): Promise<string> {
@@ -502,7 +505,7 @@ export interface Announcement {
   id: string;
   title: string;
   message: string;
-  severity: 'info' | 'warning' | 'critical';
+  severity: 'info' | 'warning' | 'error' | 'success';
   active: boolean;
   created_at: string;
   expires_at?: string;

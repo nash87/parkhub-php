@@ -91,8 +91,14 @@ class AbsenceController extends Controller
 
     public function importIcal(Request $request)
     {
-        $request->validate(['ical' => 'required|string']);
-        $ical = $request->input('ical');
+        // Accept either a file upload (multipart) or a raw 'ical' string body
+        if ($request->hasFile('file')) {
+            $request->validate(['file' => 'required|file|mimes:ics,txt,calendar|max:2048']);
+            $ical = $request->file('file')->get();
+        } else {
+            $request->validate(['ical' => 'required|string|max:1048576']);
+            $ical = $request->input('ical');
+        }
         $user = $request->user();
         $created = 0;
 

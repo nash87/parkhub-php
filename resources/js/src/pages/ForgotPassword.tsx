@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Envelope, ArrowLeft, SpinnerGap, PaperPlaneTilt, WarningCircle } from "@phosphor-icons/react";
@@ -7,12 +7,19 @@ import toast from "react-hot-toast";
 
 export function ForgotPasswordPage() {
   const { t } = useTranslation();
-  
+
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  // For now assume no SMTP configured — show contact admin message
-  const smtpConfigured = false;
+  const [smtpConfigured, setSmtpConfigured] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check if email is configured by calling the forgot-password endpoint with a dummy request
+    // We just want to know if the server accepts the flow, so we peek at branding/system info.
+    // Actually: we always show the form and let the server decide. Only block if explicitly disabled.
+    // Set to true to always show the form — the server will handle SMTP gracefully.
+    setSmtpConfigured(true);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

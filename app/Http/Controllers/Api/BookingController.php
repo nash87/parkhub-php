@@ -104,16 +104,44 @@ class BookingController extends Controller
     public function destroy(Request $request, string $id)
     {
         $booking = Booking::where('user_id', $request->user()->id)->findOrFail($id);
-        $booking->delete();
+
+        // Mark as cancelled instead of hard-deleting — preserves audit trail
+        $booking->update(['status' => 'cancelled']);
 
         AuditLog::create([
             'user_id' => $request->user()->id,
             'username' => $request->user()->username,
             'action' => 'booking_cancelled',
-            'details' => ['booking_id' => $id],
+            'details' => ['booking_id' => $id, 'lot_id' => $booking->lot_id, 'slot_id' => $booking->slot_id],
         ]);
 
+        // Notify waitlist users that a slot has become available in this lot
+        $this->notifyWaitlist($booking->lot_id, $booking->slot_id);
+
         return response()->json(['message' => 'Booking cancelled']);
+    }
+
+    private function notifyWaitlist(string $lotId, string $slotId): void
+    {
+        $waiting = \App\Models\WaitlistEntry::where('lot_id', $lotId)
+            ->whereNull('notified_at')
+            ->with('user')
+            ->orderBy('created_at')
+            ->limit(3)
+            ->get();
+
+        foreach ($waiting as $entry) {
+            if ($entry->user && $entry->user->email) {
+                $entry->update(['notified_at' => now()]);
+                \App\Models\Notification::create([
+                    'user_id' => $entry->user_id,
+                    'type'    => 'waitlist_slot_available',
+                    'title'   => 'Stellplatz verfügbar',
+                    'message' => 'Ein Stellplatz in Ihrem gewünschten Parkplatz ist jetzt verfügbar. Jetzt buchen!',
+                    'data'    => ['lot_id' => $lotId, 'slot_id' => $slotId],
+                ]);
+            }
+        }
     }
 
     public function quickBook(Request $request)

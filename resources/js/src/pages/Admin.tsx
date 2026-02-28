@@ -63,13 +63,13 @@ function AdminOverview() {
     setResetting(true);
     try {
       const token = localStorage.getItem('parkhub_token');
-      const res = await fetch(`(import.meta.env.VITE_API_URL || "")/api/v1/admin/reset`, {
+      const base = (import.meta.env.VITE_API_URL as string) || '';
+      const res = await fetch(`${base}/api/v1/admin/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ confirm: 'RESET' }),
       });
-      const data = await res.json();
-      if (data.success) {
+      if (res.ok) {
         localStorage.removeItem('parkhub_token');
         window.location.href = '/login';
       }

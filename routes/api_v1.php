@@ -243,6 +243,7 @@ Route::get('/system/maintenance', [SystemController::class, 'maintenance']);
 // Auth (public) — rate limited: 5 password resets per 15 min per IP
 Route::middleware('throttle:5,15')->group(function () {
     Route::post('/auth/forgot-password', [\App\Http\Controllers\Api\AuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password',  [\App\Http\Controllers\Api\AuthController::class, 'resetPassword']);
 });
 
 // Branding logo (public)

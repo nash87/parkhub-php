@@ -50,14 +50,31 @@ class UserController extends Controller
         $userId = $request->user()->id;
         $now    = now();
 
+        // Calculate average booking duration in minutes
+        $bookingsWithDuration = Booking::where('user_id', $userId)
+            ->whereNotNull('start_time')
+            ->whereNotNull('end_time')
+            ->get(['start_time', 'end_time']);
+
+        $avgMinutes = 0;
+        if ($bookingsWithDuration->count() > 0) {
+            $totalMinutes = $bookingsWithDuration->sum(function ($b) {
+                return (strtotime($b->end_time) - strtotime($b->start_time)) / 60;
+            });
+            $avgMinutes = (int) round($totalMinutes / $bookingsWithDuration->count());
+        }
+
         return response()->json([
-            'total_bookings'  => Booking::where('user_id', $userId)->count(),
-            'this_month'      => Booking::where('user_id', $userId)
+            'total_bookings'             => Booking::where('user_id', $userId)->count(),
+            'bookings_this_month'        => Booking::where('user_id', $userId)
                 ->whereMonth('start_time', $now->month)
                 ->whereYear('start_time', $now->year)->count(),
-            'homeoffice_days' => Absence::where('user_id', $userId)
-                ->where('absence_type', 'homeoffice')->count(),
-            'favorite_slot'   => Booking::where('user_id', $userId)
+            'homeoffice_days_this_month' => Absence::where('user_id', $userId)
+                ->where('absence_type', 'homeoffice')
+                ->whereMonth('start_date', $now->month)
+                ->whereYear('start_date', $now->year)->count(),
+            'avg_duration_minutes'       => $avgMinutes,
+            'favorite_slot'              => Booking::where('user_id', $userId)
                 ->selectRaw('slot_number, COUNT(*) as cnt')
                 ->groupBy('slot_number')
                 ->orderByDesc('cnt')
@@ -110,7 +127,7 @@ class UserController extends Controller
     {
         $user     = $request->user();
         $bookings = Booking::where('user_id', $user->id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'confirmed'])
             ->whereNotNull('start_time')
             ->get();
 
@@ -191,7 +208,7 @@ class UserController extends Controller
 
     public function markAllNotificationsRead(\Illuminate\Http\Request $request)
     {
-        $request->user()->notifications()->update(['read' => true]);
+        Notification::where('user_id', $request->user()->id)->update(['read' => true]);
         return response()->json(['message' => 'All notifications marked as read']);
     }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash, Eraser } from '@phosphor-icons/react';
+import { User, Envelope, Shield, MapPin, CalendarCheck, House, PencilSimple, FloppyDisk, ChartBar, Eye, TextAa, HandSwipeRight, CircleHalf, DownloadSimple, Trash, Eraser, SpinnerGap } from '@phosphor-icons/react';
 import { useAuth } from '../context/auth-hook';
 import { api, UserStats } from '../api/client';
 import { useAccessibility, ColorMode, FontScale } from '../stores/accessibility';
@@ -15,8 +15,10 @@ export function ProfilePage() {
   const a11y = useAccessibility();
   const [editing, setEditing] = useState(false);
   const [formData, setFormData] = useState({ name: user?.name || '', email: user?.email || '' });
+  const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showAnonymizeConfirm, setShowAnonymizeConfirm] = useState(false);
+  const [gdprPassword, setGdprPassword] = useState('');
   const [stats, setStats] = useState<UserStats | null>(null);
   const [exporting, setExporting] = useState(false);
 
@@ -24,7 +26,29 @@ export function ProfilePage() {
     api.getUserStats().then((res: { success: boolean; data?: UserStats }) => { if (res.success && res.data) setStats(res.data); }).catch(() => {});
   }, []);
 
-  function handleSave() { setEditing(false); toast.success(t('profile.updated')); }
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const base = (import.meta.env.VITE_API_URL as string) || '';
+      const token = localStorage.getItem('parkhub_token');
+      const res = await fetch(`${base}/api/v1/users/me`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err?.message || t('profile.updateFailed', 'Aktualisierung fehlgeschlagen'));
+        return;
+      }
+      setEditing(false);
+      toast.success(t('profile.updated'));
+    } catch {
+      toast.error(t('profile.updateFailed', 'Aktualisierung fehlgeschlagen'));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleExportData() {
     setExporting(true);
@@ -49,31 +73,49 @@ export function ProfilePage() {
   }
 
   async function handleDeleteAccount() {
+    if (!gdprPassword) {
+      toast.error(t('gdpr.passwordRequired', 'Bitte Passwort eingeben'));
+      return;
+    }
     try {
       const base = (import.meta.env.VITE_API_URL as string) || '';
       const token = localStorage.getItem('parkhub_token');
       const res = await fetch(`${base}/api/v1/users/me/delete`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: gdprPassword }),
       });
+      if (res.status === 403) {
+        toast.error(t('gdpr.wrongPassword', 'Falsches Passwort'));
+        return;
+      }
       if (!res.ok) throw new Error('Delete failed');
-      toast.success(t('gdpr.deleted', 'Account deleted'));
+      toast.success(t('gdpr.deleted', 'Konto gelöscht'));
       logout();
     } catch {
-      toast.error(t('gdpr.deleteFailed', 'Delete failed'));
+      toast.error(t('gdpr.deleteFailed', 'Löschen fehlgeschlagen'));
     }
     setShowDeleteConfirm(false);
+    setGdprPassword('');
   }
 
   async function handleAnonymizeAccount() {
+    if (!gdprPassword) {
+      toast.error(t('gdpr.passwordRequired', 'Bitte Passwort eingeben'));
+      return;
+    }
     try {
       const base = (import.meta.env.VITE_API_URL as string) || '';
       const token = localStorage.getItem('parkhub_token');
       const res = await fetch(`${base}/api/v1/users/me/anonymize`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: 'User request (GDPR Art. 17)' }),
+        body: JSON.stringify({ password: gdprPassword, reason: 'User request (GDPR Art. 17)' }),
       });
+      if (res.status === 403) {
+        toast.error(t('gdpr.wrongPassword', 'Falsches Passwort'));
+        return;
+      }
       if (!res.ok) throw new Error('Anonymization failed');
       toast.success(t('gdpr.anonymized', 'Persönliche Daten wurden gelöscht (DSGVO Art. 17)'));
       logout();
@@ -81,6 +123,7 @@ export function ProfilePage() {
       toast.error(t('gdpr.anonymizeFailed', 'Anonymisierung fehlgeschlagen'));
     }
     setShowAnonymizeConfirm(false);
+    setGdprPassword('');
   }
 
   const initials = user?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || '?';
@@ -111,8 +154,11 @@ export function ProfilePage() {
                 <div><label className="label" htmlFor="profile-name">{t('profile.name')}</label><input id="profile-name" type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="input" /></div>
                 <div><label className="label" htmlFor="profile-email">{t('profile.email')}</label><input id="profile-email" type="email" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="input" /></div>
                 <div className="flex gap-2">
-                  <button onClick={handleSave} className="btn btn-primary btn-sm"><FloppyDisk weight="bold" className="w-4 h-4" />{t('common.save')}</button>
-                  <button onClick={() => setEditing(false)} className="btn btn-secondary btn-sm">{t('common.cancel')}</button>
+                  <button onClick={handleSave} disabled={saving} className="btn btn-primary btn-sm disabled:opacity-60">
+                    {saving ? <SpinnerGap weight="bold" className="w-4 h-4 animate-spin" /> : <FloppyDisk weight="bold" className="w-4 h-4" />}
+                    {t('common.save')}
+                  </button>
+                  <button onClick={() => setEditing(false)} disabled={saving} className="btn btn-secondary btn-sm">{t('common.cancel')}</button>
                 </div>
               </div>
             ) : (
@@ -251,22 +297,40 @@ export function ProfilePage() {
 
       <ConfirmDialog
         open={showDeleteConfirm}
-        onCancel={() => setShowDeleteConfirm(false)}
+        onCancel={() => { setShowDeleteConfirm(false); setGdprPassword(''); }}
         onConfirm={handleDeleteAccount}
         title={t('gdpr.deleteConfirmTitle')}
         message={t('gdpr.deleteConfirmMessage')}
         confirmLabel={t('gdpr.deleteConfirmBtn')}
         variant="danger"
-      />
+      >
+        <input
+          type="password"
+          value={gdprPassword}
+          onChange={e => setGdprPassword(e.target.value)}
+          placeholder={t('gdpr.passwordPlaceholder', 'Passwort zur Bestätigung')}
+          className="input w-full mt-2"
+          autoComplete="current-password"
+        />
+      </ConfirmDialog>
       <ConfirmDialog
         open={showAnonymizeConfirm}
-        onCancel={() => setShowAnonymizeConfirm(false)}
+        onCancel={() => { setShowAnonymizeConfirm(false); setGdprPassword(''); }}
         onConfirm={handleAnonymizeAccount}
         title={t('gdpr.anonymizeConfirmTitle', 'Daten anonymisieren?')}
         message={t('gdpr.anonymizeConfirmMessage', 'Alle persönlichen Daten (Name, E-Mail, Kennzeichen, Abwesenheiten, Fahrzeuge) werden unwiderruflich gelöscht. Buchungsdatensätze bleiben anonymisiert erhalten (steuerrechtliche Aufbewahrungspflicht). Sie werden danach ausgeloggt.')}
         confirmLabel={t('gdpr.anonymizeConfirmBtn', 'Daten löschen')}
         variant="danger"
-      />
+      >
+        <input
+          type="password"
+          value={gdprPassword}
+          onChange={e => setGdprPassword(e.target.value)}
+          placeholder={t('gdpr.passwordPlaceholder', 'Passwort zur Bestätigung')}
+          className="input w-full mt-2"
+          autoComplete="current-password"
+        />
+      </ConfirmDialog>
     </motion.div>
   );
 }
