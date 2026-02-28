@@ -1,10 +1,10 @@
 services:
   - type: web
     name: parkhub-php-demo
-    runtime: docker
-    repo: https://github.com/nash87/parkhub-php
-    branch: main
-    dockerfilePath: ./Dockerfile
+    # Pull pre-built image from GHCR — avoids re-running npm+composer on Render
+    # Image is built by GitHub Actions (.github/workflows/docker-publish.yml) on every push
+    image:
+      url: ghcr.io/nash87/parkhub-php:latest
     plan: free
     envVars:
       - key: APP_ENV
@@ -12,7 +12,7 @@ services:
       - key: APP_DEBUG
         value: "false"
       - key: APP_URL
-        # Render sets this automatically — override with your Render URL if needed
+        # ⚠️  UPDATE THIS after creating the Render service (copy the .onrender.com URL)
         value: https://parkhub-php-demo.onrender.com
       - key: APP_KEY
         generateValue: true
@@ -34,3 +34,5 @@ services:
         value: file
       - key: LOG_CHANNEL
         value: stderr
+      - key: MAIL_MAILER
+        value: log
