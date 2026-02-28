@@ -1,8 +1,11 @@
 <?php
 namespace App\Jobs;
 
+use App\Mail\WaitlistSlotAvailableMail;
 use App\Models\Booking;
+use App\Models\ParkingLot;
 use App\Models\Setting;
+use App\Models\User;
 use App\Models\WaitlistEntry;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -10,6 +13,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class AutoReleaseBookingsJob implements ShouldQueue
 {
@@ -35,13 +39,18 @@ class AutoReleaseBookingsJob implements ShouldQueue
             Log::info("Auto-released booking {$booking->id} (no check-in after {$timeoutMinutes}min)");
 
             // Notify first waitlist entry
-            $waitlist = WaitlistEntry::where('slot_id', $booking->slot_id)
+            $waitlist = WaitlistEntry::where('lot_id', $booking->lot_id)
+                ->whereNotNull('user_id')
                 ->where('status', 'waiting')
                 ->orderBy('created_at')
                 ->first();
             if ($waitlist) {
                 $waitlist->update(['status' => 'notified', 'notified_at' => now()]);
-                // TODO: Send notification email/push to waitlist user
+                $user = $waitlist->user;
+                $lot = $booking->lot ?? ParkingLot::find($booking->lot_id);
+                if ($user && $lot) {
+                    Mail::to($user->email)->queue(new WaitlistSlotAvailableMail($user, $lot));
+                }
             }
         }
 

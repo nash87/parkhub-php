@@ -171,7 +171,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/calendar-export', [UserController::class, 'calendarExport']);
 
     // Absence iCal import
-    Route::get('/absences/import-ical', [AbsenceController::class, 'importIcal']);
+    Route::post('/absences/import-ical', [AbsenceController::class, 'importIcal']);
 
     // Vehicle photos
     Route::get('/vehicles/{id}/photo', [VehicleController::class, 'servePhoto']);

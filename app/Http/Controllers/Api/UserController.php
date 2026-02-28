@@ -178,7 +178,7 @@ class UserController extends Controller
     }
 
     // GDPR data export — everything about this user
-    public function exportData(Request $request)
+    public function export(Request $request)
     {
         $user = $request->user();
 
