@@ -10,7 +10,9 @@ use App\Models\Notification;
 use App\Models\Setting;
 use App\Models\Vehicle;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -246,10 +248,31 @@ class UserController extends Controller
 
         // Delete truly personal data tables
         Absence::where('user_id', $user->id)->delete();
+
+        // Delete vehicle photos before deleting vehicle records
+        $vehicles = Vehicle::where('user_id', $user->id)->get();
+        foreach ($vehicles as $vehicle) {
+            if (!empty($vehicle->photo_path)) {
+                Storage::delete($vehicle->photo_path);
+            }
+        }
         Vehicle::where('user_id', $user->id)->delete();
+
         \App\Models\Favorite::where('user_id', $user->id)->delete();
         \App\Models\Notification::where('user_id', $user->id)->delete();
         \App\Models\PushSubscription::where('user_id', $user->id)->delete();
+
+        // Anonymize audit logs — strip IP and identifying details
+        DB::table('audit_logs')->where('user_id', $user->id)->update([
+            'username'   => 'deleted-user',
+            'ip_address' => '0.0.0.0',
+            'details'    => null,
+        ]);
+
+        // Anonymize guest bookings created by this user
+        DB::table('guest_bookings')->where('created_by', $user->id)->update([
+            'guest_name' => 'Anonymous',
+        ]);
 
         // Invalidate all tokens
         $user->tokens()->delete();
@@ -264,6 +287,7 @@ class UserController extends Controller
         ]);
 
         // Anonymize the user record itself (don't hard-delete — bookings still reference it)
+        $user->preferences = null;
         $user->update([
             'name'        => '[Gelöschter Nutzer]',
             'email'       => $anonymousId . '@deleted.invalid',
@@ -272,7 +296,7 @@ class UserController extends Controller
             'phone'       => null,
             'picture'     => null,
             'department'  => null,
-            'preferences' => [],
+            'preferences' => null,
             'is_active'   => false,
         ]);
 

@@ -10,6 +10,7 @@ use App\Models\GuestBooking;
 use App\Models\BookingNote;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -26,7 +27,7 @@ class BookingController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'lot_id'       => 'required|uuid',
             'slot_id'      => 'nullable|uuid',
             'start_time'   => 'required|date',
@@ -38,9 +39,9 @@ class BookingController extends Controller
         ]);
 
         $endTime = $request->end_time ?? now()->addHours(8)->toDateTimeString();
+        $slotId  = $request->slot_id;
 
-        // Auto-assign slot if not provided
-        $slotId = $request->slot_id;
+        // Auto-assign slot if not provided (outside transaction — read-only scan)
         if (!$slotId) {
             $bookedSlotIds = Booking::where('lot_id', $request->lot_id)
                 ->whereIn('status', ['confirmed', 'active'])
@@ -56,40 +57,54 @@ class BookingController extends Controller
             $slotId = $slot->id;
         }
 
-        // Check conflict
-        $conflict = Booking::where('slot_id', $slotId)
-            ->whereIn('status', ['confirmed', 'active'])
-            ->where('start_time', '<', $endTime)
-            ->where('end_time', '>', $request->start_time)
-            ->exists();
+        $booking = null;
 
-        if ($conflict) {
-            return response()->json(['error' => 'SLOT_UNAVAILABLE', 'message' => 'Slot is already booked'], 409);
+        try {
+            // Use a transaction with exclusive slot lock to prevent race conditions
+            DB::transaction(function () use ($request, $slotId, $endTime, &$booking) {
+                // Lock the slot row for this transaction
+                $slot = ParkingSlot::where('id', $slotId)->lockForUpdate()->firstOrFail();
+
+                // Re-check conflict with locked data
+                $conflict = Booking::where('slot_id', $slotId)
+                    ->whereIn('status', ['confirmed', 'active'])
+                    ->where('start_time', '<', $endTime)
+                    ->where('end_time', '>', $request->start_time)
+                    ->exists();
+
+                if ($conflict) {
+                    throw new \Exception('SLOT_CONFLICT');
+                }
+
+                $lot = ParkingLot::findOrFail($request->lot_id);
+
+                $booking = Booking::create([
+                    'user_id'       => $request->user()->id,
+                    'lot_id'        => $request->lot_id,
+                    'slot_id'       => $slotId,
+                    'booking_type'  => $request->booking_type ?? 'einmalig',
+                    'lot_name'      => $lot->name,
+                    'slot_number'   => $slot->slot_number,
+                    'vehicle_plate' => $request->license_plate ?? $request->vehicle_plate,
+                    'start_time'    => $request->start_time,
+                    'end_time'      => $endTime,
+                    'status'        => 'confirmed',
+                    'notes'         => $request->notes,
+                    'recurrence'    => $request->recurrence,
+                ]);
+            }, 3); // 3 retries on deadlock
+        } catch (\Exception $e) {
+            if ($e->getMessage() === 'SLOT_CONFLICT') {
+                return response()->json(['error' => 'SLOT_UNAVAILABLE', 'message' => 'Slot is already booked'], 409);
+            }
+            throw $e;
         }
 
-        $lot = ParkingLot::findOrFail($request->lot_id);
-        $slot = ParkingSlot::findOrFail($slotId);
-
-        $booking = Booking::create([
-            'user_id' => $request->user()->id,
-            'lot_id' => $request->lot_id,
-            'slot_id' => $slotId,
-            'booking_type' => $request->booking_type ?? 'einmalig',
-            'lot_name' => $lot->name,
-            'slot_number' => $slot->slot_number,
-            'vehicle_plate' => $request->license_plate ?? $request->vehicle_plate,
-            'start_time' => $request->start_time,
-            'end_time' => $endTime,
-            'status' => 'confirmed',
-            'notes' => $request->notes,
-            'recurrence' => $request->recurrence,
-        ]);
-
         AuditLog::create([
-            'user_id' => $request->user()->id,
+            'user_id'  => $request->user()->id,
             'username' => $request->user()->username,
-            'action' => 'booking_created',
-            'details' => ['booking_id' => $booking->id, 'slot' => $slot->slot_number],
+            'action'   => 'booking_created',
+            'details'  => ['booking_id' => $booking->id, 'slot' => $booking->slot_number],
         ]);
 
         // Send booking confirmation email (queued — non-blocking)
@@ -328,7 +343,9 @@ class BookingController extends Controller
     public function update(Request $request, string $id)
     {
         $booking = Booking::where('user_id', $request->user()->id)->findOrFail($id);
-        $data = $request->only(['notes', 'vehicle_plate', 'status']);
+        // Only allow notes and vehicle_plate updates via this endpoint.
+        // Status changes must go through specific endpoints (cancel, checkin, etc.)
+        $data = $request->only(['notes', 'vehicle_plate']);
         $booking->update($data);
         return response()->json($booking->fresh());
     }

@@ -23,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\ForceJsonResponse::class,
             \App\Http\Middleware\ApiResponseWrapper::class,
         ]);
+
+        $middleware->alias(['admin' => \App\Http\Middleware\RequireAdmin::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

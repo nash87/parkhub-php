@@ -21,10 +21,25 @@ Route::middleware('throttle:10,1')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
 });
+
+// Password reset — tighter rate limit (5 attempts per 15 minutes)
+Route::middleware('throttle:5,15')->group(function () {
+    Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword']);
+    Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+});
+
 Route::get('/setup/status', [SetupController::class, 'status']);
 Route::post('/setup/init', [SetupController::class, 'init']);
 Route::get('/public/occupancy', [PublicController::class, 'occupancy']);
 Route::get('/public/display', [PublicController::class, 'display']);
+
+// Public legal routes
+Route::get('/legal/privacy', function () {
+    return response()->json(['type' => 'privacy', 'url' => '/datenschutz']);
+});
+Route::get('/legal/impressum', function () {
+    return response()->json(['type' => 'impressum', 'url' => '/impressum']);
+});
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
@@ -32,6 +47,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/me', [AuthController::class, 'updateMe']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 
     // Lots
     Route::get('/lots', [LotController::class, 'index']);
@@ -74,8 +91,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/absences/{id}', [AbsenceController::class, 'update']);
     Route::delete('/absences/{id}', [AbsenceController::class, 'destroy']);
 
-    // Admin
-    Route::prefix('admin')->group(function () {
+    // Admin — requires admin or superadmin role
+    Route::middleware(['admin'])->prefix('admin')->group(function () {
         Route::get('/stats', [AdminController::class, 'stats']);
         Route::get('/heatmap', [AdminController::class, 'heatmap']);
         Route::get('/audit-log', [AdminController::class, 'auditLog']);

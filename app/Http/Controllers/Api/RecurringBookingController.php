@@ -17,10 +17,13 @@ class RecurringBookingController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'lot_id' => 'required|uuid',
-            'slot_id' => 'required|uuid',
+            'lot_id'       => 'required|uuid',
+            'slot_id'      => 'required|uuid',
             'days_of_week' => 'required|array',
-            'start_date' => 'required|date',
+            'start_date'   => 'required|date|after_or_equal:today',
+            'end_date'     => 'required|date|after:start_date',
+            'start_time'   => 'required|date_format:H:i',
+            'end_time'     => 'required|date_format:H:i|after:start_time',
         ]);
 
         $recurring = RecurringBooking::create(array_merge(
@@ -33,6 +36,13 @@ class RecurringBookingController extends Controller
 
     public function update(Request $request, string $id)
     {
+        $request->validate([
+            'start_date' => 'sometimes|date|after_or_equal:today',
+            'end_date'   => 'sometimes|date|after:start_date',
+            'start_time' => 'sometimes|date_format:H:i',
+            'end_time'   => 'sometimes|date_format:H:i|after:start_time',
+        ]);
+
         $recurring = RecurringBooking::where('user_id', $request->user()->id)->findOrFail($id);
         $recurring->update($request->only(['days_of_week', 'start_date', 'end_date', 'start_time', 'end_time', 'vehicle_plate', 'active']));
         return response()->json($recurring);
