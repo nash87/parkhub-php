@@ -132,7 +132,9 @@ function AppRoutes() {
       <Route path="/forgot-password" element={<Suspense fallback={<LoadingScreen />}><ForgotPasswordPage /></Suspense>} />
       <Route path="/reset-password" element={<Suspense fallback={<LoadingScreen />}><ResetPasswordPage /></Suspense>} />
       <Route path="/privacy" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><PrivacyPage /></Suspense></PublicPageWithLayout>} />
+      <Route path="/datenschutz" element={<Navigate to="/privacy" replace />} />
       <Route path="/terms" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><TermsPage /></Suspense></PublicPageWithLayout>} />
+      <Route path="/agb" element={<Navigate to="/terms" replace />} />
       <Route path="/legal" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><LegalPage /></Suspense></PublicPageWithLayout>} />
       <Route path="/about" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><AboutPage /></Suspense></PublicPageWithLayout>} />
       <Route path="/impressum" element={<PublicPageWithLayout><Suspense fallback={<LoadingScreen />}><ImpressumPage /></Suspense></PublicPageWithLayout>} />

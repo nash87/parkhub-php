@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, EyeSlash, ArrowRight, SpinnerGap, Moon, Sun, Globe, GithubLogo } from '@phosphor-icons/react';
+import { Eye, EyeSlash, ArrowRight, SpinnerGap, Globe, GithubLogo } from '@phosphor-icons/react';
 import { useAuth } from '../context/auth-hook';
 import { useBranding } from '../context/branding-hook';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { useTheme } from '../stores/theme';
 import { ThemeSelector } from "../components/ThemeSelector";
 
 export function LoginPage() {
   const { t, i18n } = useTranslation();
   const { login, isAuthenticated, isLoading } = useAuth();
   const { branding } = useBranding();
-  const { isDark, toggle: toggleTheme } = useTheme();
   const currentLang = i18n.language?.startsWith('en') ? 'en' : 'de';
   const toggleLang = () => i18n.changeLanguage(currentLang === 'de' ? 'en' : 'de');
   const [username, setUsername] = useState('');
@@ -53,9 +51,6 @@ export function LoginPage() {
           <Globe weight="bold" className="w-4 h-4" />{currentLang.toUpperCase()}
         </button>
 <ThemeSelector compact />
-        <button onClick={toggleTheme} className="p-2 rounded-xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" aria-label={t('theme.toggle')}>
-          {isDark ? <Sun weight="fill" className="w-5 h-5" /> : <Moon weight="fill" className="w-5 h-5" />}
-        </button>
       </div>
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ backgroundColor: branding.login_background_color }}>
         <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${branding.primary_color}, ${branding.login_background_color})` }} />

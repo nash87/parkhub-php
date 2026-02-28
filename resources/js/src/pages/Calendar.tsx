@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { CaretLeft, CaretRight, ArrowsClockwise } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, ArrowsClockwise, CalendarBlank, DownloadSimple } from '@phosphor-icons/react';
 import { api, CalendarEvent } from '../api/client';
 import { useTranslation } from 'react-i18next';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isToday } from 'date-fns';
@@ -21,16 +21,27 @@ export function CalendarPage() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     loadEvents();
   }, [currentMonth]);
 
   async function loadEvents() {
-    // loading;
-    const res = await api.getCalendarEvents();
-    if (res.success && res.data) setEvents(res.data);
-    // loaded;
+    setLoading(true);
+    try {
+      const res = await api.getCalendarEvents();
+      if (res.success && res.data) setEvents(res.data);
+    } catch { /* ignore */ } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleIcalExport() {
+    const token = localStorage.getItem('parkhub_token');
+    const base = (import.meta.env.VITE_API_URL as string) || '';
+    const url = `${base}/api/v1/calendar/ical?token=${token}`;
+    window.open(url, '_blank');
   }
 
   const monthStart = startOfMonth(currentMonth);
@@ -50,20 +61,37 @@ export function CalendarPage() {
 
   const selectedEvents = selectedDate ? eventsForDay(selectedDate) : [];
 
+  if (loading) {
+    return (
+      <div className="space-y-4" role="status" aria-busy="true">
+        <div className="h-8 w-48 skeleton" aria-hidden="true" />
+        <div className="h-96 skeleton rounded-2xl" aria-hidden="true" />
+      </div>
+    );
+  }
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 max-w-full">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
           {t('calendar.title')}
         </h1>
         <div className="flex items-center gap-2">
-          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <button
+            onClick={handleIcalExport}
+            className="btn btn-secondary btn-sm"
+            title={t('calendar.icalExport', 'Als Kalender abonnieren (.ics)')}
+          >
+            <DownloadSimple weight="bold" className="w-4 h-4" />
+            <span className="hidden sm:inline">{t('calendar.icalExport', 'iCal')}</span>
+          </button>
+          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" aria-label={t('calendar.prevMonth', 'Vorheriger Monat')}>
             <CaretLeft weight="bold" className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
           <span className="text-sm font-medium text-gray-700 dark:text-gray-300 min-w-[140px] text-center">
             {format(currentMonth, 'MMMM yyyy', { locale })}
           </span>
-          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors" aria-label={t('calendar.nextMonth', 'Nächster Monat')}>
             <CaretRight weight="bold" className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
@@ -115,13 +143,16 @@ export function CalendarPage() {
       </div>
 
       {/* Selected Day Detail */}
-      {selectedDate && (
+      {selectedDate ? (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {format(selectedDate, 'EEEE, d. MMMM', { locale })}
           </h2>
           {selectedEvents.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400">{t('calendar.noBookings')}</p>
+            <div className="card p-8 text-center">
+              <CalendarBlank weight="light" className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('calendar.noBookings')}</p>
+            </div>
           ) : (
             <div className="space-y-2">
               {selectedEvents.map(e => (
@@ -142,6 +173,10 @@ export function CalendarPage() {
             </div>
           )}
         </motion.div>
+      ) : (
+        <div className="text-center py-4">
+          <p className="text-sm text-gray-400 dark:text-gray-500">{t('calendar.selectDay', 'Klicken Sie auf einen Tag, um die Buchungen anzuzeigen.')}</p>
+        </div>
       )}
     </motion.div>
   );

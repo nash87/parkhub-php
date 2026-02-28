@@ -29,16 +29,9 @@ export function ProfilePage() {
   async function handleSave() {
     setSaving(true);
     try {
-      const base = (import.meta.env.VITE_API_URL as string) || '';
-      const token = localStorage.getItem('parkhub_token');
-      const res = await fetch(`${base}/api/v1/users/me`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(formData),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        toast.error(err?.message || t('profile.updateFailed', 'Aktualisierung fehlgeschlagen'));
+      const res = await api.updateMe({ name: formData.name, email: formData.email });
+      if (!res.success) {
+        toast.error(res.error?.message || t('profile.updateFailed', 'Aktualisierung fehlgeschlagen'));
         return;
       }
       setEditing(false);

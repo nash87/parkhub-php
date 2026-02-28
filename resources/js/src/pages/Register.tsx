@@ -1,11 +1,39 @@
 import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, User, Envelope, Lock , Moon, Sun, Globe } from '@phosphor-icons/react';
+import { Car, Eye, EyeSlash, ArrowRight, SpinnerGap, User, Envelope, Lock, Moon, Sun, Globe, CheckCircle, XCircle } from '@phosphor-icons/react';
 import { useAuth } from '../context/auth-hook';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useTheme } from '../stores/theme';
+
+function PasswordStrength({ password }: { password: string }) {
+  const checks = [
+    { label: '≥ 8 Zeichen', ok: password.length >= 8 },
+    { label: 'Großbuchstabe', ok: /[A-Z]/.test(password) },
+    { label: 'Zahl', ok: /[0-9]/.test(password) },
+  ];
+  if (!password) return null;
+  const strength = checks.filter(c => c.ok).length;
+  const strengthColor = strength === 3 ? 'bg-emerald-500' : strength === 2 ? 'bg-amber-500' : 'bg-red-500';
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="flex gap-1">
+        {[0, 1, 2].map(i => (
+          <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i < strength ? strengthColor : 'bg-gray-200 dark:bg-gray-700'}`} />
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-0.5">
+        {checks.map(c => (
+          <span key={c.label} className={`flex items-center gap-1 text-xs ${c.ok ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`}>
+            {c.ok ? <CheckCircle weight="fill" className="w-3 h-3" /> : <XCircle weight="regular" className="w-3 h-3" />}
+            {c.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export function RegisterPage() {
   const { t, i18n } = useTranslation();
@@ -90,18 +118,25 @@ export function RegisterPage() {
               <label className="label">{t('register.password')}</label>
               <div className="relative">
                 <Lock weight="regular" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="input pl-11 pr-12" placeholder="••••••••" required />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} className="input pl-11 pr-12" placeholder="••••••••" required minLength={8} autoComplete="new-password" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Passwort verbergen' : 'Passwort anzeigen'} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                   {showPassword ? <EyeSlash className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
               </div>
+              <PasswordStrength password={formData.password} />
             </div>
             <div>
               <label className="label">{t('register.confirmPassword')}</label>
               <div className="relative">
                 <Lock weight="regular" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} className="input pl-11" placeholder="••••••••" required />
+                <input type={showPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })} className={`input pl-11 ${formData.confirmPassword && formData.password !== formData.confirmPassword ? 'border-red-400 focus:ring-red-400' : ''}`} placeholder="••••••••" required autoComplete="new-password" />
               </div>
+              {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                  <XCircle weight="fill" className="w-3 h-3" />
+                  {t('register.passwordMismatch')}
+                </p>
+              )}
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">{t("register.privacyNotice")} <Link to="/privacy" className="text-primary-600 hover:underline">{t("footer.privacy")}</Link></p>
             <button type="submit" disabled={loading} className="btn btn-primary w-full justify-center mt-6">

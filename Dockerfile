@@ -13,7 +13,11 @@ RUN if [ -n "$VITE_BASE_PATH" ]; then npm run build -- --base=$VITE_BASE_PATH/; 
 # Stage 2: PHP + Apache
 FROM php:8.3-apache
 
-RUN apt-get update && apt-get install -y     libpng-dev libjpeg-dev libfreetype6-dev     libzip-dev unzip sqlite3 libsqlite3-dev     && docker-php-ext-configure gd --with-freetype --with-jpeg     && docker-php-ext-install pdo pdo_mysql pdo_sqlite gd zip bcmath     && a2enmod rewrite     && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y     libpng-dev libjpeg-dev libfreetype6-dev     libzip-dev unzip sqlite3 libsqlite3-dev     && docker-php-ext-configure gd --with-freetype --with-jpeg     && docker-php-ext-install pdo pdo_mysql pdo_sqlite gd zip bcmath     && a2enmod rewrite headers     && rm -rf /var/lib/apt/lists/*
+
+# Suppress version exposure
+RUN echo "expose_php = Off" >> /usr/local/etc/php/conf.d/security.ini
+RUN echo "ServerTokens Prod" >> /etc/apache2/conf-available/security.conf && a2enconf security
 
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf     && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf

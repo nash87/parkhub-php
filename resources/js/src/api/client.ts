@@ -163,6 +163,13 @@ class ApiClient {
     return this.request<User>('/api/v1/users/me');
   }
 
+  async updateMe(data: { name: string; email: string }): Promise<ApiResponse<User>> {
+    return this.request<User>('/api/v1/users/me', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
   // Lots
   async getLots(): Promise<ApiResponse<ParkingLot[]>> {
     return this.request<ParkingLot[]>('/api/v1/lots');
@@ -213,7 +220,7 @@ class ApiClient {
   async createVehicle(data: CreateVehicleData): Promise<ApiResponse<Vehicle>> {
     return this.request<Vehicle>('/api/v1/vehicles', {
       method: 'POST',
-      body: JSON.stringify({ license_plate: data.plate, make: data.make, model: data.model, color: data.color, photo: data.photo }),
+      body: JSON.stringify({ plate: data.plate, make: data.make, model: data.model, color: data.color, photo: data.photo }),
     });
   }
 
