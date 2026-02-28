@@ -2,6 +2,8 @@
 /node_modules/
 /.env
 /.env.*
+!/.env.example
+!/docker-compose.override.yml.example
 /database/database.sqlite
 /storage/*.key
 /storage/framework/cache/data/*

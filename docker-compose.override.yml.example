@@ -1,0 +1,16 @@
+# Copy to docker-compose.override.yml for development
+# Enables debug mode, log mailer, and direct DB access for dev tools
+# Usage: cp docker-compose.override.yml.example docker-compose.override.yml && docker compose up -d
+version: '3.8'
+services:
+  app:
+    environment:
+      APP_DEBUG: "true"
+      APP_ENV: local
+      MAIL_MAILER: log
+      LOG_LEVEL: debug
+    volumes:
+      - ./:/var/www/html  # Hot reload for PHP files (requires php-fpm restart for opcache)
+  db:
+    ports:
+      - "3306:3306"  # Direct DB access for dev tools (TablePlus, DBeaver, etc.)

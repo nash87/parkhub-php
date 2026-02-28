@@ -158,11 +158,23 @@ cd parkhub-php
 docker compose up -d
 ```
 
-Open **http://localhost:8080**. The setup wizard runs on first boot.
+> **Note:** The first `docker compose up -d` builds the PHP + Node.js image from source.
+> This takes **2–5 minutes** on first run. Subsequent starts are instant (image is cached).
+> Watch progress: `docker compose logs -f app`
 
-Default credentials (Docker): `admin` / `admin` — **change immediately after login**.
+Open **http://localhost:8080** in your browser.
 
-Migrations and a default admin account are created automatically by the container entrypoint.
+Default credentials (Docker): `admin@parkhub.local` / `admin` — **change immediately after login**.
+
+The container entrypoint automatically:
+1. Generates the Laravel `APP_KEY` if not set
+2. Runs database migrations
+3. Creates a default admin account (`admin@parkhub.local` / `admin`)
+
+To use custom credentials from the start:
+```bash
+PARKHUB_ADMIN_EMAIL=you@example.com PARKHUB_ADMIN_PASSWORD=mypassword docker compose up -d
+```
 
 ---
 

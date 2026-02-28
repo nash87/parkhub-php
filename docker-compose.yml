@@ -3,6 +3,7 @@ version: '3.8'
 services:
   app:
     build: .
+    restart: unless-stopped
     ports:
       - "8080:80"
     environment:
@@ -19,27 +20,69 @@ services:
       - SESSION_DRIVER=file
       - CACHE_STORE=file
       - QUEUE_CONNECTION=sync
+      # Change PARKHUB_ADMIN_EMAIL and PARKHUB_ADMIN_PASSWORD before first start!
+      - PARKHUB_ADMIN_EMAIL=admin@parkhub.local
+      - PARKHUB_ADMIN_PASSWORD=admin
     depends_on:
       db:
         condition: service_healthy
     volumes:
-      - storage:/var/www/html/storage
+      - app-storage:/var/www/html/storage
+    networks:
+      - parkhub-internal
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health/live"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
 
   db:
     image: mysql:8.0
+    restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=rootsecret
       - MYSQL_DATABASE=parkhub
       - MYSQL_USER=parkhub
       - MYSQL_PASSWORD=secret
     volumes:
-      - dbdata:/var/lib/mysql
+      - db-data:/var/lib/mysql
+    networks:
+      - parkhub-internal
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
       retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+networks:
+  parkhub-internal:
+    driver: bridge
 
 volumes:
-  storage:
-  dbdata:
+  app-storage:
+    driver: local
+  db-data:
+    driver: local
