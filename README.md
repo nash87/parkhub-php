@@ -89,7 +89,7 @@ ParkHub PHP is a full-stack, self-hosted parking management platform for compani
 ## Quick Start (3 commands)
 
 ```bash
-git clone https://github.com/your-repo/parkhub-php.git
+git clone https://github.com/nash87/parkhub-php.git
 cd parkhub-php
 docker compose up -d
 ```
