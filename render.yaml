@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: parkhub-php-demo
+    runtime: docker
+    repo: https://github.com/nash87/parkhub-php
+    branch: main
+    dockerfilePath: ./Dockerfile
+    plan: free
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_URL
+        # Render sets this automatically — override with your Render URL if needed
+        value: https://parkhub-php-demo.onrender.com
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: /var/www/html/database/database.sqlite
+      - key: DEMO_MODE
+        value: "true"
+      - key: PARKHUB_ADMIN_EMAIL
+        value: admin@parkhub.local
+      - key: PARKHUB_ADMIN_PASSWORD
+        value: admin
+      - key: ALLOW_SELF_REGISTRATION
+        value: "false"
+      - key: SESSION_DRIVER
+        value: file
+      - key: CACHE_DRIVER
+        value: file
+      - key: LOG_CHANNEL
+        value: stderr

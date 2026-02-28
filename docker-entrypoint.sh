@@ -47,6 +47,13 @@ if (\App\Models\User::where('role', 'admin')->orWhere('role', 'superadmin')->cou
     echo 'Admin already exists';
 }" 2>/dev/null || true
 
+# Demo mode: seed with realistic data on every fresh start
+if [ "${DEMO_MODE}" = "true" ]; then
+    echo "DEMO_MODE=true — running ProductionSimulationSeeder..."
+    php artisan db:seed --class=ProductionSimulationSeeder --force 2>/dev/null || true
+    echo "Demo data seeded."
+fi
+
 # Cache config for production
 php artisan config:cache 2>/dev/null || true
 php artisan route:cache 2>/dev/null || true
