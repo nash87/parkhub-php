@@ -7,6 +7,37 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — 2026-02-28
+
+### Security
+
+- **Admin middleware**: Created `RequireAdmin` middleware — all 10 admin routes now protected at route
+  level via `Route::middleware(['admin'])`. Previously only enforced via in-method checks.
+- **Rate limiting on auth routes**: `POST /auth/forgot-password` and `POST /auth/reset-password` now
+  limited to 5 requests per 15 minutes per IP (was unprotected).
+- **Double-booking race condition**: `BookingController::store()` now wraps slot conflict check and
+  `Booking::create()` in `DB::transaction()` with `ParkingSlot::lockForUpdate()`. Prevents
+  concurrent requests from double-booking the same slot.
+- **Booking status IDOR**: `BookingController::update()` no longer accepts `status` from user input —
+  only `notes` and `vehicle_plate` are updatable by users.
+- **Sanctum token expiry**: Changed `expiration` from `null` (never) to `10080` minutes (7 days).
+
+### Fixed
+
+- **GDPR Art. 17 erasure**: `UserController::anonymizeAccount()` now fully anonymizes all data:
+  vehicle photos deleted from storage, audit log entries anonymized (IP → `0.0.0.0`),
+  guest bookings anonymized, user preferences cleared.
+- **Recurring booking validation**: `RecurringBookingController` now validates `start_date ≥ today`,
+  `end_date > start_date`, and `end_time > start_time`.
+
+### Added
+
+- `POST /auth/change-password` — change password (requires current password, rotates token)
+- `POST /auth/refresh` — refresh Sanctum token (revoke all + reissue)
+- `GET /legal/privacy` and `GET /legal/impressum` — public legal/transparency pages
+
+---
+
 ## [1.0.1] — 2026-02-27
 
 ### Fixed
