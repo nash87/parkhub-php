@@ -81,8 +81,9 @@ Falls E-Mail-Benachrichtigungen aktiviert sind:
 ## 4. Technische Sicherheit
 
 - **Transport:** TLS 1.3 (HTTPS)
-- **Passwort-Hashing:** bcrypt (Laravel Standard, Cost Factor 12)
-- **Authentifizierung:** Laravel Sanctum (API Tokens)
+- **Passwort-Hashing:** Argon2id (bei Rust-Version) / bcrypt (bei PHP-Version)
+- **Datenverschlüsselung (Rust):** Optional: AES-256-GCM at rest für die redb-Datenbank
+- **Authentifizierung:** JWT-Token / Laravel Sanctum
 - **Keine Cookies für Tracking:** Nur technisch notwendige Session-Tokens
 
 ---

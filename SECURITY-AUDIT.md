@@ -1,7 +1,7 @@
 # Security Audit — parkhub-php
 
-**Audit Date:** 2026-02-27
-**Scope:** Full codebase audit covering secrets, .gitignore, PHP/npm dependencies, OWASP Top 10, and security configuration.
+**Audit Date:** 2026-02-28
+**Scope:** Full codebase audit covering secrets, .gitignore, PHP/npm dependencies, OWASP Top 10, security headers, rate limiting, and GDPR compliance.
 
 ---
 
@@ -19,6 +19,9 @@
 | OWASP A05 Security Misconfiguration | Informational — install.php requires post-install deletion |
 | OWASP A07 Auth Failures | Good — rate limiting on login/register/forgot-password |
 | OWASP A09 Security Logging | Good — AuditLog model used in auth and booking flows |
+| Security Headers | Fixed — SecurityHeaders middleware added and registered globally |
+| GDPR Data Export | Good — includes profile, bookings, absences, vehicles, preferences |
+| GDPR Erasure | Good — anonymizeAccount() preserves anonymized bookings, deletes PII |
 
 ---
 
@@ -347,37 +350,52 @@ When `requireAdmin()` calls `abort(403)`, no audit entry is created. An attacker
 
 ## 6. Security Headers
 
-Laravel does not automatically set security headers. No security headers middleware was found in `app/Http/Middleware/`. The `ForceJsonResponse` and `ApiResponseWrapper` middleware only transform response bodies.
+### ❌ FIXED: Security response headers (2026-02-28)
 
-### ❌ Missing: Security response headers
+Added `app/Http/Middleware/SecurityHeaders.php` and registered globally in `bootstrap/app.php`.
 
-No HTTP security headers are set:
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `Content-Security-Policy`
-- `Referrer-Policy`
+All responses now include:
 
-**Recommendation:** Add a security headers middleware. Example for `app/Http/Middleware/SecurityHeaders.php`:
+| Header | Value |
+|---|---|
+| `X-Content-Type-Options` | `nosniff` — prevents MIME sniffing |
+| `X-Frame-Options` | `SAMEORIGIN` — clickjacking protection |
+| `X-XSS-Protection` | `1; mode=block` — legacy XSS filter for older browsers |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` — limits referrer leakage |
 
+Registration in `bootstrap/app.php`:
 ```php
-public function handle(Request $request, Closure $next): Response
-{
-    $response = $next($request);
-    $response->headers->set('X-Content-Type-Options', 'nosniff');
-    $response->headers->set('X-Frame-Options', 'DENY');
-    $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    return $response;
-}
+$middleware->append(\App\Http\Middleware\SecurityHeaders::class);
 ```
 
-Register it in `bootstrap/app.php`:
-```php
-->withMiddleware(function (Middleware $middleware) {
-    $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
-})
-```
+**Note:** `Content-Security-Policy` and `Strict-Transport-Security` are intentionally not set
+here — they depend on the deployment origin and TLS setup and must be configured in the reverse
+proxy (nginx/Apache/Caddy) per deployment.
 
-For the SPA frontend, the Content-Security-Policy should be set on the `index.html` response via the web server (nginx/Apache) or a dedicated Blade route.
+---
+
+## 7. GDPR Endpoint Completeness
+
+### `GET /api/v1/users/me/export` ✅ Complete
+
+Handler: `UserController::exportData()` — exports:
+- Profile (id, name, email, role, department, created_at)
+- All bookings (lot_name, slot_number, vehicle_plate, start/end times, status, type)
+- All absences (type, start_date, end_date, note)
+- All vehicles (plate, make, model, color, is_default)
+- User preferences
+
+Response includes `Content-Disposition: attachment` header for direct browser download.
+
+### `POST /api/v1/users/me/anonymize` ✅ Complete (GDPR Art. 17)
+
+Handler: `UserController::anonymizeAccount()` — requires password confirmation, then:
+- Anonymizes bookings (vehicle_plate → `[GELÖSCHT]`, notes cleared)
+- Deletes absences, vehicles, favorites, notifications, push subscriptions
+- Invalidates all tokens
+- Writes audit log entry before anonymizing (for compliance record)
+- Anonymizes user record (name → `[Gelöschter Nutzer]`, email → invalid placeholder, password randomized)
+- Preserves anonymized booking records (§ 257 HGB / § 147 AO — 7-year retention)
 
 ---
 
@@ -392,9 +410,13 @@ Before going to production, operators must:
 - [ ] Configure `SESSION_ENCRYPT=true` in `.env` for additional session security
 - [ ] Set token expiry in `config/sanctum.php`: `'expiration' => 10080` (7 days)
 - [ ] Move `laravel/tinker` to `require-dev` in `composer.json`
-- [ ] Add security headers middleware (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`)
+- [x] ~~Add security headers middleware~~ — DONE (SecurityHeaders.php registered globally)
+- [ ] Configure Content-Security-Policy in reverse proxy for your specific origin
 - [ ] Configure HTTPS on the web server and set `SESSION_SECURE_COOKIE=true` in `.env`
+- [ ] Add `Strict-Transport-Security` header in reverse proxy (after TLS is confirmed working)
 - [ ] Run `composer audit` in CI to track dependency CVEs
+- [ ] Fill in and deploy legal templates from `legal/` directory (impressum, datenschutz, AGB, AVV, cookie policy)
+- [ ] Review and deploy the Widerrufsbelehrung template if offering bookings to consumers (B2C)
 
 ## How `admin_password_hash` and JWT secrets are configured
 
