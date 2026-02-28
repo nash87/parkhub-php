@@ -38,8 +38,26 @@ class LotController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate(['name' => 'required|string']);
+        $request->validate(['name' => 'required|string', 'total_slots' => 'sometimes|integer|min:1|max:1000']);
         $lot = ParkingLot::create($request->only(['name', 'address', 'total_slots', 'layout', 'status']));
+
+        // Auto-generate slots for the new lot based on total_slots
+        $totalSlots = (int) ($lot->total_slots ?? 0);
+        if ($totalSlots > 0) {
+            $slots = [];
+            for ($i = 1; $i <= $totalSlots; $i++) {
+                $slots[] = [
+                    'id'          => \Illuminate\Support\Str::uuid()->toString(),
+                    'lot_id'      => $lot->id,
+                    'slot_number' => str_pad($i, 3, '0', STR_PAD_LEFT),
+                    'status'      => 'available',
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ];
+            }
+            ParkingSlot::insert($slots);
+        }
+
         return response()->json($lot, 201);
     }
 
