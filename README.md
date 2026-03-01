@@ -26,8 +26,7 @@
   <a href="docs/API.md">API Reference</a> ·
   <a href="docs/GDPR.md">GDPR Guide</a> ·
   <a href="docs/CONFIGURATION.md">Configuration</a> ·
-  <a href="CHANGELOG.md">Changelog</a> ·
-  <a href="https://clawdemos.duckdns.org">Live Demo</a>
+  <a href="CHANGELOG.md">Changelog</a>
 </p>
 
 ---
@@ -186,13 +185,15 @@ DEMO_MODE=true docker compose up -d
 
 ## Live Demo
 
-**[https://clawdemos.duckdns.org](https://clawdemos.duckdns.org)**
+Self-hosted — deploy your own instance with Docker Compose (see Quick Start below).
 
-Pre-seeded with realistic German demo data: 10 parking lots, 200 users, ~3,500 bookings.
+To start with pre-seeded German demo data (10 lots, 200 users, ~3,500 bookings):
+
+```bash
+DEMO_MODE=true docker compose up -d
+```
 
 Login: `admin@parkhub.local` / `admin`
-
-> Note: This demo runs on Render.com free tier and may take 30–60 seconds to wake up after inactivity.
 
 Screenshots are available in the `docs/screenshots/` directory.
 
