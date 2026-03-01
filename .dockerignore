@@ -1,0 +1,60 @@
+# Dependencies — reinstalled inside the image by composer/npm
+vendor/
+node_modules/
+
+# Frontend build output — rebuilt inside the image by the frontend stage
+public/build/
+public/hot
+
+# Environment / secrets — never bake into image
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Tests — not needed at runtime
+tests/
+phpunit.xml
+.phpunit.result.cache
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Storage runtime data (mounted as volume in production)
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+database/database.sqlite
+
+# Homestead / Vagrant
+Homestead.json
+Homestead.yaml
+shell.nix
+
+# CI / deployment config (not needed inside the image)
+koyeb.yaml
+render.yaml
+deploy-shared-hosting.sh
+
+# Screenshots
+screenshots/
+legal/

@@ -1,4 +1,8 @@
-version: '3.8'
+# Docker Compose v2 — no 'version:' key needed (deprecated, emits warnings in Compose v2)
+#
+# SECRETS: Copy docker-compose.override.yml.example to docker-compose.override.yml
+# and set real passwords there, or use a .env file. Never commit real credentials.
+# Defaults below are safe example placeholders for local dev only.
 
 services:
   app:
@@ -6,6 +10,11 @@ services:
     restart: unless-stopped
     ports:
       - "8080:80"
+    # Load sensitive values (APP_KEY, DB_PASSWORD, admin credentials) from .env file
+    # so they are never hardcoded in this tracked file.
+    env_file:
+      - path: .env
+        required: false
     environment:
       - APP_NAME=ParkHub
       - APP_ENV=production
@@ -16,13 +25,11 @@ services:
       - DB_PORT=3306
       - DB_DATABASE=parkhub
       - DB_USERNAME=parkhub
-      - DB_PASSWORD=secret
+      # DB_PASSWORD — set in .env (not here)
       - SESSION_DRIVER=file
       - CACHE_STORE=file
       - QUEUE_CONNECTION=database
-      # Change PARKHUB_ADMIN_EMAIL and PARKHUB_ADMIN_PASSWORD before first start!
-      - PARKHUB_ADMIN_EMAIL=admin@parkhub.local
-      - PARKHUB_ADMIN_PASSWORD=admin
+      # PARKHUB_ADMIN_EMAIL / PARKHUB_ADMIN_PASSWORD — set in .env
     depends_on:
       db:
         condition: service_healthy
@@ -51,15 +58,18 @@ services:
   db:
     image: mysql:8.0
     restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
     environment:
-      - MYSQL_ROOT_PASSWORD=rootsecret
+      # MYSQL_ROOT_PASSWORD / MYSQL_PASSWORD — set in .env
       - MYSQL_DATABASE=parkhub
       - MYSQL_USER=parkhub
-      - MYSQL_PASSWORD=secret
     volumes:
       - db-data:/var/lib/mysql
     networks:
       - parkhub-internal
+    # DB port intentionally NOT exposed to host — access only through the internal network
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -81,6 +91,9 @@ services:
     build: .
     restart: unless-stopped
     command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+    env_file:
+      - path: .env
+        required: false
     environment:
       - APP_NAME=ParkHub
       - APP_ENV=production
@@ -91,7 +104,6 @@ services:
       - DB_PORT=3306
       - DB_DATABASE=parkhub
       - DB_USERNAME=parkhub
-      - DB_PASSWORD=secret
       - SESSION_DRIVER=file
       - CACHE_STORE=file
       - QUEUE_CONNECTION=database
@@ -119,6 +131,9 @@ services:
     restart: unless-stopped
     command: >
       sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
+    env_file:
+      - path: .env
+        required: false
     environment:
       - APP_NAME=ParkHub
       - APP_ENV=production
@@ -129,7 +144,6 @@ services:
       - DB_PORT=3306
       - DB_DATABASE=parkhub
       - DB_USERNAME=parkhub
-      - DB_PASSWORD=secret
       - SESSION_DRIVER=file
       - CACHE_STORE=file
       - QUEUE_CONNECTION=database
