@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main]
 
+# Minimal permissions — CI only reads code, no write access needed
+permissions:
+  contents: read
+
 jobs:
   test:
     name: PHP Tests
