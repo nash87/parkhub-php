@@ -12,6 +12,7 @@
   <a href="https://www.mysql.com/"><img src="https://img.shields.io/badge/MySQL-8.0-4479A1.svg?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL 8"></a>
   <a href="docs/GDPR.md"><img src="https://img.shields.io/badge/DSGVO-konform-green.svg?style=for-the-badge" alt="GDPR Compliant"></a>
   <a href="docker-compose.yml"><img src="https://img.shields.io/badge/Docker-ready-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white" alt="Docker Ready"></a>
+  <a href="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml"><img src="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
 </p>
 
 <p align="center">
@@ -25,7 +26,7 @@
   <a href="docs/API.md">API Reference</a> ·
   <a href="docs/GDPR.md">GDPR Guide</a> ·
   <a href="docs/CONFIGURATION.md">Configuration</a> ·
-  <a href="docs/CHANGELOG.md">Changelog</a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
   <a href="https://clawdemos.duckdns.org">Live Demo</a>
 </p>
 
@@ -176,11 +177,24 @@ To use custom credentials from the start:
 PARKHUB_ADMIN_EMAIL=you@example.com PARKHUB_ADMIN_PASSWORD=mypassword docker compose up -d
 ```
 
+To start with pre-seeded German demo data (10 lots, 200 users, ~3,500 bookings):
+```bash
+DEMO_MODE=true docker compose up -d
+```
+
 ---
 
-## Screenshots
+## Live Demo
 
-See the `docs/screenshots/` directory or the [live demo](https://clawdemos.duckdns.org) linked in the repository description.
+**[https://clawdemos.duckdns.org](https://clawdemos.duckdns.org)**
+
+Pre-seeded with realistic German demo data: 10 parking lots, 200 users, ~3,500 bookings.
+
+Login: `admin@parkhub.local` / `admin`
+
+> Note: This demo runs on Render.com free tier and may take 30–60 seconds to wake up after inactivity.
+
+Screenshots are available in the `docs/screenshots/` directory.
 
 ---
 
@@ -289,6 +303,9 @@ Key environment variables (full list in [docs/CONFIGURATION.md](docs/CONFIGURATI
 | `MAIL_PORT` | `587` | SMTP port |
 | `QUEUE_CONNECTION` | `database` | `database`, `sync`, or `redis` |
 | `BCRYPT_ROUNDS` | `12` | Password hashing cost (higher = slower = safer) |
+| `PARKHUB_ADMIN_EMAIL` | `admin@parkhub.local` | Initial admin email (Docker / `install.php`) |
+| `PARKHUB_ADMIN_PASSWORD` | `admin` | Initial admin password — **change immediately** |
+| `DEMO_MODE` | `false` | Set `true` to seed German demo data on container start |
 
 ---
 
@@ -299,7 +316,7 @@ Quick example — list parking lots:
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@example.com","password":"admin"}' | jq -r '.data.tokens.access_token')
+  -d '{"username":"admin","password":"admin"}' | jq -r '.tokens.access_token')
 
 curl -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/v1/lots
 ```
@@ -318,7 +335,7 @@ The API is compatible with the Rust backend — both use the same `/api/v1/*` ro
 | [docs/API.md](docs/API.md) | Full REST API reference with curl examples |
 | [docs/GDPR.md](docs/GDPR.md) | Operator DSGVO compliance guide |
 | [docs/SECURITY.md](docs/SECURITY.md) | Security model and responsible disclosure |
-| [docs/CHANGELOG.md](docs/CHANGELOG.md) | Release history |
+| [CHANGELOG.md](CHANGELOG.md) | Release history |
 | [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) | Development setup and PR process |
 | [docs/DOCKER.md](docs/DOCKER.md) | Docker-specific deployment guide |
 | [docs/VPS.md](docs/VPS.md) | VPS / LAMP manual deployment |

@@ -62,7 +62,7 @@ services:
     health_checks:
       - port: 80
         protocol: http
-        path: /health/live
+        path: /api/v1/health/live
         interval: 10
         timeout: 5
         healthy_threshold: 1

@@ -223,7 +223,7 @@ vendor/bin/pint --test
 
 ## Frontend Development
 
-The frontend is a React 19 SPA built with Vite 6. Source is at `resources/js/src/`.
+The frontend is a React 19 SPA built with Vite 7. Source is at `resources/js/src/`.
 
 ```bash
 # Development with hot reload

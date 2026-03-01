@@ -85,16 +85,11 @@ Note: `/storage/*.key` was already present (specifically for Laravel app keys st
 
 **No known CVEs** in the specified version ranges as of the audit date.
 
-### ⚠️ Informational: `laravel/tinker` is included in `require` (not `require-dev`)
+### ✅ FIXED: `laravel/tinker` moved to `require-dev`
 
-Tinker is a REPL that can execute arbitrary PHP code. It is listed under `require` (production), not `require-dev`. While Tinker is only accessible via the CLI and not over HTTP, it should be moved to `require-dev` to reduce the production attack surface:
-
-```json
-"require-dev": {
-    "laravel/tinker": "^2.10.1",
-    ...
-}
-```
+Tinker is a REPL that can execute arbitrary PHP code. It was previously listed under `require` (production).
+It has been moved to `require-dev` to reduce the production attack surface. Docker builds use
+`composer install --no-dev`, so Tinker is not present in production containers.
 
 ### ⚠️ Informational: `BCRYPT_ROUNDS=12` in .env.example
 
@@ -409,7 +404,7 @@ Before going to production, operators must:
 - [ ] Set `APP_KEY` via `php artisan key:generate`
 - [ ] Configure `SESSION_ENCRYPT=true` in `.env` for additional session security
 - [ ] Set token expiry in `config/sanctum.php`: `'expiration' => 10080` (7 days)
-- [ ] Move `laravel/tinker` to `require-dev` in `composer.json`
+- [x] ~~Move `laravel/tinker` to `require-dev` in `composer.json`~~ — DONE
 - [x] ~~Add security headers middleware~~ — DONE (SecurityHeaders.php registered globally)
 - [ ] Configure Content-Security-Policy in reverse proxy for your specific origin
 - [ ] Configure HTTPS on the web server and set `SESSION_SECURE_COOKIE=true` in `.env`

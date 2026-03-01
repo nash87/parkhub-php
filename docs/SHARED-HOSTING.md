@@ -4,15 +4,17 @@ Deploy ParkHub PHP on any shared hosting provider — no terminal required.
 
 ## Supported Providers
 
-| Provider | Free Tier | PHP 8.2+ | MySQL | Notes |
-|----------|-----------|----------|-------|-------|
-| InfinityFree | Yes | 8.2 | Yes | Recommended free option |
-| Byet / iFastNet | Yes | 8.2 | Yes | Same backend as InfinityFree |
-| AeonFree | Yes | 8.1 | Yes | Smaller community |
-| Strato | Paid | 8.2+ | Yes | German provider, reliable |
-| IONOS | Paid | 8.2+ | Yes | Good EU hosting |
-| All-Inkl | Paid | 8.2+ | Yes | Popular in DACH region |
-| Hostinger | Paid | 8.2+ | Yes | Budget-friendly |
+ParkHub PHP requires **PHP 8.3**. Verify that your host supports PHP 8.3 before deploying.
+
+| Provider | Free Tier | PHP 8.3 | MySQL | Notes |
+|----------|-----------|---------|-------|-------|
+| InfinityFree | Yes | Check panel | Yes | Recommended free option — verify PHP version in control panel |
+| Byet / iFastNet | Yes | Check panel | Yes | Same backend as InfinityFree |
+| AeonFree | Yes | Check panel | Yes | Smaller community |
+| Strato | Paid | Yes (8.3+) | Yes | German provider, reliable, GDPR-friendly |
+| IONOS | Paid | Yes (8.3+) | Yes | Good EU hosting, supports PHP 8.3 |
+| All-Inkl | Paid | Yes (8.3+) | Yes | Popular in DACH region |
+| Hostinger | Paid | Yes (8.3+) | Yes | Budget-friendly |
 
 ## Quick Start
 
@@ -34,10 +36,10 @@ Follow the detailed steps below.
 
 ### 1. Build the Package
 
-On your local machine (requires PHP 8.2+, Composer, Node.js):
+On your local machine (requires PHP 8.3, Composer, Node.js):
 
 ```bash
-git clone https://github.com/your-repo/parkhub-php.git
+git clone https://github.com/nash87/parkhub-php.git
 cd parkhub-php
 ./deploy-shared-hosting.sh
 ```

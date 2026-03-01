@@ -50,7 +50,7 @@ Authorization: Bearer <access_token>
 Tokens expire after **7 days**. Refresh with `POST /api/v1/auth/refresh`.
 
 ```bash
-# Save token to a shell variable
+# Save token to a shell variable (username field also accepts an email address)
 TOKEN=$(curl -s -X POST https://parking.example.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"secret"}' \
@@ -309,12 +309,14 @@ curl -s -X DELETE https://parking.example.com/api/v1/users/me/delete \
 
 ## GDPR Endpoints
 
-### GET /api/v1/user/export
+### GET /api/v1/users/me/export
 
 Download all personal data as a JSON file. Implements GDPR Art. 20 (Data Portability).
 
+The legacy path `/api/v1/user/export` is also supported for backwards compatibility.
+
 ```bash
-curl -s https://parking.example.com/api/v1/user/export \
+curl -s https://parking.example.com/api/v1/users/me/export \
   -H "Authorization: Bearer $TOKEN" \
   -o my-parkhub-data.json
 ```

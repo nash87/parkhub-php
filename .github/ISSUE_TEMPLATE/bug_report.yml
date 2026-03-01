@@ -12,7 +12,7 @@ body:
     attributes:
       label: ParkHub PHP version
       placeholder: "v1.0.1"
-      description: "Check the `/api/version` endpoint or docs/CHANGELOG.md for the current version."
+      description: "Check the `/api/v1/system/version` endpoint or CHANGELOG.md for the current version."
     validations:
       required: true
   - type: dropdown

@@ -1,6 +1,7 @@
 services:
   - type: web
     name: parkhub-php-demo
+    runtime: image
     # Pull pre-built image from GHCR — avoids re-running npm+composer on Render
     # Image is built by GitHub Actions (.github/workflows/docker-publish.yml) on every push
     image:
@@ -30,7 +31,7 @@ services:
         value: "false"
       - key: SESSION_DRIVER
         value: file
-      - key: CACHE_DRIVER
+      - key: CACHE_STORE
         value: file
       - key: LOG_CHANNEL
         value: stderr

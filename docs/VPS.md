@@ -17,7 +17,7 @@ sudo apt update && sudo apt install -y php8.3 php8.3-{cli,fpm,mysql,sqlite3,mbst
 
 # Clone and install
 cd /var/www
-sudo git clone https://github.com/your-repo/parkhub-php.git parkhub
+sudo git clone https://github.com/nash87/parkhub-php.git parkhub
 cd parkhub
 
 # PHP dependencies
@@ -33,7 +33,7 @@ sudo php artisan key:generate
 
 # Database (SQLite)
 sudo touch database/database.sqlite
-sudo php artisan migrate
+sudo php artisan migrate --force
 
 # Permissions
 sudo chown -R www-data:www-data /var/www/parkhub
@@ -78,7 +78,7 @@ DB_USERNAME=parkhub
 DB_PASSWORD=your-password
 ```
 
-Then: `sudo php artisan migrate`
+Then: `sudo php artisan migrate --force`
 
 ## HTTPS with Let's Encrypt
 
@@ -117,4 +117,6 @@ sudo composer install --no-dev --optimize-autoloader
 sudo php artisan migrate --force
 sudo php artisan config:cache
 sudo php artisan route:cache
+sudo php artisan view:cache
+sudo systemctl reload apache2
 ```

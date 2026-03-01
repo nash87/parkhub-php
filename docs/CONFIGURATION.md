@@ -27,7 +27,7 @@ In Docker, pass variables as container environment variables instead of using a 
 
 | Variable | Default | Required | Description |
 |----------|---------|----------|-------------|
-| `APP_NAME` | `Laravel` | No | Application display name. Shown in emails and the browser tab title. |
+| `APP_NAME` | `ParkHub` | No | Application display name. Shown in emails and the browser tab title. |
 | `APP_ENV` | `local` | Yes | `local`, `production`, or `testing`. Always set `production` in live deployments. |
 | `APP_KEY` | _(empty)_ | Yes | 32-byte base64-encoded encryption key. Generate with `php artisan key:generate`. Auto-generated in the Docker entrypoint. |
 | `APP_DEBUG` | `true` | Yes | `true` in development only. **Set `false` in production** — exposing stack traces to users is a security risk. |
@@ -126,7 +126,7 @@ worker process. Recommended for production.
 | `MAIL_MAILER` | `log` | Transport: `log` (writes to log file, no emails sent), `smtp`, `sendmail`, `mailgun`, `ses` |
 | `MAIL_SCHEME` | `null` | TLS scheme: `null` (no encryption), `tls` (STARTTLS on port 587), `ssl` (implicit TLS on port 465) |
 | `MAIL_HOST` | `127.0.0.1` | SMTP server hostname |
-| `MAIL_PORT` | `2525` | SMTP port. Common: 587 (STARTTLS), 465 (SSL), 25 (plain) |
+| `MAIL_PORT` | `587` | SMTP port. Common: 587 (STARTTLS), 465 (SSL), 25 (plain) |
 | `MAIL_USERNAME` | `null` | SMTP authentication username |
 | `MAIL_PASSWORD` | `null` | SMTP authentication password |
 | `MAIL_FROM_ADDRESS` | `hello@example.com` | Sender address shown in outgoing emails |
@@ -176,7 +176,7 @@ An Auftragsverarbeitungsvertrag (AVV) is required. A template is in `legal/avv-t
 |----------|---------|-------------|
 | `LOG_CHANNEL` | `stack` | Log channel: `stack`, `single`, `daily`, `syslog`, `errorlog`, `stderr` |
 | `LOG_STACK` | `single` | Channels included when `LOG_CHANNEL=stack` |
-| `LOG_LEVEL` | `debug` | Minimum log level: `debug`, `info`, `notice`, `warning`, `error`, `critical` |
+| `LOG_LEVEL` | `warning` | Minimum log level: `debug`, `info`, `notice`, `warning`, `error`, `critical` |
 
 In production, set `LOG_CHANNEL=daily` and `LOG_LEVEL=warning` to reduce log volume and
 enable automatic log rotation by day.
@@ -202,6 +202,18 @@ symlink so files in `storage/app/public/` are web-accessible.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `VITE_APP_NAME` | `${APP_NAME}` | Exposed to React frontend as `import.meta.env.VITE_APP_NAME` |
+
+---
+
+## ParkHub-Specific Variables
+
+These variables are read by `docker-entrypoint.sh` and `public/install.php` during first-run initialization.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PARKHUB_ADMIN_EMAIL` | `admin@parkhub.local` | Email address for the initial admin account created on first startup. Change before first run. |
+| `PARKHUB_ADMIN_PASSWORD` | `admin` | Password for the initial admin account. **Always change this before exposing the instance to a network.** |
+| `DEMO_MODE` | `false` | Set `true` to seed realistic German demo data (10 lots, 200 users, ~3,500 bookings) on container start. Intended for demo instances only — not for production. |
 
 ---
 
