@@ -1,5 +1,5 @@
 # Stage 1: Build Astro frontend
-FROM node:22-slim AS frontend
+FROM node:25-slim AS frontend
 WORKDIR /app
 COPY parkhub-web/package*.json ./
 RUN npm ci
