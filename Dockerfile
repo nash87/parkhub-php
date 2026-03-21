@@ -34,8 +34,11 @@ FROM docker.io/library/php:8.4-apache-bookworm AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libpng-dev libjpeg-dev libfreetype6-dev \
         libzip-dev unzip sqlite3 libsqlite3-dev wget \
+        libpq-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j"$(nproc)" pdo pdo_mysql pdo_sqlite gd zip bcmath opcache \
+    && docker-php-ext-install -j"$(nproc)" \
+        pdo pdo_mysql pdo_sqlite gd zip bcmath opcache \
+        pdo_pgsql pgsql \
     && a2enmod rewrite headers \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
