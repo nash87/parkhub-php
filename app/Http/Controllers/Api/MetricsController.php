@@ -46,7 +46,7 @@ class MetricsController extends Controller
 
         foreach ($lots as $lot) {
             $total = $lot->total_slots;
-            $occupied = \App\Models\Booking::where('lot_id', $lot->id)
+            $occupied = Booking::where('lot_id', $lot->id)
                 ->whereIn('status', ['confirmed', 'active'])
                 ->where('start_time', '<=', now())
                 ->where('end_time', '>=', now())
