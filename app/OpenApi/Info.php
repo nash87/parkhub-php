@@ -7,10 +7,12 @@ namespace App\OpenApi;
  *     title="ParkHub API",
  *     version="1.3.0",
  *     description="Self-hosted parking management API — Laravel 12, GDPR-ready. Compatible with the Rust backend endpoint structure.",
+ *
  *     @OA\Contact(
  *         email="admin@example.com",
  *         name="ParkHub Support"
  *     ),
+ *
  *     @OA\License(
  *         name="MIT",
  *         url="https://opensource.org/licenses/MIT"

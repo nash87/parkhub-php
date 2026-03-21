@@ -22,14 +22,18 @@ class AuthController extends Controller
      *     path="/auth/login",
      *     summary="Login with username/email and password",
      *     tags={"Auth"},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"username","password"},
+     *
      *             @OA\Property(property="username", type="string", example="admin"),
      *             @OA\Property(property="password", type="string", format="password", example="secret")
      *         )
      *     ),
+     *
      *     @OA\Response(response=200, description="Login successful, returns user and token"),
      *     @OA\Response(response=401, description="Invalid credentials"),
      *     @OA\Response(response=403, description="Account disabled")
@@ -85,10 +89,13 @@ class AuthController extends Controller
      *     path="/auth/register",
      *     summary="Register a new user",
      *     tags={"Auth"},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"username","email","password","password_confirmation","name"},
+     *
      *             @OA\Property(property="username", type="string", example="johndoe"),
      *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
      *             @OA\Property(property="password", type="string", format="password", example="Secret123"),
@@ -96,6 +103,7 @@ class AuthController extends Controller
      *             @OA\Property(property="name", type="string", example="John Doe")
      *         )
      *     ),
+     *
      *     @OA\Response(response=201, description="User registered"),
      *     @OA\Response(response=403, description="Registration disabled"),
      *     @OA\Response(response=422, description="Validation error")

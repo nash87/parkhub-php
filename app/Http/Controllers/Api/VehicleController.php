@@ -18,6 +18,7 @@ class VehicleController extends Controller
      *     summary="List user vehicles",
      *     tags={"Vehicles"},
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Response(response=200, description="List of vehicles"),
      *     @OA\Response(response=401, description="Unauthenticated")
      * )
@@ -33,10 +34,13 @@ class VehicleController extends Controller
      *     summary="Add a vehicle",
      *     tags={"Vehicles"},
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"plate"},
+     *
      *             @OA\Property(property="plate", type="string", example="B-AB 123"),
      *             @OA\Property(property="make", type="string", example="VW"),
      *             @OA\Property(property="model", type="string", example="Golf"),
@@ -44,6 +48,7 @@ class VehicleController extends Controller
      *             @OA\Property(property="is_default", type="boolean")
      *         )
      *     ),
+     *
      *     @OA\Response(response=201, description="Vehicle created"),
      *     @OA\Response(response=422, description="Validation error")
      * )
@@ -65,7 +70,9 @@ class VehicleController extends Controller
      *     summary="Update a vehicle",
      *     tags={"Vehicles"},
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string", format="uuid")),
+     *
      *     @OA\Response(response=200, description="Vehicle updated"),
      *     @OA\Response(response=404, description="Not found")
      * )
@@ -84,7 +91,9 @@ class VehicleController extends Controller
      *     summary="Delete a vehicle",
      *     tags={"Vehicles"},
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string", format="uuid")),
+     *
      *     @OA\Response(response=200, description="Deleted"),
      *     @OA\Response(response=404, description="Not found")
      * )

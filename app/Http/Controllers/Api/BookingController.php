@@ -33,9 +33,11 @@ class BookingController extends Controller
      *     summary="List user bookings",
      *     tags={"Bookings"},
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="status", in="query", required=false, @OA\Schema(type="string")),
      *     @OA\Parameter(name="from_date", in="query", required=false, @OA\Schema(type="string", format="date-time")),
      *     @OA\Parameter(name="to_date", in="query", required=false, @OA\Schema(type="string", format="date-time")),
+     *
      *     @OA\Response(response=200, description="Success"),
      *     @OA\Response(response=401, description="Unauthenticated")
      * )
@@ -63,10 +65,13 @@ class BookingController extends Controller
      *     summary="Create a new booking",
      *     tags={"Bookings"},
      *     security={{"sanctum": {}}},
+     *
      *     @OA\RequestBody(
      *         required=true,
+     *
      *         @OA\JsonContent(
      *             required={"lot_id","start_time"},
+     *
      *             @OA\Property(property="lot_id", type="string", format="uuid"),
      *             @OA\Property(property="slot_id", type="string", format="uuid"),
      *             @OA\Property(property="start_time", type="string", format="date-time"),
@@ -74,6 +79,7 @@ class BookingController extends Controller
      *             @OA\Property(property="vehicle_plate", type="string")
      *         )
      *     ),
+     *
      *     @OA\Response(response=201, description="Booking created"),
      *     @OA\Response(response=409, description="Slot conflict"),
      *     @OA\Response(response=422, description="Validation error")
@@ -312,7 +318,9 @@ class BookingController extends Controller
      *     summary="Get a booking by ID",
      *     tags={"Bookings"},
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string", format="uuid")),
+     *
      *     @OA\Response(response=200, description="Success"),
      *     @OA\Response(response=403, description="Forbidden"),
      *     @OA\Response(response=404, description="Not found")
@@ -339,7 +347,9 @@ class BookingController extends Controller
      *     summary="Cancel a booking",
      *     tags={"Bookings"},
      *     security={{"sanctum": {}}},
+     *
      *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string", format="uuid")),
+     *
      *     @OA\Response(response=200, description="Booking cancelled"),
      *     @OA\Response(response=404, description="Not found")
      * )
