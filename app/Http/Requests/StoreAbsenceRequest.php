@@ -25,10 +25,10 @@ class StoreAbsenceRequest extends FormRequest
     {
         return [
             'absence_type' => 'required|in:homeoffice,vacation,sick,training,other',
-            'start_date'   => 'required|date',
-            'end_date'     => 'required|date',
-            'note'         => 'nullable|string|max:1000',
-            'source'       => 'nullable|string|max:50',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date',
+            'note' => 'nullable|string|max:1000',
+            'source' => 'nullable|string|max:50',
         ];
     }
 }

@@ -14,10 +14,10 @@ class UpdateVehicleRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'plate'      => 'sometimes|required|string|max:20',
-            'make'       => 'nullable|string|max:100',
-            'model'      => 'nullable|string|max:100',
-            'color'      => 'nullable|string|max:50',
+            'plate' => 'sometimes|required|string|max:20',
+            'make' => 'nullable|string|max:100',
+            'model' => 'nullable|string|max:100',
+            'color' => 'nullable|string|max:50',
             'is_default' => 'nullable|boolean',
         ];
     }

@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Api\AbsenceController;
-use App\Http\Middleware\MetricsAuth;
 use App\Http\Controllers\Api\AdminAnnouncementController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdminCreditController;
@@ -22,6 +21,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\Api\ZoneController;
+use App\Http\Middleware\MetricsAuth;
 use App\Models\Announcement;
 use Illuminate\Support\Facades\Route;
 

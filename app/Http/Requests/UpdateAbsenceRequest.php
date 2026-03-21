@@ -25,9 +25,9 @@ class UpdateAbsenceRequest extends FormRequest
     {
         return [
             'absence_type' => 'sometimes|in:homeoffice,vacation,sick,training,other',
-            'start_date'   => 'sometimes|date',
-            'end_date'     => 'sometimes|date',
-            'note'         => 'nullable|string|max:1000',
+            'start_date' => 'sometimes|date',
+            'end_date' => 'sometimes|date',
+            'note' => 'nullable|string|max:1000',
         ];
     }
 }

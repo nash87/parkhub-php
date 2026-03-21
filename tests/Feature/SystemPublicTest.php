@@ -168,7 +168,11 @@ class SystemPublicTest extends TestCase
 
     public function test_metrics_endpoint_exists(): void
     {
-        $this->getJson('/api/metrics')
+        $admin = User::factory()->create(['role' => 'admin']);
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/metrics')
             ->assertStatus(200);
     }
 }
