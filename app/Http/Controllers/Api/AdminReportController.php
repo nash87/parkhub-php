@@ -67,17 +67,24 @@ class AdminReportController extends Controller
         $request->validate(['days' => 'integer|min:1|max:365']);
         $days = (int) $request->get('days', 30);
 
-        // Use DB-agnostic expressions: DAYOFWEEK (MySQL) vs strftime (SQLite)
+        // Use DB-specific date expressions per driver
         $driver = DB::getDriverName();
+        $query = Booking::where('start_time', '>=', now()->subDays($days));
 
         if ($driver === 'sqlite') {
-            $bookings = Booking::where('start_time', '>=', now()->subDays($days))
+            $bookings = $query
                 ->selectRaw('CAST(strftime("%w", start_time) AS INTEGER) as day_of_week, CAST(strftime("%H", start_time) AS INTEGER) as hour, COUNT(*) as count')
+                ->groupBy('day_of_week', 'hour')
+                ->get();
+        } elseif ($driver === 'pgsql') {
+            // PostgreSQL: EXTRACT(DOW ...) returns 0=Sunday...6=Saturday (same as SQLite strftime %w)
+            $bookings = $query
+                ->selectRaw('EXTRACT(DOW FROM start_time)::integer as day_of_week, EXTRACT(HOUR FROM start_time)::integer as hour, COUNT(*) as count')
                 ->groupBy('day_of_week', 'hour')
                 ->get();
         } else {
             // MySQL / MariaDB (DAYOFWEEK returns 1=Sunday...7=Saturday, normalise to 0=Sunday...6=Saturday)
-            $bookings = Booking::where('start_time', '>=', now()->subDays($days))
+            $bookings = $query
                 ->selectRaw('(DAYOFWEEK(start_time) - 1) as day_of_week, HOUR(start_time) as hour, COUNT(*) as count')
                 ->groupBy('day_of_week', 'hour')
                 ->get();
