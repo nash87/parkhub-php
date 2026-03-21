@@ -3,13 +3,14 @@
 namespace Tests\Unit\Models;
 
 use App\Models\TranslationVote;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Tests\TestCase;
 
 class TranslationVoteTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $vote = new TranslationVote();
+        $vote = new TranslationVote;
         $fillable = $vote->getFillable();
 
         $this->assertContains('proposal_id', $fillable);
@@ -19,8 +20,8 @@ class TranslationVoteTest extends TestCase
 
     public function test_proposal_relation_defined(): void
     {
-        $vote = new TranslationVote();
+        $vote = new TranslationVote;
         $relation = $vote->proposal();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 }

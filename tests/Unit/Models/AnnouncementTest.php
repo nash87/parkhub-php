@@ -3,13 +3,13 @@
 namespace Tests\Unit\Models;
 
 use App\Models\Announcement;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class AnnouncementTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $announcement = new Announcement();
+        $announcement = new Announcement;
         $fillable = $announcement->getFillable();
 
         $this->assertContains('title', $fillable);

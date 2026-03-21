@@ -3,13 +3,15 @@
 namespace Tests\Unit\Models;
 
 use App\Models\Booking;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Tests\TestCase;
 
 class BookingTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $booking = new Booking();
+        $booking = new Booking;
         $fillable = $booking->getFillable();
 
         $this->assertContains('user_id', $fillable);
@@ -54,29 +56,29 @@ class BookingTest extends TestCase
 
     public function test_booking_has_user_relation_defined(): void
     {
-        $booking = new Booking();
+        $booking = new Booking;
         $relation = $booking->user();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 
     public function test_booking_has_lot_relation_defined(): void
     {
-        $booking = new Booking();
+        $booking = new Booking;
         $relation = $booking->lot();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 
     public function test_booking_has_slot_relation_defined(): void
     {
-        $booking = new Booking();
+        $booking = new Booking;
         $relation = $booking->slot();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 
     public function test_booking_has_booking_notes_relation_defined(): void
     {
-        $booking = new Booking();
+        $booking = new Booking;
         $relation = $booking->bookingNotes();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 }

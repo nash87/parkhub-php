@@ -3,13 +3,13 @@
 namespace Tests\Unit\Models;
 
 use App\Models\AuditLog;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class AuditLogTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
         $fillable = $log->getFillable();
 
         $this->assertContains('user_id', $fillable);
@@ -21,7 +21,7 @@ class AuditLogTest extends TestCase
 
     public function test_table_name(): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
         $this->assertEquals('audit_log', $log->getTable());
     }
 }

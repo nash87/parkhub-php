@@ -3,13 +3,13 @@
 namespace Tests\Unit\Models;
 
 use App\Models\PushSubscription;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class PushSubscriptionTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $sub = new PushSubscription();
+        $sub = new PushSubscription;
         $fillable = $sub->getFillable();
 
         $this->assertContains('user_id', $fillable);

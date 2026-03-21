@@ -3,13 +3,13 @@
 namespace Tests\Unit\Models;
 
 use App\Models\RecurringBooking;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class RecurringBookingTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $rb = new RecurringBooking();
+        $rb = new RecurringBooking;
         $fillable = $rb->getFillable();
 
         $this->assertContains('user_id', $fillable);

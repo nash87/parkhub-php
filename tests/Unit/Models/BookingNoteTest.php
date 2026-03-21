@@ -3,13 +3,13 @@
 namespace Tests\Unit\Models;
 
 use App\Models\BookingNote;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class BookingNoteTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $note = new BookingNote();
+        $note = new BookingNote;
         $fillable = $note->getFillable();
 
         $this->assertContains('booking_id', $fillable);

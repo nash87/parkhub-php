@@ -3,13 +3,14 @@
 namespace Tests\Unit\Models;
 
 use App\Models\User;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Tests\TestCase;
 
 class UserTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $user = new User();
+        $user = new User;
         $fillable = $user->getFillable();
 
         $this->assertContains('username', $fillable);
@@ -26,7 +27,7 @@ class UserTest extends TestCase
 
     public function test_hidden_attributes(): void
     {
-        $user = new User();
+        $user = new User;
         $hidden = $user->getHidden();
 
         $this->assertContains('password', $hidden);
@@ -35,7 +36,7 @@ class UserTest extends TestCase
 
     public function test_is_admin_returns_true_for_admin_role(): void
     {
-        $user = new User();
+        $user = new User;
         $user->role = 'admin';
 
         $this->assertTrue($user->isAdmin());
@@ -43,7 +44,7 @@ class UserTest extends TestCase
 
     public function test_is_admin_returns_true_for_superadmin_role(): void
     {
-        $user = new User();
+        $user = new User;
         $user->role = 'superadmin';
 
         $this->assertTrue($user->isAdmin());
@@ -51,7 +52,7 @@ class UserTest extends TestCase
 
     public function test_is_admin_returns_false_for_user_role(): void
     {
-        $user = new User();
+        $user = new User;
         $user->role = 'user';
 
         $this->assertFalse($user->isAdmin());
@@ -59,7 +60,7 @@ class UserTest extends TestCase
 
     public function test_is_admin_returns_false_for_premium_role(): void
     {
-        $user = new User();
+        $user = new User;
         $user->role = 'premium';
 
         $this->assertFalse($user->isAdmin());
@@ -67,7 +68,7 @@ class UserTest extends TestCase
 
     public function test_is_premium_returns_true_for_premium_role(): void
     {
-        $user = new User();
+        $user = new User;
         $user->role = 'premium';
 
         $this->assertTrue($user->isPremium());
@@ -75,7 +76,7 @@ class UserTest extends TestCase
 
     public function test_is_premium_returns_false_for_user_role(): void
     {
-        $user = new User();
+        $user = new User;
         $user->role = 'user';
 
         $this->assertFalse($user->isPremium());
@@ -83,7 +84,7 @@ class UserTest extends TestCase
 
     public function test_is_premium_returns_false_for_admin_role(): void
     {
-        $user = new User();
+        $user = new User;
         $user->role = 'admin';
 
         $this->assertFalse($user->isPremium());
@@ -91,43 +92,43 @@ class UserTest extends TestCase
 
     public function test_bookings_relation_defined(): void
     {
-        $user = new User();
+        $user = new User;
         $relation = $user->bookings();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 
     public function test_vehicles_relation_defined(): void
     {
-        $user = new User();
+        $user = new User;
         $relation = $user->vehicles();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 
     public function test_absences_relation_defined(): void
     {
-        $user = new User();
+        $user = new User;
         $relation = $user->absences();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 
     public function test_favorites_relation_defined(): void
     {
-        $user = new User();
+        $user = new User;
         $relation = $user->favorites();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 
     public function test_recurring_bookings_relation_defined(): void
     {
-        $user = new User();
+        $user = new User;
         $relation = $user->recurringBookings();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 
     public function test_credit_transactions_relation_defined(): void
     {
-        $user = new User();
+        $user = new User;
         $relation = $user->creditTransactions();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 }

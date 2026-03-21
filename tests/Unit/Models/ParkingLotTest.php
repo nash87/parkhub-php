@@ -3,13 +3,14 @@
 namespace Tests\Unit\Models;
 
 use App\Models\ParkingLot;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Tests\TestCase;
 
 class ParkingLotTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $lot = new ParkingLot();
+        $lot = new ParkingLot;
         $fillable = $lot->getFillable();
 
         $this->assertContains('name', $fillable);
@@ -26,22 +27,22 @@ class ParkingLotTest extends TestCase
 
     public function test_slots_relation_defined(): void
     {
-        $lot = new ParkingLot();
+        $lot = new ParkingLot;
         $relation = $lot->slots();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 
     public function test_zones_relation_defined(): void
     {
-        $lot = new ParkingLot();
+        $lot = new ParkingLot;
         $relation = $lot->zones();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 
     public function test_bookings_relation_defined(): void
     {
-        $lot = new ParkingLot();
+        $lot = new ParkingLot;
         $relation = $lot->bookings();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\HasMany::class, $relation);
+        $this->assertInstanceOf(HasMany::class, $relation);
     }
 }

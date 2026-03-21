@@ -3,13 +3,14 @@
 namespace Tests\Unit\Models;
 
 use App\Models\Absence;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Tests\TestCase;
 
 class AbsenceTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $absence = new Absence();
+        $absence = new Absence;
         $fillable = $absence->getFillable();
 
         $this->assertContains('user_id', $fillable);
@@ -22,8 +23,8 @@ class AbsenceTest extends TestCase
 
     public function test_user_relation_defined(): void
     {
-        $absence = new Absence();
+        $absence = new Absence;
         $relation = $absence->user();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 }

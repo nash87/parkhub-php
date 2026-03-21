@@ -3,13 +3,14 @@
 namespace Tests\Unit\Models;
 
 use App\Models\Vehicle;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Tests\TestCase;
 
 class VehicleTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $vehicle = new Vehicle();
+        $vehicle = new Vehicle;
         $fillable = $vehicle->getFillable();
 
         $this->assertContains('user_id', $fillable);
@@ -23,8 +24,8 @@ class VehicleTest extends TestCase
 
     public function test_user_relation_defined(): void
     {
-        $vehicle = new Vehicle();
+        $vehicle = new Vehicle;
         $relation = $vehicle->user();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 }

@@ -3,13 +3,13 @@
 namespace Tests\Unit\Models;
 
 use App\Models\TranslationOverride;
-use PHPUnit\Framework\TestCase;
+use Tests\TestCase;
 
 class TranslationOverrideTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $override = new TranslationOverride();
+        $override = new TranslationOverride;
         $fillable = $override->getFillable();
 
         $this->assertContains('language', $fillable);

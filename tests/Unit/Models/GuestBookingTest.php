@@ -3,13 +3,14 @@
 namespace Tests\Unit\Models;
 
 use App\Models\GuestBooking;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Tests\TestCase;
 
 class GuestBookingTest extends TestCase
 {
     public function test_fillable_attributes(): void
     {
-        $gb = new GuestBooking();
+        $gb = new GuestBooking;
         $fillable = $gb->getFillable();
 
         $this->assertContains('created_by', $fillable);
@@ -25,22 +26,22 @@ class GuestBookingTest extends TestCase
 
     public function test_lot_relation_defined(): void
     {
-        $gb = new GuestBooking();
+        $gb = new GuestBooking;
         $relation = $gb->lot();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 
     public function test_slot_relation_defined(): void
     {
-        $gb = new GuestBooking();
+        $gb = new GuestBooking;
         $relation = $gb->slot();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 
     public function test_creator_relation_defined(): void
     {
-        $gb = new GuestBooking();
+        $gb = new GuestBooking;
         $relation = $gb->creator();
-        $this->assertInstanceOf(\Illuminate\Database\Eloquent\Relations\BelongsTo::class, $relation);
+        $this->assertInstanceOf(BelongsTo::class, $relation);
     }
 }
