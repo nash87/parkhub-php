@@ -259,7 +259,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::delete('/announcements/{id}', [AdminAnnouncementController::class, 'deleteAnnouncement']);
 
         Route::get('/updates/check', function () {
-            return response()->json(['update_available' => false, 'current_version' => '1.3.0-php']);
+            return response()->json(['update_available' => false, 'current_version' => config('app.version', '1.0.0')]);
         });
 
         // Credits management
@@ -309,7 +309,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::delete('/webhooks/{id}', [MiscController::class, 'deleteWebhook']);
     Route::post('/webhooks/{id}/test', [MiscController::class, 'testWebhook']);
     Route::get('/update/check', function () {
-        return response()->json(['update_available' => false, 'current_version' => '1.3.0']);
+        return response()->json(['update_available' => false, 'current_version' => config('app.version', '1.0.0')]);
     });
 
     // Translation management (overrides is public — see above)
@@ -324,7 +324,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 
 // Health (no auth)
 Route::get('/health', function () {
-    return response()->json(['status' => 'ok', 'version' => '1.3.0']);
+    return response()->json(['status' => 'ok', 'version' => config('app.version', '1.0.0')]);
 });
 Route::get('/health/live', [HealthController::class, 'live']);
 Route::get('/health/ready', [HealthController::class, 'ready']);

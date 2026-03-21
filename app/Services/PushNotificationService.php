@@ -24,7 +24,7 @@ class PushNotificationService
 
         $auth = [
             'VAPID' => [
-                'subject' => 'mailto:admin@parkhub.test',
+                'subject' => env('VAPID_SUBJECT', 'mailto:admin@'.parse_url(config('app.url'), PHP_URL_HOST)),
                 'publicKey' => $publicKey,
                 'privateKey' => $privateKey,
             ],

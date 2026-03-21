@@ -46,7 +46,11 @@ class MetricsController extends Controller
 
         foreach ($lots as $lot) {
             $total = $lot->total_slots;
-            $occupied = $total - $lot->available_slots;
+            $occupied = \App\Models\Booking::where('lot_id', $lot->id)
+                ->whereIn('status', ['confirmed', 'active'])
+                ->where('start_time', '<=', now())
+                ->where('end_time', '>=', now())
+                ->count();
             $pct = $total > 0 ? round(($occupied / $total) * 100, 1) : 0;
             $name = preg_replace('/[^a-zA-Z0-9_]/', '_', $lot->name);
 

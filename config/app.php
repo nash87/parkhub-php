@@ -136,4 +136,6 @@ return [
 
     'hsts' => (bool) env('APP_HSTS', false),
 
+    'version' => env('APP_VERSION', '1.0.0'),
+
 ];

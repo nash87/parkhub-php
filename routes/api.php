@@ -26,7 +26,7 @@ use Illuminate\Support\Facades\Route;
 
 // Health check (no auth)
 Route::get('/health', function () {
-    return response()->json(['status' => 'ok', 'version' => '1.3.0']);
+    return response()->json(['status' => 'ok', 'version' => config('app.version', '1.0.0')]);
 });
 
 // Public routes (no auth) — rate limited to prevent brute-force and registration spam
