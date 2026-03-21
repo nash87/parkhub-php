@@ -12,11 +12,42 @@ use Illuminate\Support\Facades\Storage;
 
 class VehicleController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/vehicles",
+     *     summary="List user vehicles",
+     *     tags={"Vehicles"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(response=200, description="List of vehicles"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
     public function index(Request $request): AnonymousResourceCollection
     {
         return VehicleResource::collection(Vehicle::where('user_id', $request->user()->id)->get());
     }
 
+    /**
+     * @OA\Post(
+     *     path="/vehicles",
+     *     summary="Add a vehicle",
+     *     tags={"Vehicles"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"plate"},
+     *             @OA\Property(property="plate", type="string", example="B-AB 123"),
+     *             @OA\Property(property="make", type="string", example="VW"),
+     *             @OA\Property(property="model", type="string", example="Golf"),
+     *             @OA\Property(property="color", type="string", example="black"),
+     *             @OA\Property(property="is_default", type="boolean")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Vehicle created"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function store(Request $request)
     {
         $request->validate(['plate' => 'required|string']);
@@ -28,6 +59,17 @@ class VehicleController extends Controller
         return VehicleResource::make($vehicle)->response()->setStatusCode(201);
     }
 
+    /**
+     * @OA\Put(
+     *     path="/vehicles/{id}",
+     *     summary="Update a vehicle",
+     *     tags={"Vehicles"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string", format="uuid")),
+     *     @OA\Response(response=200, description="Vehicle updated"),
+     *     @OA\Response(response=404, description="Not found")
+     * )
+     */
     public function update(Request $request, string $id)
     {
         $vehicle = Vehicle::where('user_id', $request->user()->id)->findOrFail($id);
@@ -36,6 +78,17 @@ class VehicleController extends Controller
         return VehicleResource::make($vehicle);
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/vehicles/{id}",
+     *     summary="Delete a vehicle",
+     *     tags={"Vehicles"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string", format="uuid")),
+     *     @OA\Response(response=200, description="Deleted"),
+     *     @OA\Response(response=404, description="Not found")
+     * )
+     */
     public function destroy(Request $request, string $id): JsonResponse
     {
         $vehicle = Vehicle::where('user_id', $request->user()->id)->findOrFail($id);

@@ -27,6 +27,19 @@ use Illuminate\Support\Str;
 
 class BookingController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/bookings",
+     *     summary="List user bookings",
+     *     tags={"Bookings"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="status", in="query", required=false, @OA\Schema(type="string")),
+     *     @OA\Parameter(name="from_date", in="query", required=false, @OA\Schema(type="string", format="date-time")),
+     *     @OA\Parameter(name="to_date", in="query", required=false, @OA\Schema(type="string", format="date-time")),
+     *     @OA\Response(response=200, description="Success"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
     public function index(Request $request)
     {
         $query = Booking::with(['lot', 'slot'])
@@ -44,6 +57,28 @@ class BookingController extends Controller
         return BookingResource::collection($query->orderBy('start_time', 'desc')->get());
     }
 
+    /**
+     * @OA\Post(
+     *     path="/bookings",
+     *     summary="Create a new booking",
+     *     tags={"Bookings"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"lot_id","start_time"},
+     *             @OA\Property(property="lot_id", type="string", format="uuid"),
+     *             @OA\Property(property="slot_id", type="string", format="uuid"),
+     *             @OA\Property(property="start_time", type="string", format="date-time"),
+     *             @OA\Property(property="end_time", type="string", format="date-time"),
+     *             @OA\Property(property="vehicle_plate", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Booking created"),
+     *     @OA\Response(response=409, description="Slot conflict"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -271,6 +306,18 @@ class BookingController extends Controller
         return BookingResource::make($booking)->response()->setStatusCode(201);
     }
 
+    /**
+     * @OA\Get(
+     *     path="/bookings/{id}",
+     *     summary="Get a booking by ID",
+     *     tags={"Bookings"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string", format="uuid")),
+     *     @OA\Response(response=200, description="Success"),
+     *     @OA\Response(response=403, description="Forbidden"),
+     *     @OA\Response(response=404, description="Not found")
+     * )
+     */
     public function show(Request $request, string $id)
     {
         $booking = Booking::find($id);
@@ -286,6 +333,17 @@ class BookingController extends Controller
         return BookingResource::make($booking);
     }
 
+    /**
+     * @OA\Delete(
+     *     path="/bookings/{id}",
+     *     summary="Cancel a booking",
+     *     tags={"Bookings"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="string", format="uuid")),
+     *     @OA\Response(response=200, description="Booking cancelled"),
+     *     @OA\Response(response=404, description="Not found")
+     * )
+     */
     public function destroy(Request $request, string $id)
     {
         $booking = Booking::where('user_id', $request->user()->id)->findOrFail($id);

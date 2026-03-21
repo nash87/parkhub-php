@@ -11,6 +11,16 @@ use Illuminate\Http\Request;
 
 class AbsenceController extends Controller
 {
+    /**
+     * @OA\Get(
+     *     path="/absences",
+     *     summary="List user absences",
+     *     tags={"Absences"},
+     *     security={{"sanctum": {}}},
+     *     @OA\Response(response=200, description="List of absences"),
+     *     @OA\Response(response=401, description="Unauthenticated")
+     * )
+     */
     public function index(Request $request): JsonResponse
     {
         $absences = Absence::where('user_id', $request->user()->id)
@@ -21,6 +31,26 @@ class AbsenceController extends Controller
         return response()->json($absences);
     }
 
+    /**
+     * @OA\Post(
+     *     path="/absences",
+     *     summary="Create an absence",
+     *     tags={"Absences"},
+     *     security={{"sanctum": {}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"absence_type","start_date","end_date"},
+     *             @OA\Property(property="absence_type", type="string", enum={"homeoffice","vacation","sick","training","other"}),
+     *             @OA\Property(property="start_date", type="string", format="date", example="2025-06-01"),
+     *             @OA\Property(property="end_date", type="string", format="date", example="2025-06-05"),
+     *             @OA\Property(property="note", type="string")
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Absence created"),
+     *     @OA\Response(response=422, description="Validation error")
+     * )
+     */
     public function store(Request $request): JsonResponse
     {
         // Accept both 'type' (Rust API parity) and 'absence_type'
