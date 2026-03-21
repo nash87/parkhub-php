@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "laravel/framework": "^12.54",
+        "laravel/reverb": "^1.5",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^2.10.1",
         "minishlink/web-push": "^10.0"

@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Events\BookingCancelledEvent;
+use App\Events\BookingCreatedEvent;
+use App\Events\OccupancyChangedEvent;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\BookingResource;
 use App\Http\Resources\GuestBookingResource;
@@ -268,6 +271,13 @@ class BookingController extends Controller
             }
         }
 
+        // Broadcast real-time WebSocket events
+        event(new BookingCreatedEvent($booking));
+        $createdLot = ParkingLot::find($booking->lot_id);
+        if ($createdLot) {
+            event(new OccupancyChangedEvent($createdLot));
+        }
+
         return BookingResource::make($booking)->response()->setStatusCode(201);
     }
 
@@ -324,6 +334,13 @@ class BookingController extends Controller
                     'booking_id' => $booking->id,
                 ]);
             }
+        }
+
+        // Broadcast real-time WebSocket events
+        event(new BookingCancelledEvent($booking));
+        $cancelledLot = ParkingLot::find($booking->lot_id);
+        if ($cancelledLot) {
+            event(new OccupancyChangedEvent($cancelledLot));
         }
 
         return response()->json(['message' => 'Booking cancelled']);

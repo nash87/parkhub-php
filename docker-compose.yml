@@ -127,6 +127,50 @@ services:
         reservations:
           memory: 64M
 
+  reverb:
+    build: .
+    restart: unless-stopped
+    command: php artisan reverb:start --host=0.0.0.0 --port=8081
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - APP_NAME=ParkHub
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8080
+      - DB_CONNECTION=mysql
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=parkhub
+      - DB_USERNAME=parkhub
+      - SESSION_DRIVER=file
+      - CACHE_STORE=file
+      - QUEUE_CONNECTION=database
+      - BROADCAST_CONNECTION=reverb
+      - REVERB_APP_ID=parkhub
+      - REVERB_HOST=0.0.0.0
+      - REVERB_PORT=8081
+      - REVERB_SCHEME=http
+    ports:
+      - "8081:8081"
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - parkhub-internal
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
+
   scheduler:
     build: .
     restart: unless-stopped
