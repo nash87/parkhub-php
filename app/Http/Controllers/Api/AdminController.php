@@ -17,18 +17,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
+/**
+ * Admin routes are protected by the 'admin' middleware at the route level.
+ * No per-method requireAdmin() checks needed.
+ */
 class AdminController extends Controller
 {
-    private function requireAdmin($request): void
-    {
-        if (! $request->user() || ! $request->user()->isAdmin()) {
-            abort(403, 'Admin access required');
-        }
-    }
-
     public function users(Request $request): JsonResponse
     {
-        $this->requireAdmin($request);
         $perPage = min((int) request('per_page', 20), 100);
         $users = User::paginate($perPage);
 
@@ -47,7 +43,6 @@ class AdminController extends Controller
 
     public function updateUser(Request $request, string $id)
     {
-        $this->requireAdmin($request);
         $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|max:255|unique:users,email,'.$id,
@@ -74,7 +69,6 @@ class AdminController extends Controller
 
     public function deleteUser(Request $request, string $id): JsonResponse
     {
-        $this->requireAdmin($request);
         if ($id === $request->user()->id) {
             return response()->json(['error' => 'Cannot delete your own account'], 400);
         }
@@ -85,8 +79,6 @@ class AdminController extends Controller
 
     public function importUsers(Request $request): JsonResponse
     {
-        $this->requireAdmin($request);
-
         $request->validate([
             'users' => 'required|array|max:500',
             'users.*.username' => 'required|string|min:3|max:50|alpha_dash',
@@ -122,8 +114,6 @@ class AdminController extends Controller
 
     public function bookings(Request $request): JsonResponse
     {
-        $this->requireAdmin($request);
-
         $query = Booking::with('user')->orderBy('start_time', 'desc');
 
         if ($request->has('status') && $request->status !== 'all') {
@@ -146,8 +136,6 @@ class AdminController extends Controller
 
     public function cancelBooking(Request $request, string $id)
     {
-        $this->requireAdmin($request);
-
         $booking = Booking::findOrFail($id);
         $booking->update(['status' => Booking::STATUS_CANCELLED]);
 
@@ -165,8 +153,6 @@ class AdminController extends Controller
 
     public function guestBookings(Request $request): JsonResponse
     {
-        $this->requireAdmin($request);
-
         $query = GuestBooking::with(['lot', 'slot', 'creator'])
             ->orderBy('start_time', 'desc');
 
@@ -217,8 +203,6 @@ class AdminController extends Controller
 
     public function cancelGuestBooking(Request $request, string $id): JsonResponse
     {
-        $this->requireAdmin($request);
-
         $guest = GuestBooking::findOrFail($id);
         $guest->update(['status' => 'cancelled']);
 
@@ -246,8 +230,6 @@ class AdminController extends Controller
 
     public function auditLog(Request $request): JsonResponse
     {
-        $this->requireAdmin($request);
-
         $query = AuditLog::orderBy('created_at', 'desc');
 
         if ($request->has('action')) {
@@ -266,7 +248,6 @@ class AdminController extends Controller
 
     public function updateSlot(Request $request, string $id)
     {
-        $this->requireAdmin($request);
         $slot = ParkingSlot::findOrFail($id);
         $slot->update($request->only(['slot_number', 'status', 'reserved_for_department', 'zone_id']));
 
@@ -275,7 +256,6 @@ class AdminController extends Controller
 
     public function deleteLot(Request $request, string $id): JsonResponse
     {
-        $this->requireAdmin($request);
         $lot = ParkingLot::findOrFail($id);
         $lot->delete();
 
