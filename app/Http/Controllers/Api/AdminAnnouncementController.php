@@ -6,26 +6,30 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 
+/**
+ * Admin announcement routes are protected by the 'admin' middleware at the route level.
+ * The activeAnnouncements method is accessible to all authenticated users.
+ */
 class AdminAnnouncementController extends Controller
 {
-    private function requireAdmin($request): void
+    /**
+     * Active announcements for authenticated users (non-expired only).
+     */
+    public function activeAnnouncements()
     {
-        if (! $request->user() || ! $request->user()->isAdmin()) {
-            abort(403, 'Admin access required');
-        }
+        return response()->json(Announcement::where('active', true)
+            ->where(function ($q) {
+                $q->whereNull('expires_at')->orWhere('expires_at', '>', now());
+            })->orderBy('created_at', 'desc')->get());
     }
 
     public function announcements(Request $request)
     {
-        $this->requireAdmin($request);
-
         return response()->json(Announcement::orderBy('created_at', 'desc')->get());
     }
 
     public function createAnnouncement(Request $request)
     {
-        $this->requireAdmin($request);
-
         $request->validate([
             'title' => 'required|string|max:255',
             'message' => 'required|string|max:10000',
@@ -42,7 +46,6 @@ class AdminAnnouncementController extends Controller
 
     public function updateAnnouncement(Request $request, string $id)
     {
-        $this->requireAdmin($request);
         $request->validate([
             'title' => 'sometimes|string|max:255',
             'message' => 'sometimes|string',
@@ -58,7 +61,6 @@ class AdminAnnouncementController extends Controller
 
     public function deleteAnnouncement(Request $request, string $id)
     {
-        $this->requireAdmin($request);
         Announcement::findOrFail($id)->delete();
 
         return response()->json(['message' => 'Deleted']);

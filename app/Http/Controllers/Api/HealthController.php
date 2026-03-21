@@ -7,6 +7,11 @@ use Illuminate\Support\Facades\DB;
 
 class HealthController extends Controller
 {
+    public function index()
+    {
+        return response()->json(['status' => 'ok', 'version' => config('app.version', '1.0.0')]);
+    }
+
     public function live()
     {
         return response()->json(['status' => 'ok']);

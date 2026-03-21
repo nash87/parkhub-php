@@ -12,6 +12,18 @@ use Illuminate\Support\Facades\Http;
 
 class MiscController extends Controller
 {
+    // Legal
+
+    public function legalPrivacy()
+    {
+        return response()->json(['type' => 'privacy', 'url' => '/datenschutz']);
+    }
+
+    public function legalImpressum()
+    {
+        return response()->json(['type' => 'impressum', 'url' => '/impressum']);
+    }
+
     // Push
     public function pushSubscribe(Request $request)
     {
