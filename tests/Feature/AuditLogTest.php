@@ -54,7 +54,7 @@ class AuditLogTest extends TestCase
 
     public function test_audit_log_table_name_is_correct(): void
     {
-        $log = new AuditLog();
+        $log = new AuditLog;
         $this->assertEquals('audit_log', $log->getTable());
     }
 }

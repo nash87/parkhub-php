@@ -137,7 +137,7 @@ class JobsTest extends TestCase
             'checked_in_at' => null,
         ]);
 
-        $job = new AutoReleaseBookingsJob();
+        $job = new AutoReleaseBookingsJob;
         $job->handle();
 
         // Booking should still be confirmed
@@ -163,7 +163,7 @@ class JobsTest extends TestCase
             'checked_in_at' => null,
         ]);
 
-        $job = new AutoReleaseBookingsJob();
+        $job = new AutoReleaseBookingsJob;
         $job->handle();
 
         $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'cancelled']);
