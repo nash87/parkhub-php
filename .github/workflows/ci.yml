@@ -80,6 +80,39 @@ jobs:
       - name: Run Laravel Pint
         run: ./vendor/bin/pint --test
 
+  analyse:
+    name: Static Analysis (PHPStan)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, xml, bcmath, sqlite3, pdo_sqlite, gd, zip, curl
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-phpstan-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-phpstan-composer-
+
+      - name: Copy .env
+        run: cp .env.example .env
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHPStan
+        run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
+
   frontend:
     name: Frontend Build & Test
     runs-on: ubuntu-latest
@@ -113,7 +146,7 @@ jobs:
   ci:
     name: CI
     if: always()
-    needs: [test, lint, frontend]
+    needs: [test, lint, analyse, frontend]
     runs-on: ubuntu-latest
     steps:
       - name: Check results
@@ -124,6 +157,10 @@ jobs:
           fi
           if [[ "${{ needs.lint.result }}" != "success" ]]; then
             echo "lint failed: ${{ needs.lint.result }}"
+            exit 1
+          fi
+          if [[ "${{ needs.analyse.result }}" != "success" ]]; then
+            echo "static analysis failed: ${{ needs.analyse.result }}"
             exit 1
           fi
           if [[ "${{ needs.frontend.result }}" != "success" ]]; then
