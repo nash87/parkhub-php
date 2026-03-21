@@ -36,3 +36,6 @@ build-shared/
 resources/js/src.bak/
 /public/assets/
 .gstack/
+
+# Claude Code
+/.claude/
