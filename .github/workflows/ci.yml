@@ -183,18 +183,7 @@ jobs:
       - name: Install dependencies (including dev)
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Check if PHPStan is installed
-        id: phpstan_check
-        run: |
-          if [ -f vendor/bin/phpstan ]; then
-            echo "installed=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "installed=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::PHPStan not found — add larastan/larastan to require-dev to enable static analysis"
-          fi
-
       - name: Run PHPStan
-        if: steps.phpstan_check.outputs.installed == 'true'
         run: ./vendor/bin/phpstan analyse --no-progress --memory-limit=512M
 
   frontend:
@@ -251,8 +240,8 @@ jobs:
             echo "dependency audit failed: ${{ needs.audit.result }}"
             exit 1
           fi
-          # analyse and coverage are informational — warn but don't block
-          if [[ "${{ needs.analyse.result }}" == "failure" ]]; then
-            echo "::warning::PHPStan analysis failed — consider fixing static analysis errors"
+          if [[ "${{ needs.analyse.result }}" != "success" ]]; then
+            echo "static analysis failed: ${{ needs.analyse.result }}"
+            exit 1
           fi
           echo "All required checks passed"
