@@ -136,4 +136,17 @@ return [
 
     'hsts' => (bool) env('APP_HSTS', false),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Metrics Scrape Token
+    |--------------------------------------------------------------------------
+    |
+    | Optional static bearer token for Prometheus to scrape /api/metrics.
+    | If unset, only authenticated admin users may access the endpoint.
+    | Set METRICS_TOKEN in .env and configure Prometheus accordingly.
+    |
+    */
+
+    'metrics_token' => env('METRICS_TOKEN'),
+
 ];

@@ -84,8 +84,9 @@ class SecurityHeaders
             "default-src 'self'",
             // Scripts: self only (no inline — the SPA is bundled)
             "script-src 'self'",
-            // Styles: self + inline (Vite injects critical CSS)
-            "style-src 'self' 'unsafe-inline'",
+            // Styles: self only — Vite bundles CSS into JS; 'unsafe-inline' removed (issue #58).
+            // In local dev, Vite HMR injects style tags, so we allow it only then.
+            "style-src 'self'".($this->isDev() ? " 'unsafe-inline'" : ''),
             // Images: self, data URIs (base64 avatars), and HTTPS sources
             "img-src 'self' data: https:",
             // Fonts: self + Bunny Fonts CDN

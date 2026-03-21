@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AbsenceController;
+use App\Http\Middleware\MetricsAuth;
 use App\Http\Controllers\Api\AdminAnnouncementController;
 use App\Http\Controllers\Api\AdminController;
 use App\Http\Controllers\Api\AdminCreditController;
@@ -46,8 +47,8 @@ Route::post('/setup/init', [SetupController::class, 'init']);
 Route::get('/public/occupancy', [PublicController::class, 'occupancy']);
 Route::get('/public/display', [PublicController::class, 'display']);
 
-// Prometheus metrics (no auth — scraped by monitoring)
-Route::get('/metrics', [MetricsController::class, 'index']);
+// Prometheus metrics — requires METRICS_TOKEN bearer auth or admin session
+Route::middleware(MetricsAuth::class)->get('/metrics', [MetricsController::class, 'index']);
 
 // Public legal routes
 Route::get('/legal/privacy', function () {
