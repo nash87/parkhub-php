@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreVehicleRequest;
+use App\Http\Requests\UpdateVehicleRequest;
 use App\Http\Resources\VehicleResource;
 use App\Models\Vehicle;
 use Illuminate\Http\JsonResponse;
@@ -17,15 +19,8 @@ class VehicleController extends Controller
         return VehicleResource::collection(Vehicle::where('user_id', $request->user()->id)->get());
     }
 
-    public function store(Request $request)
+    public function store(StoreVehicleRequest $request)
     {
-        $request->validate([
-            'plate'      => 'required|string|max:20',
-            'make'       => 'nullable|string|max:100',
-            'model'      => 'nullable|string|max:100',
-            'color'      => 'nullable|string|max:50',
-            'is_default' => 'nullable|boolean',
-        ]);
         $vehicle = Vehicle::create(array_merge(
             $request->only(['plate', 'make', 'model', 'color', 'is_default']),
             ['user_id' => $request->user()->id]
@@ -34,15 +29,8 @@ class VehicleController extends Controller
         return VehicleResource::make($vehicle)->response()->setStatusCode(201);
     }
 
-    public function update(Request $request, string $id)
+    public function update(UpdateVehicleRequest $request, string $id)
     {
-        $request->validate([
-            'plate'      => 'sometimes|required|string|max:20',
-            'make'       => 'nullable|string|max:100',
-            'model'      => 'nullable|string|max:100',
-            'color'      => 'nullable|string|max:50',
-            'is_default' => 'nullable|boolean',
-        ]);
         $vehicle = Vehicle::where('user_id', $request->user()->id)->findOrFail($id);
         $vehicle->update($request->only(['plate', 'make', 'model', 'color', 'is_default']));
 

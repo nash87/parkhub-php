@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreAbsenceRequest;
+use App\Http\Requests\UpdateAbsenceRequest;
 use App\Models\Absence;
 use App\Models\Setting;
 use Carbon\Carbon;
@@ -21,19 +23,8 @@ class AbsenceController extends Controller
         return response()->json($absences);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreAbsenceRequest $request): JsonResponse
     {
-        // Accept both 'type' (Rust API parity) and 'absence_type'
-        $request->merge([
-            'absence_type' => $request->input('absence_type', $request->input('type')),
-        ]);
-
-        $request->validate([
-            'absence_type' => 'required|in:homeoffice,vacation,sick,training,other',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
-        ]);
-
         $absence = Absence::create(array_merge(
             $request->only(['absence_type', 'start_date', 'end_date', 'note']),
             ['user_id' => $request->user()->id, 'source' => $request->input('source', 'manual')]
@@ -45,14 +36,9 @@ class AbsenceController extends Controller
         );
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(UpdateAbsenceRequest $request, string $id): JsonResponse
     {
         $absence = Absence::where('user_id', $request->user()->id)->findOrFail($id);
-
-        $request->merge([
-            'absence_type' => $request->input('absence_type', $request->input('type')),
-        ]);
-
         $absence->update($request->only(['absence_type', 'start_date', 'end_date', 'note']));
 
         return response()->json(array_merge($absence->toArray(), ['type' => $absence->absence_type]));

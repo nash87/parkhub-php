@@ -31,12 +31,6 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\VehicleController;
 use App\Http\Controllers\Api\WaitlistController;
 use App\Http\Controllers\Api\ZoneController;
-use App\Models\Absence;
-use App\Models\Announcement;
-use App\Models\Setting;
-use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 // Auth — rate limited: 5 attempts per minute per IP to prevent brute force
@@ -49,41 +43,8 @@ Route::middleware('throttle:auth')->group(function () {
 Route::get('/setup/status', [SetupController::class, 'status']);
 Route::post('/setup', [SetupController::class, 'init']);
 Route::middleware('throttle:setup')->group(function () {
-    Route::post('/setup/change-password', function (Request $request) {
-        // Guard: reject if setup is already completed
-        if (Setting::get('setup_completed') === 'true') {
-            return response()->json(['success' => false, 'error' => ['code' => 'SETUP_COMPLETED', 'message' => 'Setup has already been completed']], 403);
-        }
-        $request->validate(['current_password' => 'required', 'new_password' => 'required|min:8']);
-        $admin = User::where('role', 'admin')->first();
-        if (! $admin || ! Hash::check($request->current_password, $admin->password)) {
-            return response()->json(['success' => false, 'error' => ['code' => 'INVALID_PASSWORD', 'message' => 'Current password is incorrect']], 401);
-        }
-        $admin->password = Hash::make($request->new_password);
-        $admin->save();
-        Setting::set('needs_password_change', 'false');
-        $token = $admin->createToken('auth-token');
-
-        return response()->json(['success' => true, 'data' => [
-            'user' => $admin,
-            'tokens' => ['access_token' => $token->plainTextToken, 'token_type' => 'Bearer', 'expires_at' => now()->addDays(7)->toISOString()],
-        ]]);
-    });
-    Route::post('/setup/complete', function (Request $request) {
-        // Guard: reject if setup is already completed
-        if (Setting::get('setup_completed') === 'true') {
-            return response()->json(['success' => false, 'error' => ['code' => 'SETUP_COMPLETED', 'message' => 'Setup has already been completed']], 403);
-        }
-        Setting::set('setup_completed', 'true');
-        if ($request->company_name) {
-            Setting::set('company_name', $request->company_name);
-        }
-        if ($request->use_case) {
-            Setting::set('use_case', $request->use_case);
-        }
-
-        return response()->json(['success' => true, 'data' => ['message' => 'Setup completed']]);
-    });
+    Route::post('/setup/change-password', [SetupController::class, 'changePassword']);
+    Route::post('/setup/complete', [SetupController::class, 'complete']);
 });
 
 // Public
@@ -92,38 +53,13 @@ Route::get('/public/display', [PublicController::class, 'display']);
 Route::get('/theme', [AdminSettingsController::class, 'getPublicTheme']);
 
 // VAPID public key for push subscriptions
-Route::get('/push/vapid-key', function () {
-    return response()->json(['publicKey' => Setting::get('vapid_public_key', '')]);
-});
+Route::get('/push/vapid-key', [PublicController::class, 'vapidKey']);
 
 // Branding
-Route::get('/branding', function () {
-    $s = Setting::pluck('value', 'key')->toArray();
-
-    return response()->json([
-        'company_name' => $s['company_name'] ?? 'ParkHub',
-        'primary_color' => $s['primary_color'] ?? '#d97706',
-        'secondary_color' => $s['secondary_color'] ?? '#475569',
-        'logo_url' => $s['logo_url'] ?? null,
-        'favicon_url' => null,
-        'login_background_color' => '#0f172a',
-        'custom_css' => null,
-    ]);
-});
+Route::get('/branding', [PublicController::class, 'branding']);
 
 // Announcements (public)
-Route::get('/announcements/active', function () {
-    $announcements = Announcement::where('active', true)
-        ->orderBy('created_at', 'desc')
-        ->get();
-
-    return response()->json([
-        'success' => true,
-        'data' => $announcements,
-        'error' => null,
-        'meta' => null,
-    ]);
-});
+Route::get('/announcements/active', [PublicController::class, 'activeAnnouncements']);
 
 // Demo mode (public, no auth — by design for public demo)
 Route::prefix('demo')->group(function () {
@@ -149,9 +85,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::get('/users/me/export', [UserController::class, 'export']);
 
     // Feature flags — stub for frontend compatibility
-    Route::get('/features', function () {
-        return response()->json(['success' => true, 'data' => ['enabled' => ['micro_animations', 'credits']], 'error' => null, 'meta' => null]);
-    });
+    Route::get('/features', [PublicController::class, 'features']);
     Route::delete('/users/me/delete', [AuthController::class, 'deleteAccount']);
 
     // Lots
@@ -192,19 +126,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::delete('/recurring-bookings/{id}', [RecurringBookingController::class, 'destroy']);
 
     // Absences (maps homeoffice + vacation to unified absences)
-    Route::get('/homeoffice', function (Request $request) {
-        $user = $request->user();
-
-        // Return HomeofficeSettings format expected by Rust frontend
-        return response()->json([
-            'pattern' => ['weekdays' => []],
-            'single_days' => Absence::where('user_id', $user->id)
-                ->where('absence_type', 'homeoffice')
-                ->get()
-                ->map(fn ($a) => ['id' => $a->id, 'date' => $a->start_date, 'reason' => $a->note]),
-            'parkingSlot' => null,
-        ]);
-    });
+    Route::get('/homeoffice', [PublicController::class, 'homeoffice']);
     Route::post('/homeoffice/days', [AbsenceController::class, 'store']);
     Route::delete('/homeoffice/days/{id}', [AbsenceController::class, 'destroy']);
     Route::put('/homeoffice/pattern', [AbsenceController::class, 'update']);
@@ -258,9 +180,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::put('/announcements/{id}', [AdminAnnouncementController::class, 'updateAnnouncement']);
         Route::delete('/announcements/{id}', [AdminAnnouncementController::class, 'deleteAnnouncement']);
 
-        Route::get('/updates/check', function () {
-            return response()->json(['update_available' => false, 'current_version' => '1.3.0-php']);
-        });
+        Route::get('/updates/check', [AdminController::class, 'updatesCheck']);
 
         // Credits management
         Route::put('/users/{id}/quota', [AdminCreditController::class, 'updateUserQuota']);
@@ -269,17 +189,8 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
         Route::post('/credits/refill-all', [AdminCreditController::class, 'refillAllCredits']);
 
         // Feature flags — stub for frontend compatibility
-        Route::get('/features', function () {
-            $available = [
-                ['id' => 'micro_animations', 'name' => 'Micro Animations', 'description' => 'Subtle hover/tap animations'],
-                ['id' => 'credits', 'name' => 'Credits System', 'description' => 'Credit-based booking'],
-            ];
-
-            return response()->json(['success' => true, 'data' => ['enabled' => ['micro_animations', 'credits'], 'available' => $available], 'error' => null, 'meta' => null]);
-        });
-        Route::put('/features', function (Request $request) {
-            return response()->json(['success' => true, 'data' => ['enabled' => $request->input('enabled', [])], 'error' => null, 'meta' => null]);
-        });
+        Route::get('/features', [AdminController::class, 'features']);
+        Route::put('/features', [AdminController::class, 'updateFeatures']);
 
         // System pulse / monitoring
         Route::get('/pulse', [PulseController::class, 'index']);
@@ -308,9 +219,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::put('/webhooks/{id}', [MiscController::class, 'updateWebhook']);
     Route::delete('/webhooks/{id}', [MiscController::class, 'deleteWebhook']);
     Route::post('/webhooks/{id}/test', [MiscController::class, 'testWebhook']);
-    Route::get('/update/check', function () {
-        return response()->json(['update_available' => false, 'current_version' => '1.3.0']);
-    });
+    Route::get('/update/check', [PublicController::class, 'updateCheck']);
 
     // Translation management (overrides is public — see above)
     Route::get('/translations/proposals', [TranslationController::class, 'proposals']);
@@ -323,9 +232,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
 // ── New feature-parity routes ──────────────────────────────────────────────
 
 // Health (no auth)
-Route::get('/health', function () {
-    return response()->json(['status' => 'ok', 'version' => '1.3.0']);
-});
+Route::get('/health', [PublicController::class, 'health']);
 Route::get('/health/live', [HealthController::class, 'live']);
 Route::get('/health/ready', [HealthController::class, 'ready']);
 

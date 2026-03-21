@@ -287,4 +287,24 @@ class AdminController extends Controller
 
         return response()->json(['message' => 'Lot deleted']);
     }
+
+    public function updatesCheck(): JsonResponse
+    {
+        return response()->json(['update_available' => false, 'current_version' => '1.3.0-php']);
+    }
+
+    public function features(): JsonResponse
+    {
+        $available = [
+            ['id' => 'micro_animations', 'name' => 'Micro Animations', 'description' => 'Subtle hover/tap animations'],
+            ['id' => 'credits', 'name' => 'Credits System', 'description' => 'Credit-based booking'],
+        ];
+
+        return response()->json(['success' => true, 'data' => ['enabled' => ['micro_animations', 'credits'], 'available' => $available], 'error' => null, 'meta' => null]);
+    }
+
+    public function updateFeatures(Request $request): JsonResponse
+    {
+        return response()->json(['success' => true, 'data' => ['enabled' => $request->input('enabled', [])], 'error' => null, 'meta' => null]);
+    }
 }
