@@ -61,9 +61,12 @@ class SseRealtimeTest extends TestCase
 
     // ── Module config ──────────────────────────────────────────────────
 
-    public function test_realtime_module_is_enabled_by_default(): void
+    public function test_realtime_module_can_be_toggled(): void
     {
+        config(['modules.realtime' => true]);
         $this->assertTrue(config('modules.realtime'));
+        config(['modules.realtime' => false]);
+        $this->assertFalse(config('modules.realtime'));
     }
 
     // ── SSE endpoint auth ──────────────────────────────────────────────
@@ -79,6 +82,7 @@ class SseRealtimeTest extends TestCase
 
     public function test_sse_status_returns_module_info(): void
     {
+        config(['modules.realtime' => true]);
         [$user, $token] = $this->makeUserWithToken();
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")

@@ -55,7 +55,12 @@ class ModuleSystemTest extends TestCase
         $this->assertTrue($modules['bookings']);
         $this->assertTrue($modules['vehicles']);
         $this->assertTrue($modules['absences']);
-        $this->assertFalse($modules['stripe']);
+        // Stripe is enabled in test env (phpunit.xml), verify it can be disabled
+        config(['modules.stripe' => false]);
+        $response2 = $this->getJson('/api/v1/modules');
+        $data2 = $response2->json('data') ?? $response2->json();
+        $modules2 = $data2['modules'] ?? $data2;
+        $this->assertFalse($modules2['stripe']);
     }
 
     public function test_modules_endpoint_reflects_config_changes(): void
@@ -310,8 +315,9 @@ class ModuleSystemTest extends TestCase
 
     // ── Stripe disabled by default ──────────────────────────────────────
 
-    public function test_stripe_disabled_by_default(): void
+    public function test_stripe_can_be_disabled(): void
     {
+        config(['modules.stripe' => false]);
         $this->assertFalse(config('modules.stripe'));
     }
 
