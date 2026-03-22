@@ -55,6 +55,7 @@ Route::get('/legal/impressum', [PublicController::class, 'legalImpressum']);
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/refresh', [AuthController::class, 'refresh']);
     Route::get('/me', [AuthController::class, 'me']);
     Route::put('/me', [AuthController::class, 'updateMe']);

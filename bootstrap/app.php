@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\ApiResponseWrapper;
+use App\Http\Middleware\AuthenticateFromCookie;
 use App\Http\Middleware\CheckModule;
 use App\Http\Middleware\ForceJsonResponse;
 use App\Http\Middleware\RequireAdmin;
@@ -30,11 +31,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // Security headers on every response (web + API)
         $middleware->append(SecurityHeaders::class);
 
+        // Exclude parkhub_token from encryption so our AuthenticateFromCookie
+        // middleware can read the raw Sanctum token value from the cookie.
+        $middleware->encryptCookies(except: ['parkhub_token']);
+
         $middleware->validateCsrfTokens(except: [
             'api/*',
         ]);
         $middleware->api(prepend: [
             ForceJsonResponse::class,
+            AuthenticateFromCookie::class,
             ApiResponseWrapper::class,
         ]);
 

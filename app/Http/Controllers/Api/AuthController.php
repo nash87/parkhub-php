@@ -19,9 +19,46 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Cookie;
 
 class AuthController extends Controller
 {
+    /**
+     * Build an httpOnly cookie containing the Sanctum token.
+     */
+    private function authCookie(string $token): Cookie
+    {
+        $secure = app()->environment('production');
+
+        return new Cookie(
+            name: 'parkhub_token',
+            value: $token,
+            expire: now()->addDays(7),
+            path: '/',
+            secure: $secure,
+            httpOnly: true,
+            sameSite: 'lax',
+        );
+    }
+
+    /**
+     * Build a cookie that clears the auth cookie.
+     */
+    private function forgetAuthCookie(): Cookie
+    {
+        $secure = app()->environment('production');
+
+        return new Cookie(
+            name: 'parkhub_token',
+            value: '',
+            expire: now()->subMinute(),
+            path: '/',
+            secure: $secure,
+            httpOnly: true,
+            sameSite: 'lax',
+        );
+    }
+
     public function login(LoginRequest $request): JsonResponse
     {
 
@@ -86,7 +123,7 @@ class AuthController extends Controller
                 'token_type' => 'Bearer',
                 'expires_at' => now()->addDays(7)->toISOString(),
             ],
-        ]);
+        ])->withCookie($this->authCookie($token->plainTextToken));
     }
 
     public function register(RegisterRequest $request): JsonResponse
@@ -127,7 +164,7 @@ class AuthController extends Controller
                 'token_type' => 'Bearer',
                 'expires_at' => now()->addDays(7)->toISOString(),
             ],
-        ], 201);
+        ], 201)->withCookie($this->authCookie($token->plainTextToken));
     }
 
     public function refresh(Request $request): JsonResponse
@@ -142,7 +179,35 @@ class AuthController extends Controller
                 'token_type' => 'Bearer',
                 'expires_at' => now()->addDays(7)->toISOString(),
             ],
-        ]);
+        ])->withCookie($this->authCookie($token->plainTextToken));
+    }
+
+    /**
+     * Logout — revoke current token, clear httpOnly cookie.
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user) {
+            // Revoke the token that was used for this request.
+            // currentAccessToken() returns the PersonalAccessToken model
+            // when authenticated via Sanctum Bearer token.
+            $token = $user->currentAccessToken();
+            if ($token && method_exists($token, 'delete')) {
+                $token->delete();
+            }
+
+            AuditLog::log([
+                'user_id' => $user->id,
+                'username' => $user->username,
+                'action' => 'logout',
+                'ip_address' => $request->ip(),
+            ]);
+        }
+
+        return response()->json(['message' => 'Logged out'])
+            ->withCookie($this->forgetAuthCookie());
     }
 
     public function me(Request $request): JsonResponse
@@ -343,6 +408,6 @@ class AuthController extends Controller
                 'token_type' => 'Bearer',
                 'expires_at' => now()->addDays(7)->toISOString(),
             ],
-        ]);
+        ])->withCookie($this->authCookie($token->plainTextToken));
     }
 }

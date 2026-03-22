@@ -83,6 +83,7 @@ Route::get('/discover', [PublicController::class, 'discover']);
 
 Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     // Auth (protected)
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);
     Route::patch('/users/me/password', [AuthController::class, 'changePassword']);
 
