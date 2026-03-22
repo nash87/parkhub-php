@@ -32,5 +32,15 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <!-- Enable all modules for testing (some default to false in production) -->
+        <env name="MODULE_STRIPE" value="true"/>
+        <env name="MODULE_OAUTH" value="true"/>
+        <env name="MODULE_WEB_PUSH" value="true"/>
+        <env name="MODULE_WEBHOOKS" value="true"/>
+        <env name="MODULE_PUSH_NOTIFICATIONS" value="true"/>
+        <env name="MODULE_BROADCASTING" value="true"/>
+        <env name="MODULE_REALTIME" value="true"/>
+        <env name="MODULE_MULTI_TENANT" value="true"/>
+        <env name="MODULE_DYNAMIC_PRICING" value="true"/>
     </php>
 </phpunit>
