@@ -28,7 +28,7 @@ RUN composer dump-autoload --optimize --no-dev
 # Stage 3: Runtime — PHP + Apache
 # Pin to bookworm (Debian 12) for reproducible OS packages
 # ---------------------------------------------------------------------------
-FROM docker.io/library/php:8.4-apache-bookworm AS runtime
+FROM docker.io/library/php:8.5-apache-bookworm AS runtime
 
 # Install PHP extensions in a single layer
 RUN apt-get update && apt-get install -y --no-install-recommends \
