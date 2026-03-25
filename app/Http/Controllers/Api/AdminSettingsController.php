@@ -22,6 +22,19 @@ class AdminSettingsController extends Controller
 {
     use ValidatesExternalUrls;
 
+    /**
+     * Allowlist of setting keys that may be written through the public API.
+     * Shared by updateSettings and importBackup to prevent drift.
+     */
+    private const ALLOWED_SETTING_KEYS = [
+        'company_name', 'use_case', 'self_registration', 'license_plate_mode',
+        'display_name_format', 'max_bookings_per_day', 'allow_guest_bookings',
+        'auto_release_minutes', 'require_vehicle', 'waitlist_enabled',
+        'min_booking_duration_hours', 'max_booking_duration_hours',
+        'credits_enabled', 'credits_per_booking',
+        'primary_color', 'secondary_color',
+    ];
+
     public function getSettings(Request $request): JsonResponse
     {
 
@@ -53,16 +66,7 @@ class AdminSettingsController extends Controller
 
         // Allowlist of keys that can be set via this endpoint.
         // Prevents injection of arbitrary/internal settings keys.
-        $allowed = [
-            'company_name', 'use_case', 'self_registration', 'license_plate_mode',
-            'display_name_format', 'max_bookings_per_day', 'allow_guest_bookings',
-            'auto_release_minutes', 'require_vehicle', 'waitlist_enabled',
-            'min_booking_duration_hours', 'max_booking_duration_hours',
-            'credits_enabled', 'credits_per_booking',
-            'primary_color', 'secondary_color',
-        ];
-
-        foreach ($request->only($allowed) as $key => $value) {
+        foreach ($request->only(self::ALLOWED_SETTING_KEYS) as $key => $value) {
             // Normalize booleans to 'true'/'false' strings for consistent Setting::get() checks
             if (is_bool($value)) {
                 $value = $value ? 'true' : 'false';
@@ -392,9 +396,10 @@ class AdminSettingsController extends Controller
             'settings' => 'required|array',
         ]);
 
+        // Strip any keys not on the allowlist before writing to the settings store.
         $imported = 0;
-        foreach ($request->settings as $key => $value) {
-            Setting::set($key, $value);
+        foreach (array_intersect_key($request->settings, array_flip(self::ALLOWED_SETTING_KEYS)) as $key => $value) {
+            Setting::set($key, is_array($value) ? json_encode($value) : (string) $value);
             $imported++;
         }
 

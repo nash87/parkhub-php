@@ -233,4 +233,73 @@ class SettingsEdgeCaseTest extends TestCase
         $this->assertNull(Setting::get('malicious_key'));
         $this->assertEquals('ValidCo', Setting::get('company_name'));
     }
+
+    public function test_import_backup_strips_unknown_keys(): void
+    {
+        [$admin, $token] = $this->createAdmin();
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/v1/admin/restore', [
+                'settings' => [
+                    'company_name' => 'RestoredCo',
+                    'arbitrary_key' => 'should_be_ignored',
+                    '__proto__' => 'polluted',
+                ],
+            ]);
+
+        $response->assertStatus(200);
+        $this->assertEquals('RestoredCo', Setting::get('company_name'));
+        $this->assertNull(Setting::get('arbitrary_key'));
+        $this->assertNull(Setting::get('__proto__'));
+    }
+
+    public function test_import_backup_count_reflects_only_allowed_keys(): void
+    {
+        [$admin, $token] = $this->createAdmin();
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/v1/admin/restore', [
+                'settings' => [
+                    'company_name' => 'CountCo',
+                    'primary_color' => '#aabbcc',
+                    'unknown_key' => 'ignored',
+                ],
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJson(['data' => ['settings_imported' => 2]]);
+    }
+
+    public function test_import_backup_allowed_keys_are_persisted(): void
+    {
+        [$admin, $token] = $this->createAdmin();
+
+        $payload = [
+            'company_name' => 'BackupCo',
+            'self_registration' => 'false',
+            'max_bookings_per_day' => '5',
+            'credits_enabled' => 'true',
+        ];
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/v1/admin/restore', ['settings' => $payload])
+            ->assertStatus(200);
+
+        $this->assertEquals('BackupCo', Setting::get('company_name'));
+        $this->assertEquals('false', Setting::get('self_registration'));
+        $this->assertEquals('5', Setting::get('max_bookings_per_day'));
+        $this->assertEquals('true', Setting::get('credits_enabled'));
+    }
+
+    public function test_non_admin_cannot_import_backup(): void
+    {
+        $user = User::factory()->create(['role' => 'user']);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->postJson('/api/v1/admin/restore', [
+                'settings' => ['company_name' => 'Hacked'],
+            ])
+            ->assertStatus(403);
+    }
 }
