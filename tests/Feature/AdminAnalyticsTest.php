@@ -190,4 +190,162 @@ class AdminAnalyticsTest extends TestCase
         // Module middleware returns 404 when disabled
         $response->assertStatus(404);
     }
+
+    // ── Occupancy endpoint ────────────────────────────────────────────────────
+
+    public function test_admin_can_access_occupancy(): void
+    {
+        [$admin] = $this->seedData();
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/occupancy');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => ['occupancy', 'period_days'],
+            ]);
+    }
+
+    public function test_occupancy_returns_24_hour_bins(): void
+    {
+        [$admin] = $this->seedData();
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/occupancy');
+
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        $this->assertCount(24, $data['occupancy']);
+        $this->assertEquals(0, $data['occupancy'][0]['hour']);
+        $this->assertEquals(23, $data['occupancy'][23]['hour']);
+        $this->assertEquals(7, $data['period_days']);
+    }
+
+    public function test_non_admin_cannot_access_occupancy(): void
+    {
+        [, $user] = $this->seedData();
+        $token = $user->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/occupancy');
+
+        $response->assertStatus(403);
+    }
+
+    public function test_occupancy_module_disabled_returns_404(): void
+    {
+        [$admin] = $this->seedData();
+        $token = $admin->createToken('test')->plainTextToken;
+
+        config(['modules.admin_analytics' => false]);
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/occupancy')
+            ->assertStatus(404);
+    }
+
+    // ── Revenue endpoint ──────────────────────────────────────────────────────
+
+    public function test_admin_can_access_revenue(): void
+    {
+        [$admin] = $this->seedData();
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/revenue');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => ['revenue', 'period_days', 'total_revenue', 'total_bookings'],
+            ]);
+    }
+
+    public function test_revenue_totals_are_correct(): void
+    {
+        [$admin] = $this->seedData();
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/revenue');
+
+        $response->assertStatus(200);
+        $data = $response->json('data');
+        // seedData creates 2 bookings: 12.50 + 25.00 = 37.50 (both non-cancelled)
+        $this->assertEquals(37.50, $data['total_revenue']);
+        $this->assertEquals(2, $data['total_bookings']);
+        $this->assertEquals(30, $data['period_days']);
+    }
+
+    public function test_non_admin_cannot_access_revenue(): void
+    {
+        [, $user] = $this->seedData();
+        $token = $user->createToken('test')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/revenue')
+            ->assertStatus(403);
+    }
+
+    // ── Popular lots endpoint ─────────────────────────────────────────────────
+
+    public function test_admin_can_access_popular_lots(): void
+    {
+        [$admin] = $this->seedData();
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/popular-lots');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'data' => ['lots'],
+            ]);
+    }
+
+    public function test_popular_lots_returns_correct_lot(): void
+    {
+        [$admin] = $this->seedData();
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/popular-lots');
+
+        $response->assertStatus(200);
+        $lots = $response->json('data.lots');
+        $this->assertNotEmpty($lots);
+        $this->assertEquals('Analytics Lot', $lots[0]['name']);
+        $this->assertEquals(2, $lots[0]['booking_count']);
+    }
+
+    public function test_popular_lots_returns_at_most_10(): void
+    {
+        [$admin] = $this->seedData();
+        $token = $admin->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/popular-lots');
+
+        $response->assertStatus(200);
+        $lots = $response->json('data.lots');
+        $this->assertLessThanOrEqual(10, count($lots));
+    }
+
+    public function test_non_admin_cannot_access_popular_lots(): void
+    {
+        [, $user] = $this->seedData();
+        $token = $user->createToken('test')->plainTextToken;
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/admin/analytics/popular-lots')
+            ->assertStatus(403);
+    }
+
+    public function test_unauthenticated_cannot_access_new_endpoints(): void
+    {
+        $this->getJson('/api/v1/admin/analytics/occupancy')->assertStatus(401);
+        $this->getJson('/api/v1/admin/analytics/revenue')->assertStatus(401);
+        $this->getJson('/api/v1/admin/analytics/popular-lots')->assertStatus(401);
+    }
 }

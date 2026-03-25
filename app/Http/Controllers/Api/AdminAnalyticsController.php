@@ -145,4 +145,103 @@ class AdminAnalyticsController extends Controller
             'total_lots' => ParkingLot::count(),
         ]);
     }
+
+    /**
+     * GET /api/v1/admin/analytics/occupancy
+     *
+     * Hourly occupancy rates for the last 7 days, grouped by hour of day.
+     * Returns 24 bins (hours 0–23) with average active booking count per hour.
+     */
+    public function occupancy(): JsonResponse
+    {
+        $driver = DB::getDriverName();
+
+        if ($driver === 'sqlite') {
+            $rows = Booking::where('start_time', '>=', now()->subDays(7))
+                ->whereIn('status', ['confirmed', 'active', 'completed'])
+                ->selectRaw('CAST(strftime("%H", start_time) AS INTEGER) as hour, COUNT(*) as count')
+                ->groupBy('hour')
+                ->orderBy('hour')
+                ->get();
+        } elseif ($driver === 'pgsql') {
+            $rows = Booking::where('start_time', '>=', now()->subDays(7))
+                ->whereIn('status', ['confirmed', 'active', 'completed'])
+                ->selectRaw('EXTRACT(HOUR FROM start_time)::integer as hour, COUNT(*) as count')
+                ->groupBy('hour')
+                ->orderBy('hour')
+                ->get();
+        } else {
+            $rows = Booking::where('start_time', '>=', now()->subDays(7))
+                ->whereIn('status', ['confirmed', 'active', 'completed'])
+                ->selectRaw('HOUR(start_time) as hour, COUNT(*) as count')
+                ->groupBy('hour')
+                ->orderBy('hour')
+                ->get();
+        }
+
+        $hourMap = $rows->pluck('count', 'hour')->all();
+        $bins = [];
+        for ($h = 0; $h < 24; $h++) {
+            $bins[] = ['hour' => $h, 'count' => (int) ($hourMap[$h] ?? 0)];
+        }
+
+        return response()->json([
+            'occupancy' => $bins,
+            'period_days' => 7,
+        ]);
+    }
+
+    /**
+     * GET /api/v1/admin/analytics/revenue
+     *
+     * Daily revenue summary for the last 30 days.
+     * Excludes cancelled bookings.
+     */
+    public function revenue(): JsonResponse
+    {
+        $rows = Booking::where('start_time', '>=', now()->subDays(30))
+            ->whereNotNull('total_price')
+            ->where('status', '!=', 'cancelled')
+            ->selectRaw('DATE(start_time) as date, SUM(total_price) as revenue, COUNT(*) as bookings')
+            ->groupBy('date')
+            ->orderBy('date')
+            ->get()
+            ->map(fn ($row) => [
+                'date' => $row->date,
+                'revenue' => round((float) $row->revenue, 2),
+                'bookings' => (int) $row->bookings,
+            ]);
+
+        return response()->json([
+            'revenue' => $rows,
+            'period_days' => 30,
+            'total_revenue' => round($rows->sum('revenue'), 2),
+            'total_bookings' => $rows->sum('bookings'),
+        ]);
+    }
+
+    /**
+     * GET /api/v1/admin/analytics/popular-lots
+     *
+     * Top 10 parking lots ranked by total booking count (all time).
+     */
+    public function popularLots(): JsonResponse
+    {
+        $lots = Booking::join('parking_lots', 'bookings.lot_id', '=', 'parking_lots.id')
+            ->selectRaw('parking_lots.id, parking_lots.name, COUNT(*) as booking_count, COALESCE(SUM(bookings.total_price), 0) as revenue')
+            ->groupBy('parking_lots.id', 'parking_lots.name')
+            ->orderByDesc('booking_count')
+            ->limit(10)
+            ->get()
+            ->map(fn ($row) => [
+                'id' => $row->id,
+                'name' => $row->name,
+                'booking_count' => (int) $row->booking_count,
+                'revenue' => round((float) $row->revenue, 2),
+            ]);
+
+        return response()->json([
+            'lots' => $lots,
+        ]);
+    }
 }

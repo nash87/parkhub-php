@@ -37,6 +37,7 @@ return [
     // ── Admin (enabled by default) ─────────────────────────────────
     'admin_reports' => env('MODULE_ADMIN_REPORTS', true),
     'analytics' => env('MODULE_ANALYTICS', true),
+    'admin_analytics' => env('MODULE_ADMIN_ANALYTICS', true),
     'data_export' => env('MODULE_DATA_EXPORT', true),
     'import' => env('MODULE_IMPORT', true),
     'metrics' => env('MODULE_METRICS', true),

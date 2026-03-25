@@ -243,6 +243,7 @@ module_routes('operating_hours', 'operating-hours.php');
 module_routes('realtime', 'realtime.php');
 module_routes('lobby_display', 'lobby.php');
 module_routes('analytics', 'analytics.php');
+module_routes('admin_analytics', 'admin_analytics.php');
 module_routes('ical', 'ical.php');
 module_routes('rate_dashboard', 'rate_dashboard.php');
 module_routes('multi_tenant', 'multi_tenant.php');
