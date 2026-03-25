@@ -10,7 +10,7 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "chillerlan/php-qrcode": "^6.0",
         "dedoc/scramble": "^0.13.16",
-        "laravel/framework": "^12.54",
+        "laravel/framework": "^13.2",
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0.0",
         "minishlink/web-push": "^10.0",
