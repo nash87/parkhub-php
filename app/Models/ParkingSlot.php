@@ -3,11 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class ParkingSlot extends Model
 {
-    use HasUuids;
+    use HasFactory, HasUuids;
 
     protected $fillable = ['lot_id', 'slot_number', 'status', 'slot_type', 'features', 'reserved_for_department', 'zone_id', 'is_accessible'];
 

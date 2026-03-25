@@ -57,16 +57,19 @@ class WebhookTest extends TestCase
         $admin = User::factory()->create(['role' => 'admin']);
         $token = $admin->createToken('test')->plainTextToken;
 
+        // Use a URL whose host resolves to a public IP in the test environment
+        $url = 'https://1.1.1.1/webhook';
+
         $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/webhooks', [
-                'url' => 'https://example.com/webhook',
+                'url' => $url,
                 'events' => ['booking.created', 'booking.cancelled'],
                 'secret' => 'my-secret',
                 'active' => true,
             ]);
 
         $response->assertStatus(201);
-        $this->assertDatabaseHas('webhooks', ['url' => 'https://example.com/webhook']);
+        $this->assertDatabaseHas('webhooks', ['url' => $url]);
     }
 
     public function test_non_admin_cannot_create_webhook(): void
@@ -138,21 +141,21 @@ class WebhookTest extends TestCase
         $token = $admin->createToken('test')->plainTextToken;
 
         $webhook = Webhook::create([
-            'url' => 'https://example.com/original',
+            'url' => 'https://1.1.1.1/original',
             'events' => ['booking.created'],
             'active' => true,
         ]);
 
         $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->putJson('/api/v1/webhooks/'.$webhook->id, [
-                'url' => 'https://example.com/updated',
+                'url' => 'https://1.1.1.1/updated',
                 'active' => false,
             ]);
 
         $response->assertStatus(200);
         $this->assertDatabaseHas('webhooks', [
             'id' => $webhook->id,
-            'url' => 'https://example.com/updated',
+            'url' => 'https://1.1.1.1/updated',
         ]);
     }
 
