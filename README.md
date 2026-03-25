@@ -11,6 +11,7 @@
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg?style=flat-square&logo=php&logoColor=white" alt="PHP 8.4"></a>
   <a href="https://laravel.com/"><img src="https://img.shields.io/badge/Laravel-12-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 12"></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB.svg?style=flat-square&logo=react&logoColor=black" alt="React 19"></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4.svg?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4"></a>
   <img src="https://img.shields.io/badge/Tests-1200%2B-success.svg?style=flat-square" alt="1200+ tests">
   <a href="docs/GDPR.md"><img src="https://img.shields.io/badge/DSGVO-konform-green.svg?style=flat-square" alt="GDPR Compliant"></a>
   <a href="docs/COMPLIANCE.md"><img src="https://img.shields.io/badge/Compliance-Audited-brightgreen.svg?style=flat-square" alt="Compliance Audited"></a>
@@ -21,7 +22,7 @@
 <p align="center">
   <strong>Ihre Daten. Ihr Server. Ihre Kontrolle.</strong><br>
   The on-premise parking management platform that runs anywhere -- shared hosting, VPS, Docker, or Kubernetes.<br>
-  Built with Laravel 12 and React 19. Zero cloud. Zero tracking. 100% GDPR compliant by design.
+  Built with Laravel 12, React 19, and Tailwind CSS 4. Zero cloud. Zero tracking. 100% GDPR compliant by design.
 </p>
 
 <p align="center">
@@ -64,6 +65,17 @@ PARKHUB_ADMIN_EMAIL=you@company.com PARKHUB_ADMIN_PASSWORD=secure docker compose
 ### Shared Hosting
 
 ParkHub PHP runs on any 3 EUR/month shared hosting with PHP 8.2+ and MySQL. Upload via FTP, open `install.php` in your browser, done. See [Installation Guide](docs/INSTALLATION.md).
+
+### Laravel Sail
+
+```bash
+git clone https://github.com/nash87/parkhub-php.git && cd parkhub-php
+cp .env.example .env
+composer install
+./vendor/bin/sail up -d
+./vendor/bin/sail artisan migrate --seed
+# Open http://localhost -- Email: admin@parkhub.test  Password: demo
+```
 
 ### Development
 
@@ -258,6 +270,8 @@ ParkHub organizes functionality into **64 runtime-toggleable modules** across fi
 ParkHub PHP is designed for maximum deployment flexibility. It runs on 3 EUR/month shared hosting (Strato, IONOS, All-Inkl) with just PHP and MySQL, scales up to Docker Compose and Kubernetes, and supports PostgreSQL for cloud-native PaaS platforms like Render and Railway.
 
 The same React 19 frontend is shared with the [Rust edition](https://github.com/nash87/parkhub-rust), making both backends fully interchangeable.
+
+For a deep dive into the directory layout, controllers, middleware, database schema, and frontend internals, see **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ---
 
