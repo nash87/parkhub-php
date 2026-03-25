@@ -39,7 +39,33 @@ composer dev
 This starts the PHP dev server, queue worker, log viewer, and Vite dev server concurrently.
 Open http://localhost:8000 in your browser.
 
-### Docker
+### Laravel Sail (Docker-based Dev Environment)
+
+[Laravel Sail](https://laravel.com/docs/sail) provides a Docker-based local environment.
+Composer is required once to install Sail; after that, all PHP tooling runs inside containers.
+
+```bash
+# Start all services (app, database, worker, scheduler)
+./vendor/bin/sail up -d
+
+# Run Artisan commands inside the container
+./vendor/bin/sail artisan migrate
+./vendor/bin/sail artisan tinker
+
+# Run tests inside the container
+./vendor/bin/sail artisan test
+
+# Run Composer inside the container
+./vendor/bin/sail composer install
+
+# Stop all services
+./vendor/bin/sail down
+```
+
+Add `alias sail='./vendor/bin/sail'` to your shell profile to save typing.
+Open http://localhost:8080 when Sail is running.
+
+### Docker (production-like compose)
 
 ```bash
 docker compose up -d
@@ -53,7 +79,7 @@ docker compose up -d
 ### Backend (PHPUnit)
 
 ```bash
-php artisan test                    # All tests (~998 tests)
+php artisan test                    # All tests (~1,500 tests)
 php artisan test tests/Unit         # Unit tests only
 php artisan test tests/Feature      # Feature/integration tests only
 php artisan test --filter=BookingTest  # Specific test class
@@ -182,12 +208,8 @@ Every new API endpoint should have feature tests covering:
 
 ### New Modules
 
-When adding a module:
-1. Create route file in `routes/modules/`
-2. Add module toggle to `config/modules.php`
-3. Add `MODULE_*` env var to `.env.example`
-4. Write tests that verify the module can be toggled off (routes return 404)
-5. Update the module table in README.md
+When adding a module, follow the steps in the [Module System](#module-system) section above.
+Make sure tests cover the disabled state (routes return 404) and the enabled state (happy path + edge cases).
 
 ---
 
@@ -198,12 +220,12 @@ parkhub-php/
   app/
     Console/Commands/       # Artisan commands
     Http/
-      Controllers/Api/      # 47 API controllers
+      Controllers/Api/      # 74 API controllers
       Middleware/            # Request middleware (auth, headers, admin)
       Resources/            # API resource transformers
     Jobs/                   # Queue jobs
     Mail/                   # Mailable classes
-    Models/                 # 22+ Eloquent models
+    Models/                 # 31 Eloquent models
   config/
     modules.php             # Module toggle configuration
   database/
@@ -215,7 +237,7 @@ parkhub-php/
   routes/
     api.php                 # Main API routes
     api_v1.php              # V1 API routes
-    modules/                # Per-module route files (35 modules)
+    modules/                # Per-module route files (67 modules)
   tests/
     Feature/                # Integration tests
     Unit/                   # Unit tests
@@ -231,17 +253,29 @@ parkhub-php/
 
 ## Module System
 
-ParkHub uses a module toggle system with 35 modules organized into four categories:
+ParkHub uses a module toggle system with **67 modules** spread across five categories:
 
 | Category | Count | Default | Description |
 |----------|-------|---------|-------------|
-| Core | 20 | Enabled (opt-out) | Essential parking management features |
-| Admin | 6 | Enabled (opt-out) | Reporting, analytics, data management |
-| Integration | 7 | Disabled (opt-in) | External services requiring credentials |
-| Enterprise | 2 | Disabled (opt-in) | Advanced features for large deployments |
+| Core | 20 | Enabled (opt-out) | Essential parking management (bookings, vehicles, zones, QR, GDPR, map, …) |
+| Admin & Management | 24 | Enabled (opt-out) | Reporting, analytics, fleet, EV charging, geofence, audit log, … |
+| Platform & v4.x | 14 | Mostly enabled | Plugins, GraphQL, compliance, RBAC, PWA, sharing, scheduled reports, … |
+| Integration | 7 | Disabled (opt-in) | External services requiring credentials (Stripe, OAuth, webhooks, realtime, …) |
+| Enterprise | 2 | Disabled (opt-in) | Advanced features for large deployments (multi-tenant, dynamic pricing) |
 
 Each module can be toggled via `MODULE_*` environment variables. Module routes are loaded
 conditionally from `routes/modules/`. When a module is disabled, its routes return 404.
+
+The full list of flags lives in `config/modules.php`. The current state of all modules is
+exposed at `GET /api/v1/modules`.
+
+### Adding a New Module
+
+1. Create a route file in `routes/modules/`
+2. Register the toggle in `config/modules.php`
+3. Add the `MODULE_*` env var to `.env.example`
+4. Write tests that verify the module can be toggled off (routes return 404)
+5. Update the module table in `README.md`
 
 ---
 
@@ -268,6 +302,43 @@ ParkHub supports 10 languages: EN, DE, FR, ES, IT, PT, TR, PL, JA, ZH.
 - Keep translations concise -- UI labels should be short
 - Preserve placeholder variables like `{{count}}`, `{{name}}`
 - Test the UI with your translations to verify layout (some languages are longer)
+
+---
+
+## Good First Issues
+
+Looking for a place to start? Here are well-scoped tasks that don't require deep system knowledge:
+
+### Backend
+- **Add a missing test** — pick any controller in `app/Http/Controllers/Api/` that has no corresponding test
+  in `tests/Feature/` and write one. Cover authentication (401), authorization (403), validation (422), and
+  the happy-path success case.
+- **Fix a PHPStan baseline entry** — open `phpstan-baseline.neon` and resolve one ignored error in a file
+  you feel comfortable with.
+- **Improve a validation rule** — look for `required` rules that are missing `max:` or `min:` constraints
+  and tighten them.
+- **Add a factory** — if a model in `app/Models/` is missing a factory in `database/factories/`, add one.
+
+### Frontend
+- **Fix a missing i18n key** — run `cd parkhub-web && npx vitest run` and look for failing locale tests,
+  then add the missing translation in the relevant `src/locales/*.json` file.
+- **Improve an error state** — find a component in `parkhub-web/src/components/` that renders a network
+  request but has no error boundary or empty-state message, and add one.
+- **Add a missing loading state** — find a data-fetching hook in `parkhub-web/src/hooks/` where the
+  loading state is not surfaced in the UI and wire it up.
+
+### DevOps / Documentation
+- **Document a new env variable** — if a `MODULE_*` env var exists in `config/modules.php` but is missing
+  from `.env.example`, add it with a comment.
+- **Add a helpful Artisan command description** — find a command class in `app/Console/Commands/` that has
+  no `$description` property set and add one.
+
+### How to Claim an Issue
+
+1. Check [open issues](https://github.com/nash87/parkhub-php/issues) labelled
+   `good first issue` or `help wanted`.
+2. Leave a comment saying you'd like to work on it so it can be assigned to you.
+3. Fork, branch (`feat/`, `fix/`, `docs/`, etc.), and open a PR against `main` when ready.
 
 ---
 
