@@ -1,159 +1,299 @@
 name: CI
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
+env:
+  PHP_VERSION: '8.4'
+  NODE_VERSION: '22.12.0'
+
 jobs:
-  test:
-    name: PHP Tests
+  workflow-hygiene:
+    name: Workflow & manifest hygiene
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Setup PHP
+      - name: Lint GitHub Actions workflows
+        uses: rhysd/actionlint@v1
+
+      - name: Lint YAML
+        run: |
+          python3 -m pip install --user yamllint
+          ~/.local/bin/yamllint -c .yamllint.yml .github/workflows docker-compose.yml render.yaml koyeb.yaml
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Validate Helm chart
+        run: |
+          helm lint ./helm/parkhub
+          helm template parkhub ./helm/parkhub > /dev/null
+
+      - name: Validate Docker Compose
+        run: docker compose -f docker-compose.yml config -q
+
+  backend-quality:
+    name: Backend quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
-          extensions: mbstring, xml, bcmath, sqlite3, pdo_sqlite, gd, zip, curl
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
           coverage: none
           tools: composer:v2
 
-      - name: Cache Composer dependencies
+      - name: Cache Composer downloads
         uses: actions/cache@v5
         with:
-          path: vendor
+          path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
-      - name: Copy .env
-        run: cp .env.example .env
+      - name: Validate Composer metadata
+        run: composer validate --strict
 
-      - name: Install dependencies
+      - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Generate key
-        run: php artisan key:generate
+      - name: Lint PHP files
+        run: find app bootstrap config database routes tests -name '*.php' -print0 | xargs -0 -n 50 php -l > /dev/null
 
-      - name: Run tests (SQLite in-memory)
-        run: php artisan test
-        env:
-          DB_CONNECTION: sqlite
-          DB_DATABASE: ":memory:"
-
-  lint:
-    name: PHP Lint (Pint)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.4'
-          extensions: mbstring, xml
-          coverage: none
-          tools: composer:v2
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v5
-        with:
-          path: vendor
-          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
-
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-interaction --no-progress
-
-      - name: Run Laravel Pint
+      - name: Check Laravel Pint formatting
         run: ./vendor/bin/pint --test
 
-  audit:
-    name: Dependency Security Audit
+  backend-tests:
+    name: Backend tests
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
+    timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Setup PHP
+      - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
           coverage: none
           tools: composer:v2
 
-      - name: Install dependencies (no-dev)
-        run: composer install --no-dev --prefer-dist --no-interaction --no-progress
+      - name: Cache Composer downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
 
-      - name: Run composer security audit
-        run: composer audit --no-dev --format=plain
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Bootstrap Laravel for SQLite tests
+        run: ./scripts/ci/bootstrap-laravel.sh
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+      - name: Run Laravel test suite
+        run: composer test
 
   frontend:
-    name: Frontend Build & Test
+    name: Frontend builds
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    defaults:
-      run:
-        working-directory: parkhub-web
+    timeout-minutes: 25
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: parkhub-web/package-lock.json
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            parkhub-web/package-lock.json
 
-      - name: Install dependencies
+      - name: Install root frontend dependencies
         run: npm ci
 
-      - name: Run Vitest
-        run: npx vitest run
-
-      - name: Build frontend
+      - name: Build Laravel Vite assets
         run: npm run build
 
-  # Gate job — branch protection checks this
-  ci:
-    name: CI
-    if: always()
-    needs: [test, lint, audit, frontend]
+      - name: Install Astro frontend dependencies
+        run: npm ci --prefix parkhub-web
+
+      - name: Run Astro frontend tests
+        run: npm test --prefix parkhub-web
+
+      - name: Build Astro frontend
+        run: npm run build --prefix parkhub-web
+
+  e2e-smoke:
+    name: E2E smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
     steps:
-      - name: Check results
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            parkhub-web/package-lock.json
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install backend dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install frontend dependencies
         run: |
-          if [[ "${{ needs.test.result }}" != "success" ]]; then
-            echo "test failed: ${{ needs.test.result }}"
-            exit 1
-          fi
-          if [[ "${{ needs.lint.result }}" != "success" ]]; then
-            echo "lint failed: ${{ needs.lint.result }}"
-            exit 1
-          fi
-          if [[ "${{ needs.audit.result }}" != "success" ]]; then
-            echo "audit failed: ${{ needs.audit.result }}"
-            exit 1
-          fi
-          if [[ "${{ needs.frontend.result }}" != "success" ]]; then
-            echo "frontend failed: ${{ needs.frontend.result }}"
-            exit 1
-          fi
-          echo "All checks passed"
+          npm ci
+          npm ci --prefix parkhub-web
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build browser assets for Laravel
+        run: npm run build:php --prefix parkhub-web
+
+      - name: Run Playwright smoke suite
+        env:
+          CI: true
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          DEMO_MODE: 'true'
+          E2E_BASE_URL: http://127.0.0.1:8082
+          PARKHUB_ADMIN_EMAIL: admin@parkhub.test
+          PARKHUB_ADMIN_PASSWORD: demo
+          RUN_STORAGE_LINK: '1'
+        run: |
+          ./scripts/ci/bootstrap-laravel.sh
+          php artisan migrate:fresh --seed --force
+
+          php artisan serve --host=127.0.0.1 --port=8082 > /tmp/parkhub-e2e.log 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+
+          ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
+          npx playwright test e2e/api.spec.ts e2e/pages.spec.ts --project=chromium
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload Laravel server log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-server-log
+          path: /tmp/parkhub-e2e.log
+          retention-days: 7
+
+  docker-validate:
+    name: Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          platforms: linux/amd64
+          tags: parkhub-php:ci
+          cache-from: type=gha,scope=ci-docker
+          cache-to: type=gha,scope=ci-docker,mode=max
+
+  required:
+    name: Required checks
+    if: always()
+    needs:
+      - workflow-hygiene
+      - backend-quality
+      - backend-tests
+      - frontend
+      - e2e-smoke
+      - docker-validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Assert required jobs succeeded
+        env:
+          WORKFLOW_HYGIENE: ${{ needs.workflow-hygiene.result }}
+          BACKEND_QUALITY: ${{ needs.backend-quality.result }}
+          BACKEND_TESTS: ${{ needs.backend-tests.result }}
+          FRONTEND: ${{ needs.frontend.result }}
+          E2E_SMOKE: ${{ needs.e2e-smoke.result }}
+          DOCKER_VALIDATE: ${{ needs.docker-validate.result }}
+        run: |
+          for check in WORKFLOW_HYGIENE BACKEND_QUALITY BACKEND_TESTS FRONTEND E2E_SMOKE DOCKER_VALIDATE; do
+            if [[ "${!check}" != "success" ]]; then
+              echo "${check} finished with status: ${!check}"
+              exit 1
+            fi
+          done

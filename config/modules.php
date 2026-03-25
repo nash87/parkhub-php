@@ -90,6 +90,7 @@ return [
 
     // ── v4.4 Features ───────────────────────────────────────────────
     'notification_center' => env('MODULE_NOTIFICATION_CENTER', true),
+    'mobile' => env('MODULE_MOBILE', true),
 
     // ── Enterprise (disabled by default — opt-in) ──────────────────
     'multi_tenant' => env('MODULE_MULTI_TENANT', false),

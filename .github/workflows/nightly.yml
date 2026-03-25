@@ -1,0 +1,204 @@
+name: Nightly Assurance
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MYSQL_DATABASE: parkhub_test
+  MYSQL_HOST: 127.0.0.1
+  MYSQL_PASSWORD: parkhub
+  MYSQL_PORT: '3306'
+  MYSQL_USER: parkhub
+  NODE_VERSION: '22.12.0'
+  PHP_VERSION: '8.4'
+
+jobs:
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: parkhub-web/package-lock.json
+
+      - name: Audit Composer production dependencies
+        run: composer audit --locked --no-dev
+
+      - name: Audit Astro production dependencies
+        run: npm audit --prefix parkhub-web --package-lock-only --omit=dev --audit-level=high
+
+  mysql-smoke:
+    name: MySQL smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: ${{ env.MYSQL_USER }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Bootstrap Laravel for MySQL
+        run: ./scripts/ci/bootstrap-laravel.sh
+        env:
+          DB_CONNECTION: mysql
+          DB_DATABASE: ${{ env.MYSQL_DATABASE }}
+          DB_HOST: ${{ env.MYSQL_HOST }}
+          DB_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          DB_PORT: ${{ env.MYSQL_PORT }}
+          DB_USERNAME: ${{ env.MYSQL_USER }}
+
+      - name: Run health smoke tests on MySQL
+        run: php artisan test tests/Feature/HealthTest.php tests/Feature/SystemPublicTest.php
+        env:
+          DB_CONNECTION: mysql
+          DB_DATABASE: ${{ env.MYSQL_DATABASE }}
+          DB_HOST: ${{ env.MYSQL_HOST }}
+          DB_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          DB_PORT: ${{ env.MYSQL_PORT }}
+          DB_USERNAME: ${{ env.MYSQL_USER }}
+
+  full-e2e:
+    name: Full cross-browser E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            parkhub-web/package-lock.json
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          npm ci
+          npm ci --prefix parkhub-web
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Build browser assets for Laravel
+        run: npm run build:php --prefix parkhub-web
+
+      - name: Run full Playwright suite
+        env:
+          CI: true
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          DEMO_MODE: 'true'
+          E2E_BASE_URL: http://127.0.0.1:8082
+          PARKHUB_ADMIN_EMAIL: admin@parkhub.test
+          PARKHUB_ADMIN_PASSWORD: demo
+          RUN_STORAGE_LINK: '1'
+        run: |
+          ./scripts/ci/bootstrap-laravel.sh
+          php artisan migrate:fresh --seed --force
+
+          php artisan serve --host=127.0.0.1 --port=8082 > /tmp/parkhub-nightly-e2e.log 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+
+          ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
+          npx playwright test --project=chromium --project=mobile-chrome --project=mobile-safari
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload Laravel server log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-e2e-server-log
+          path: /tmp/parkhub-nightly-e2e.log
+          retention-days: 7

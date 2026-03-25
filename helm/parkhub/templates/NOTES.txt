@@ -24,5 +24,5 @@ ParkHub PHP has been deployed successfully!
   kubectl logs -n {{ .Release.Namespace }} deploy/{{ include "parkhub.fullname" . }} | head -20
 
 4. API docs: http://<host>/docs/api (Scramble)
-5. Health check: http://<host>/health
+5. Health check: http://<host>/api/v1/health/ready
 6. Metrics: http://<host>/api/metrics

@@ -1,21 +1,34 @@
-name: Build & Push Docker Image to GHCR
+name: Release Container
 
 on:
   push:
+    branches: [main]
     tags: ['v*']
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  attestations: write
+  contents: read
+  id-token: write
+  packages: write
+  security-events: write
+
 env:
-  REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
+  REGISTRY: ghcr.io
 
 jobs:
-  build-and-push:
+  publish:
+    name: Build, scan, and publish image
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      security-events: write
+    timeout-minutes: 45
+
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
 
     steps:
       - name: Checkout
@@ -34,68 +47,77 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata
+      - name: Extract image metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=sha-,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Build and push
-        id: build
+      - name: Build scan image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          platforms: linux/amd64
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:scan
+          cache-from: type=gha,scope=release-docker
+          cache-to: type=gha,scope=release-docker,mode=max
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:scan
+          format: sarif
+          output: trivy-results.sarif
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Build and push multi-arch image
+        id: push
         uses: docker/build-push-action@v7
         with:
           context: .
           push: true
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
-          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha,scope=release-docker
+          cache-to: type=gha,scope=release-docker,mode=max
+          provenance: mode=max
+          sbom: true
 
-      - name: Run Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@0.35.0
-        continue-on-error: true
+      - name: Attest image provenance
+        uses: actions/attest-build-provenance@v2
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
-          exit-code: '0'
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
 
-      - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('trivy-results.sarif') != ''
-        with:
-          sarif_file: trivy-results.sarif
+  deploy-demo:
+    name: Deploy demo
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch) && secrets.RENDER_API_KEY != '' && secrets.RENDER_SERVICE_ID != ''
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: demo
+    permissions: {}
 
-      - name: Ensure Render env vars
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Trigger Render deploy
         run: |
-          SVC="https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}"
-          AUTH="Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
-          # Per-key PUT: /env-vars/{key} with {"value": "..."}
-          for KV in "DEMO_MODE=true" "PARKHUB_ADMIN_PASSWORD=demo" "PARKHUB_ADMIN_EMAIL=admin@parkhub.test" \
-                    "DB_CONNECTION=sqlite" "DB_DATABASE=/var/www/html/database/database.sqlite" \
-                    "LOG_CHANNEL=stderr" "APP_ENV=production" "APP_DEBUG=false" \
-                    "SESSION_DRIVER=file" "CACHE_STORE=file" "MAIL_MAILER=log" \
-                    "APP_URL=https://parkhub-php-demo.onrender.com"; do
-            KEY="${KV%%=*}"; VALUE="${KV#*=}"
-            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X PUT "$SVC/env-vars/$KEY" \
-              -H "$AUTH" -H "Content-Type: application/json" \
-              -d "{\"value\":\"$VALUE\"}")
-            echo "  $KEY → HTTP $HTTP_CODE"
-          done
-
-      - name: Deploy to Render
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
-        run: |
-          curl -sf -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
+          curl -fsS -X POST "https://api.render.com/v1/services/${{ secrets.RENDER_SERVICE_ID }}/deploys" \
             -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
             -H "Content-Type: application/json" \
-            -d '{"clearCache":"clear"}'
+            -d '{"clearCache":"do_not_clear"}'

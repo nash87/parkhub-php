@@ -9,19 +9,31 @@ on:
     - cron: '0 6 * * 1'
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 permissions:
   actions: read
   contents: read
   security-events: write
 
+env:
+  NODE_VERSION: '22.12.0'
+
 jobs:
   analyze:
-    name: Analyze
+    name: Analyze (${{ matrix.language }})
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
-        language: ['javascript-typescript']
+        include:
+          - language: php
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: manual
 
     steps:
       - name: Checkout
@@ -31,12 +43,28 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
           queries: security-extended,security-and-quality
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v4
+      - name: Set up Node.js
+        if: matrix.language == 'javascript-typescript'
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            parkhub-web/package-lock.json
 
-      - name: Perform CodeQL Analysis
+      - name: Build JavaScript and TypeScript sources
+        if: matrix.language == 'javascript-typescript'
+        run: |
+          npm ci
+          npm ci --prefix parkhub-web
+          npm run build
+          npm run build --prefix parkhub-web
+
+      - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v4
         with:
-          category: "/language:${{ matrix.language }}"
+          category: /language:${{ matrix.language }}
