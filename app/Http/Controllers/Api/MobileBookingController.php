@@ -8,6 +8,7 @@ use App\Models\Lot;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
  * Mobile-Optimized Booking Flow.
@@ -32,16 +33,15 @@ class MobileBookingController extends Controller
         $lng = (float) $request->query('lng');
         $radius = (float) ($request->query('radius', 1000));
 
-        $lots = Lot::all()->map(function ($lot) use ($lat, $lng) {
+        $bookingCounts = $this->activeBookingCounts();
+
+        $lots = Lot::all()->map(function ($lot) use ($lat, $lng, $bookingCounts) {
             $lotLat = $lot->latitude ?? 0;
             $lotLng = $lot->longitude ?? 0;
             $distance = $this->haversineDistance($lat, $lng, $lotLat, $lotLng);
 
             $totalSlots = $lot->total_slots ?? 0;
-            $activeBookings = Booking::where('lot_id', $lot->id)
-                ->where('status', 'confirmed')
-                ->where('end_time', '>', now())
-                ->count();
+            $activeBookings = $bookingCounts->get($lot->id, 0);
             $available = max(0, $totalSlots - $activeBookings);
 
             return [
@@ -78,12 +78,11 @@ class MobileBookingController extends Controller
      */
     public function quickBook(Request $request): JsonResponse
     {
-        $lots = Lot::all()->map(function ($lot) {
+        $bookingCounts = $this->activeBookingCounts();
+
+        $lots = Lot::all()->map(function ($lot) use ($bookingCounts) {
             $totalSlots = $lot->total_slots ?? 0;
-            $activeBookings = Booking::where('lot_id', $lot->id)
-                ->where('status', 'confirmed')
-                ->where('end_time', '>', now())
-                ->count();
+            $activeBookings = $bookingCounts->get($lot->id, 0);
             $available = max(0, $totalSlots - $activeBookings);
 
             return [
@@ -148,6 +147,20 @@ class MobileBookingController extends Controller
                 'checked_in' => $booking->status === 'checked_in',
             ],
         ]);
+    }
+
+    /**
+     * Single aggregated query: count active confirmed bookings per lot_id.
+     *
+     * @return Collection<string, int>
+     */
+    private function activeBookingCounts(): Collection
+    {
+        return Booking::where('status', 'confirmed')
+            ->where('end_time', '>', now())
+            ->selectRaw('lot_id, COUNT(*) as count')
+            ->groupBy('lot_id')
+            ->pluck('count', 'lot_id');
     }
 
     /**

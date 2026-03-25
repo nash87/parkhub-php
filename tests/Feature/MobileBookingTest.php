@@ -97,6 +97,76 @@ class MobileBookingTest extends TestCase
         $this->assertNotContains('Full Lot', $names);
     }
 
+    public function test_nearby_lots_reflects_active_booking_counts(): void
+    {
+        $lot = Lot::factory()->create([
+            'name' => 'Partially Filled Lot',
+            'latitude' => 48.7758,
+            'longitude' => 9.1829,
+            'total_slots' => 5,
+        ]);
+
+        // 3 active confirmed bookings that reduce available slots
+        Booking::factory()->count(3)->create([
+            'lot_id' => $lot->id,
+            'status' => 'confirmed',
+            'start_time' => now()->subHour(),
+            'end_time' => now()->addHour(),
+        ]);
+
+        // Expired booking — should not be counted
+        Booking::factory()->create([
+            'lot_id' => $lot->id,
+            'status' => 'confirmed',
+            'start_time' => now()->subHours(3),
+            'end_time' => now()->subHour(),
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/v1/mobile/nearby-lots?lat=48.7760&lng=9.1830&radius=5000')
+            ->assertOk();
+
+        $data = $response->json('data');
+        $this->assertCount(1, $data);
+        $this->assertEquals(2, $data[0]['available_slots']);
+        $this->assertEquals(5, $data[0]['total_slots']);
+        $this->assertEquals(60.0, $data[0]['occupancy_percent']);
+    }
+
+    public function test_quick_book_excludes_fully_booked_lots(): void
+    {
+        $fullLot = Lot::factory()->create(['name' => 'Full Lot', 'total_slots' => 2]);
+        $availableLot = Lot::factory()->create(['name' => 'Available Lot', 'total_slots' => 3]);
+
+        // Fill all 2 slots in the full lot
+        Booking::factory()->count(2)->create([
+            'lot_id' => $fullLot->id,
+            'status' => 'confirmed',
+            'start_time' => now()->subHour(),
+            'end_time' => now()->addHour(),
+        ]);
+
+        // 1 slot filled in the available lot (2 slots remain)
+        Booking::factory()->create([
+            'lot_id' => $availableLot->id,
+            'status' => 'confirmed',
+            'start_time' => now()->subHour(),
+            'end_time' => now()->addHour(),
+        ]);
+
+        $response = $this->actingAs($this->user)
+            ->getJson('/api/v1/mobile/quick-book')
+            ->assertOk();
+
+        $data = $response->json('data');
+        $names = collect($data)->pluck('name')->all();
+        $this->assertNotContains('Full Lot', $names);
+        $this->assertContains('Available Lot', $names);
+
+        $availableEntry = collect($data)->firstWhere('name', 'Available Lot');
+        $this->assertEquals(2, $availableEntry['available_slots']);
+    }
+
     public function test_active_booking_returns_null_when_none(): void
     {
         $this->actingAs($this->user)
