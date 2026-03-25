@@ -80,6 +80,11 @@ return [
     'api_versioning' => env('MODULE_API_VERSIONING', true),
 
     // ── v4.2 Features ───────────────────────────────────────────────
+    // SECURITY: SSO is disabled by default. The SAML callback endpoint currently
+    // performs no XML signature or assertion verification. Production use requires
+    // onelogin/php-saml (or an equivalent SAML library) with full signature
+    // validation configured. Only enable (MODULE_SSO=true) after integrating a
+    // compliant SAML library and verifying IdP certificates are enforced.
     'sso' => env('MODULE_SSO', false),
     'webhooks_v2' => env('MODULE_WEBHOOKS_V2', false),
     'enhanced_pwa' => env('MODULE_ENHANCED_PWA', true),

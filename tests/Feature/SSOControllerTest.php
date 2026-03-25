@@ -164,8 +164,18 @@ class SSOControllerTest extends TestCase
         $response->assertStatus(422);
     }
 
-    public function test_providers_only_returns_enabled(): void
+    public function test_callback_is_inaccessible_when_sso_module_disabled(): void
     {
+        config(['modules.sso' => false]);
+
+        $response = $this->postJson('/api/v1/auth/sso/okta/callback', [
+            'SAMLResponse' => base64_encode('<samlp:Response/>'),
+        ]);
+
+        $response->assertStatus(404);
+    }
+
+    public function test_providers_only_returns_enabled(): void    {
         $token = $this->adminToken();
 
         // Create enabled

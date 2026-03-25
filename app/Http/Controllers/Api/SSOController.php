@@ -76,6 +76,13 @@ class SSOController extends Controller
 
     /**
      * Handle SAML callback — validate assertion and create/login user.
+     *
+     * SECURITY WARNING: This implementation decodes the SAMLResponse without
+     * verifying the XML signature or assertion integrity. It MUST NOT be used
+     * in production without integrating onelogin/php-saml (or an equivalent
+     * SAML library) for full XML signature and condition validation. The SSO
+     * module defaults to disabled (MODULE_SSO=false) specifically because of
+     * this limitation.
      */
     public function callback(Request $request, string $provider): JsonResponse
     {
@@ -96,7 +103,11 @@ class SSOController extends Controller
             ], 400);
         }
 
-        // Decode and parse SAML response (simplified — production would use full XML validation)
+        // Decode and parse SAML response.
+        // SECURITY: No XML signature or assertion validation is performed here.
+        // This is a simplified parser only. Production deployments MUST use
+        // onelogin/php-saml for full signature verification before trusting any
+        // data extracted from the SAMLResponse.
         $decoded = base64_decode($samlResponse);
         $email = $this->extractEmailFromSaml($decoded);
 
