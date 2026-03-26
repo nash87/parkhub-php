@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Http\Controllers\Api\BookingController;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\Vehicle;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Validation\ValidationException;
 
 class GraphQLController extends Controller
 {
@@ -151,12 +153,12 @@ HTML;
             // Merge GraphQL variables into the current request so that BookingController
             // and StoreBookingRequest can validate and enforce every rule normally.
             $request->merge([
-                'lot_id'        => $variables['lot_id'] ?? $variables['lotId'] ?? null,
-                'slot_id'       => $variables['slot_id'] ?? $variables['slotId'] ?? null,
-                'start_time'    => $variables['start_time'] ?? $variables['startTime'] ?? null,
-                'end_time'      => $variables['end_time'] ?? $variables['endTime'] ?? null,
-                'booking_type'  => $variables['booking_type'] ?? $variables['bookingType'] ?? 'single',
-                'notes'         => $variables['notes'] ?? null,
+                'lot_id' => $variables['lot_id'] ?? $variables['lotId'] ?? null,
+                'slot_id' => $variables['slot_id'] ?? $variables['slotId'] ?? null,
+                'start_time' => $variables['start_time'] ?? $variables['startTime'] ?? null,
+                'end_time' => $variables['end_time'] ?? $variables['endTime'] ?? null,
+                'booking_type' => $variables['booking_type'] ?? $variables['bookingType'] ?? 'single',
+                'notes' => $variables['notes'] ?? null,
                 'vehicle_plate' => $variables['vehicle_plate'] ?? $variables['vehiclePlate'] ?? null,
                 'license_plate' => $variables['license_plate'] ?? $variables['licensePlate'] ?? null,
             ]);
@@ -166,17 +168,17 @@ HTML;
                 // which creates it from the current (merged) request, triggers validation,
                 // and then calls store() — identical to a normal REST request.
                 $innerResponse = app()->call([app(BookingController::class), 'store']);
-            } catch (\Illuminate\Validation\ValidationException $e) {
+            } catch (ValidationException $e) {
                 return response()->json([
                     'success' => false,
-                    'errors'  => [['message' => $e->validator->errors()->first()]],
+                    'errors' => [['message' => $e->validator->errors()->first()]],
                 ], 422);
-            } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+            } catch (AuthorizationException $e) {
                 return response()->json([
                     'success' => false,
-                    'errors'  => [['message' => 'You are not authorized to create a booking.']],
+                    'errors' => [['message' => 'You are not authorized to create a booking.']],
                 ], 403);
-            } catch (\Illuminate\Http\Exceptions\HttpResponseException $e) {
+            } catch (HttpResponseException $e) {
                 $innerResponse = $e->getResponse();
             }
 
@@ -188,13 +190,13 @@ HTML;
 
                 return response()->json([
                     'success' => false,
-                    'errors'  => [['message' => $errorMsg]],
+                    'errors' => [['message' => $errorMsg]],
                 ], $statusCode);
             }
 
             return response()->json([
                 'success' => true,
-                'data'    => ['createBooking' => $body['data'] ?? $body],
+                'data' => ['createBooking' => $body['data'] ?? $body],
             ]);
         }
 

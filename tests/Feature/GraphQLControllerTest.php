@@ -99,9 +99,9 @@ class GraphQLControllerTest extends TestCase
             ->postJson('/api/v1/graphql', [
                 'query' => 'mutation { createBooking(lot_id: $lot_id) { id status } }',
                 'variables' => [
-                    'lot_id'     => $lot->id,
+                    'lot_id' => $lot->id,
                     'start_time' => now()->addHour()->toISOString(),
-                    'end_time'   => now()->addHours(3)->toISOString(),
+                    'end_time' => now()->addHours(3)->toISOString(),
                 ],
             ]);
 
@@ -118,7 +118,7 @@ class GraphQLControllerTest extends TestCase
 
         $response = $this->withHeaders($this->authHeader())
             ->postJson('/api/v1/graphql', [
-                'query'     => 'mutation { createBooking(lot_id: $lot_id) { id status } }',
+                'query' => 'mutation { createBooking(lot_id: $lot_id) { id status } }',
                 'variables' => ['lot_id' => $lot->id],
             ]);
 
@@ -135,11 +135,11 @@ class GraphQLControllerTest extends TestCase
 
         $response = $this->withHeaders($this->authHeader())
             ->postJson('/api/v1/graphql', [
-                'query'     => 'mutation { createBooking(lot_id: $lot_id) { id } }',
+                'query' => 'mutation { createBooking(lot_id: $lot_id) { id } }',
                 'variables' => [
-                    'lot_id'     => $lot->id,
+                    'lot_id' => $lot->id,
                     'start_time' => now()->subHour()->toISOString(),
-                    'end_time'   => now()->addHour()->toISOString(),
+                    'end_time' => now()->addHour()->toISOString(),
                 ],
             ]);
 
@@ -152,25 +152,25 @@ class GraphQLControllerTest extends TestCase
         config(['parkhub.max_active_bookings' => 1]);
 
         $user = User::factory()->create(['role' => 'user']);
-        $lot  = $this->seedLot();
+        $lot = $this->seedLot();
         ParkingSlot::factory()->create(['lot_id' => $lot->id, 'status' => 'available']);
 
         // Seed one existing confirmed booking so the user is already at the limit
         Booking::factory()->create([
-            'user_id'    => $user->id,
-            'lot_id'     => $lot->id,
-            'status'     => Booking::STATUS_CONFIRMED,
+            'user_id' => $user->id,
+            'lot_id' => $lot->id,
+            'status' => Booking::STATUS_CONFIRMED,
             'start_time' => now()->addDay(),
-            'end_time'   => now()->addDay()->addHours(2),
+            'end_time' => now()->addDay()->addHours(2),
         ]);
 
         $response = $this->withHeaders($this->authHeader($user))
             ->postJson('/api/v1/graphql', [
-                'query'     => 'mutation { createBooking(lot_id: $lot_id) { id } }',
+                'query' => 'mutation { createBooking(lot_id: $lot_id) { id } }',
                 'variables' => [
-                    'lot_id'     => $lot->id,
+                    'lot_id' => $lot->id,
                     'start_time' => now()->addDays(2)->toISOString(),
-                    'end_time'   => now()->addDays(2)->addHours(2)->toISOString(),
+                    'end_time' => now()->addDays(2)->addHours(2)->toISOString(),
                 ],
             ]);
 
@@ -181,18 +181,18 @@ class GraphQLControllerTest extends TestCase
     public function test_graphql_create_booking_is_always_for_authenticated_user(): void
     {
         $authenticatedUser = User::factory()->create(['role' => 'user']);
-        $otherUser         = User::factory()->create(['role' => 'user']);
+        $otherUser = User::factory()->create(['role' => 'user']);
 
         $lot = $this->seedLot();
         ParkingSlot::factory()->create(['lot_id' => $lot->id, 'status' => 'available']);
 
         $response = $this->withHeaders($this->authHeader($authenticatedUser))
             ->postJson('/api/v1/graphql', [
-                'query'     => 'mutation { createBooking(lot_id: $lot_id) { id } }',
+                'query' => 'mutation { createBooking(lot_id: $lot_id) { id } }',
                 'variables' => [
-                    'lot_id'     => $lot->id,
+                    'lot_id' => $lot->id,
                     'start_time' => now()->addHour()->toISOString(),
-                    'end_time'   => now()->addHours(3)->toISOString(),
+                    'end_time' => now()->addHours(3)->toISOString(),
                 ],
             ]);
 
@@ -202,11 +202,11 @@ class GraphQLControllerTest extends TestCase
         // Booking must belong to the authenticated user, not any other user
         $bookingId = $response->json('data.createBooking.id');
         $this->assertDatabaseHas('bookings', [
-            'id'      => $bookingId,
+            'id' => $bookingId,
             'user_id' => $authenticatedUser->id,
         ]);
         $this->assertDatabaseMissing('bookings', [
-            'id'      => $bookingId,
+            'id' => $bookingId,
             'user_id' => $otherUser->id,
         ]);
     }
@@ -216,11 +216,11 @@ class GraphQLControllerTest extends TestCase
         $lot = $this->seedLot();
 
         $response = $this->postJson('/api/v1/graphql', [
-            'query'     => 'mutation { createBooking(lot_id: $lot_id) { id } }',
+            'query' => 'mutation { createBooking(lot_id: $lot_id) { id } }',
             'variables' => [
-                'lot_id'     => $lot->id,
+                'lot_id' => $lot->id,
                 'start_time' => now()->addHour()->toISOString(),
-                'end_time'   => now()->addHours(3)->toISOString(),
+                'end_time' => now()->addHours(3)->toISOString(),
             ],
         ]);
 
