@@ -5,10 +5,17 @@ namespace App\Providers;
 use App\Events\BookingCancelled;
 use App\Events\BookingCreated;
 use App\Listeners\PushSseBookingEvent;
+use App\Models\Absence;
+use App\Models\Booking;
+use App\Models\ParkingLot;
+use App\Policies\AbsencePolicy;
+use App\Policies\BookingPolicy;
+use App\Policies\ParkingLotPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
@@ -34,6 +41,11 @@ class AppServiceProvider extends ServiceProvider
         // SSE real-time event listeners — push booking events to cache queue
         Event::listen(BookingCreated::class, [PushSseBookingEvent::class, 'handleCreated']);
         Event::listen(BookingCancelled::class, [PushSseBookingEvent::class, 'handleCancelled']);
+
+        // Register model policies
+        Gate::policy(Booking::class, BookingPolicy::class);
+        Gate::policy(ParkingLot::class, ParkingLotPolicy::class);
+        Gate::policy(Absence::class, AbsencePolicy::class);
 
         $this->configureRateLimiting();
     }

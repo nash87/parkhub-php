@@ -46,16 +46,9 @@ class LotController extends Controller
         return ParkingLotResource::collection($lots);
     }
 
-    private function requireAdmin(Request $request): void
-    {
-        if (! $request->user() || ! $request->user()->isAdmin()) {
-            abort(403, 'Admin access required');
-        }
-    }
-
     public function store(Request $request)
     {
-        $this->requireAdmin($request);
+        $this->authorize('create', ParkingLot::class);
         $request->validate(['name' => 'required|string', 'total_slots' => 'sometimes|integer|min:1|max:1000']);
 
         $data = $request->only(['name', 'address', 'total_slots', 'layout', 'status', 'hourly_rate', 'daily_max', 'monthly_pass', 'currency']);
@@ -130,8 +123,8 @@ class LotController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $this->requireAdmin($request);
         $lot = ParkingLot::findOrFail($id);
+        $this->authorize('update', $lot);
         $lot->update($request->only(['name', 'address', 'total_slots', 'layout', 'status', 'hourly_rate', 'daily_max', 'monthly_pass', 'currency']));
 
         return ParkingLotResource::make($lot);
@@ -139,8 +132,9 @@ class LotController extends Controller
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        $this->requireAdmin($request);
-        ParkingLot::findOrFail($id)->delete();
+        $lot = ParkingLot::findOrFail($id);
+        $this->authorize('delete', $lot);
+        $lot->delete();
 
         return response()->json(['message' => 'Deleted']);
     }

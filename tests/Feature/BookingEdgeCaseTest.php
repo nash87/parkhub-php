@@ -115,7 +115,7 @@ class BookingEdgeCaseTest extends TestCase
         $attackerToken = $attacker->createToken('test')->plainTextToken;
         $this->withHeader('Authorization', 'Bearer '.$attackerToken)
             ->deleteJson('/api/v1/bookings/'.$booking->id)
-            ->assertStatus(404);
+            ->assertStatus(403);
 
         // Booking should still be confirmed
         $this->assertDatabaseHas('bookings', [
@@ -199,7 +199,7 @@ class BookingEdgeCaseTest extends TestCase
         $attackerToken = $attacker->createToken('test')->plainTextToken;
         $this->withHeader('Authorization', 'Bearer '.$attackerToken)
             ->postJson('/api/v1/bookings/'.$booking->id.'/checkin')
-            ->assertStatus(404);
+            ->assertStatus(403);
     }
 
     public function test_calendar_ics_export(): void

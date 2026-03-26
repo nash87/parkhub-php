@@ -319,6 +319,6 @@ class BookingTest extends TestCase
         $attackerToken = $attacker->createToken('test')->plainTextToken;
         $this->withHeader('Authorization', 'Bearer '.$attackerToken)
             ->putJson('/api/v1/bookings/'.$booking->id.'/notes', ['notes' => 'Hacked'])
-            ->assertStatus(404); // findOrFail scoped to user_id should return 404
+            ->assertStatus(403);
     }
 }

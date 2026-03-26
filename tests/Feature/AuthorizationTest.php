@@ -51,7 +51,7 @@ class AuthorizationTest extends TestCase
         ]);
 
         $this->actingAs($user2)->deleteJson("/api/bookings/{$booking->id}")
-            ->assertStatus(404);
+            ->assertStatus(403);
     }
 
     public function test_user_cannot_delete_other_users_vehicle(): void

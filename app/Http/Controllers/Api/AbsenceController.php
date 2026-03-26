@@ -47,7 +47,8 @@ class AbsenceController extends Controller
 
     public function update(Request $request, string $id): JsonResponse
     {
-        $absence = Absence::where('user_id', $request->user()->id)->findOrFail($id);
+        $absence = Absence::findOrFail($id);
+        $this->authorize('update', $absence);
 
         $request->merge([
             'absence_type' => $request->input('absence_type', $request->input('type')),
@@ -60,7 +61,9 @@ class AbsenceController extends Controller
 
     public function destroy(Request $request, string $id): JsonResponse
     {
-        Absence::where('user_id', $request->user()->id)->findOrFail($id)->delete();
+        $absence = Absence::findOrFail($id);
+        $this->authorize('delete', $absence);
+        $absence->delete();
 
         return response()->json(['message' => 'Deleted']);
     }

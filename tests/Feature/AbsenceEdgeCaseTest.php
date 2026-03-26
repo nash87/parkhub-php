@@ -92,7 +92,7 @@ class AbsenceEdgeCaseTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer '.$token2)
             ->deleteJson('/api/v1/absences/'.$absence->id)
-            ->assertStatus(404);
+            ->assertStatus(403);
 
         $this->assertDatabaseHas('absences', ['id' => $absence->id]);
     }
@@ -112,7 +112,7 @@ class AbsenceEdgeCaseTest extends TestCase
 
         $this->withHeader('Authorization', 'Bearer '.$token2)
             ->putJson('/api/v1/absences/'.$absence->id, ['absence_type' => 'sick'])
-            ->assertStatus(404);
+            ->assertStatus(403);
     }
 
     public function test_team_absences(): void
