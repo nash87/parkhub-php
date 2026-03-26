@@ -175,7 +175,8 @@ class SSOControllerTest extends TestCase
         $response->assertStatus(404);
     }
 
-    public function test_providers_only_returns_enabled(): void    {
+    public function test_providers_only_returns_enabled(): void
+    {
         $token = $this->adminToken();
 
         // Create enabled
