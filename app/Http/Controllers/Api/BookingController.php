@@ -75,6 +75,17 @@ class BookingController extends Controller
 
         $user = $request->user();
 
+        // Bulk-fetch all settings consumed during booking creation in one query
+        Setting::preload([
+            'max_bookings_per_day',
+            'min_booking_duration_hours',
+            'max_booking_duration_hours',
+            'license_plate_mode',
+            'require_vehicle',
+            'credits_enabled',
+            'credits_per_booking',
+        ]);
+
         // Enforce max advance days (config-based booking policy)
         $maxAdvanceDays = (int) config('parkhub.max_advance_days', 90);
         if ($maxAdvanceDays > 0 && now()->diffInDays($startTime, false) > $maxAdvanceDays && ! $user->isAdmin()) {

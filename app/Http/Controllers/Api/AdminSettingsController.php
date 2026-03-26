@@ -79,6 +79,7 @@ class AdminSettingsController extends Controller
 
     public function getBranding(Request $request): JsonResponse
     {
+        Setting::preload(['company_name', 'brand_primary_color', 'logo_url', 'use_case']);
 
         return response()->json([
             'company_name' => Setting::get('company_name', 'ParkHub'),
@@ -143,6 +144,7 @@ class AdminSettingsController extends Controller
 
     public function getPrivacy(Request $request): JsonResponse
     {
+        Setting::preload(['privacy_policy', 'data_retention_days', 'gdpr_enabled']);
 
         return response()->json([
             'policy_text' => Setting::get('privacy_policy', ''),
@@ -174,6 +176,7 @@ class AdminSettingsController extends Controller
 
     public function getAutoReleaseSettings(Request $request): JsonResponse
     {
+        Setting::preload(['auto_release_enabled', 'auto_release_timeout']);
 
         return response()->json([
             'enabled' => Setting::get('auto_release_enabled', 'false') === 'true',
@@ -196,6 +199,7 @@ class AdminSettingsController extends Controller
 
     public function getEmailSettings(Request $request): JsonResponse
     {
+        Setting::preload(['smtp_host', 'smtp_port', 'smtp_user', 'from_email', 'from_name', 'email_enabled']);
 
         return response()->json([
             'smtp_host' => Setting::get('smtp_host', ''),
@@ -261,6 +265,12 @@ class AdminSettingsController extends Controller
 
     public function getImpress(Request $request)
     {
+        Setting::preload([
+            'impressum_provider_name', 'impressum_legal_form', 'impressum_street',
+            'impressum_zip_city', 'impressum_country', 'impressum_email',
+            'impressum_phone', 'impressum_register_court', 'impressum_register_number',
+            'impressum_vat_id', 'impressum_responsible', 'impressum_custom_text',
+        ]);
 
         return response()->json([
             'provider_name' => Setting::get('impressum_provider_name', ''),
@@ -329,6 +339,13 @@ class AdminSettingsController extends Controller
     // Public Impressum endpoint (no auth — must be accessible to all visitors)
     public function publicImpress()
     {
+        Setting::preload([
+            'impressum_provider_name', 'impressum_legal_form', 'impressum_street',
+            'impressum_zip_city', 'impressum_country', 'impressum_email',
+            'impressum_phone', 'impressum_register_court', 'impressum_register_number',
+            'impressum_vat_id', 'impressum_responsible', 'impressum_custom_text',
+        ]);
+
         return response()->json([
             'provider_name' => Setting::get('impressum_provider_name', ''),
             'provider_legal_form' => Setting::get('impressum_legal_form', ''),
@@ -474,6 +491,7 @@ class AdminSettingsController extends Controller
 
     public static function getPublicTheme()
     {
+        Setting::preload(['use_case', 'company_name']);
         $useCase = Setting::get('use_case', 'company');
         $companyName = Setting::get('company_name', 'ParkHub');
 
