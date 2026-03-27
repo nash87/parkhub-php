@@ -6,7 +6,7 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Frontend build (Astro)
 # ---------------------------------------------------------------------------
-FROM docker.io/library/node:22-slim AS frontend
+FROM docker.io/library/node:25-slim AS frontend
 WORKDIR /app
 COPY parkhub-web/package*.json ./
 RUN npm ci
