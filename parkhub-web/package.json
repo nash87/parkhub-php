@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "build:php": "VITE_API_URL= astro build && cp -r dist/* ../parkhub-php/public/",
+    "build:php": "VITE_API_URL= astro build && cp -r dist/* ../public/",
     "build:rust": "VITE_API_URL= astro build && rm -rf ../parkhub-rust/parkhub-web/dist && cp -r dist ../parkhub-rust/parkhub-web/dist",
     "preview": "astro preview",
     "astro": "astro",
