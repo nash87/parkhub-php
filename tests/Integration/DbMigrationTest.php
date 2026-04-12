@@ -2,6 +2,9 @@
 
 namespace Tests\Integration;
 
+use App\Models\Booking;
+use App\Models\ParkingLot;
+use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -187,7 +190,7 @@ class DbMigrationTest extends IntegrationTestCase
         $slot = $lot->slots()->first();
 
         // Creating a booking with valid user should work
-        $booking = \App\Models\Booking::create([
+        $booking = Booking::create([
             'user_id' => $this->regularUser->id,
             'lot_id' => $lot->id,
             'slot_id' => $slot->id,
@@ -206,14 +209,14 @@ class DbMigrationTest extends IntegrationTestCase
         $slot = $lot->slots()->first();
 
         $this->assertEquals($lot->id, $slot->lot_id);
-        $this->assertInstanceOf(\App\Models\ParkingLot::class, $slot->lot);
+        $this->assertInstanceOf(ParkingLot::class, $slot->lot);
     }
 
     // ── Soft deletes ───────────────────────────────────────────────────────
 
     public function test_users_support_soft_delete(): void
     {
-        $user = \App\Models\User::factory()->create();
+        $user = User::factory()->create();
         $userId = $user->id;
 
         $user->delete();
@@ -222,9 +225,9 @@ class DbMigrationTest extends IntegrationTestCase
         $this->assertSoftDeleted('users', ['id' => $userId]);
 
         // Should not appear in normal queries
-        $this->assertNull(\App\Models\User::find($userId));
+        $this->assertNull(User::find($userId));
 
         // Should appear in withTrashed queries
-        $this->assertNotNull(\App\Models\User::withTrashed()->find($userId));
+        $this->assertNotNull(User::withTrashed()->find($userId));
     }
 }

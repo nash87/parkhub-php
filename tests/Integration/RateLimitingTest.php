@@ -19,7 +19,7 @@ class RateLimitingTest extends IntegrationTestCase
         for ($i = 0; $i < 20; $i++) {
             $response = $this->postJson('/api/v1/auth/login', [
                 'username' => $user->username,
-                'password' => 'WrongPassword' . $i,
+                'password' => 'WrongPassword'.$i,
             ]);
             $responses[] = $response;
 
@@ -113,7 +113,7 @@ class RateLimitingTest extends IntegrationTestCase
         for ($i = 0; $i < 20; $i++) {
             $lastResponse = $this->postJson('/api/v1/auth/login', [
                 'username' => $user->username,
-                'password' => 'wrong' . $i,
+                'password' => 'wrong'.$i,
             ]);
 
             if ($lastResponse->getStatusCode() === 429) {

@@ -2,12 +2,12 @@
 
 namespace Tests\Integration;
 
-use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\ParkingSlot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 abstract class IntegrationTestCase extends TestCase
@@ -50,18 +50,18 @@ abstract class IntegrationTestCase extends TestCase
 
     protected function adminHeaders(): array
     {
-        return ['Authorization' => 'Bearer ' . $this->adminToken];
+        return ['Authorization' => 'Bearer '.$this->adminToken];
     }
 
     protected function userHeaders(): array
     {
-        return ['Authorization' => 'Bearer ' . $this->userToken];
+        return ['Authorization' => 'Bearer '.$this->userToken];
     }
 
     protected function createLotWithSlots(int $slotCount = 10, array $lotOverrides = []): ParkingLot
     {
         $lot = ParkingLot::create(array_merge([
-            'name' => 'Integration Test Lot ' . $this->faker->word(),
+            'name' => 'Integration Test Lot '.$this->faker->word(),
             'total_slots' => $slotCount,
             'available_slots' => $slotCount,
             'status' => 'open',
@@ -78,7 +78,7 @@ abstract class IntegrationTestCase extends TestCase
         return $lot->fresh();
     }
 
-    protected function createBooking(string $token, string $lotId, ?string $slotId = null, array $overrides = []): \Illuminate\Testing\TestResponse
+    protected function createBooking(string $token, string $lotId, ?string $slotId = null, array $overrides = []): TestResponse
     {
         $lot = ParkingLot::find($lotId);
         if (! $slotId && $lot) {
@@ -94,7 +94,7 @@ abstract class IntegrationTestCase extends TestCase
             'booking_type' => 'single',
         ], $overrides);
 
-        return $this->withHeader('Authorization', 'Bearer ' . $token)
+        return $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/bookings', $payload);
     }
 

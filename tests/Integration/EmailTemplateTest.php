@@ -9,9 +9,7 @@ use App\Mail\WaitlistSlotAvailableMail;
 use App\Mail\WelcomeEmail;
 use App\Models\Booking;
 use App\Models\ParkingLot;
-use App\Models\ParkingSlot;
 use App\Models\User;
-use App\Models\WaitlistEntry;
 use Illuminate\Support\Facades\Mail;
 
 class EmailTemplateTest extends IntegrationTestCase
@@ -126,6 +124,7 @@ class EmailTemplateTest extends IntegrationTestCase
 
         Mail::assertSent(BookingReminderMail::class, function (BookingReminderMail $mail) use ($user) {
             $mail->assertTo($user->email);
+
             return true;
         });
     }

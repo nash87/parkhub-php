@@ -6,7 +6,6 @@ use App\Models\Booking;
 use App\Models\ParkingSlot;
 use App\Models\RecurringBooking;
 use App\Models\WaitlistEntry;
-use Illuminate\Support\Collection;
 
 class ConsistencyVerifier
 {

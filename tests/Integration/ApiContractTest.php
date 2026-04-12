@@ -3,9 +3,6 @@
 namespace Tests\Integration;
 
 use App\Models\Booking;
-use App\Models\ParkingLot;
-use App\Models\ParkingSlot;
-use App\Models\User;
 
 class ApiContractTest extends IntegrationTestCase
 {

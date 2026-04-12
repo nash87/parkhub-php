@@ -3,8 +3,6 @@
 namespace Tests\Integration;
 
 use App\Models\Booking;
-use App\Models\ParkingLot;
-use App\Models\ParkingSlot;
 use App\Models\Setting;
 use App\Models\User;
 

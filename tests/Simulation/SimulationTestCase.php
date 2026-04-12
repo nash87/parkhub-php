@@ -64,7 +64,7 @@ abstract class SimulationTestCase extends TestCase
         $failures = $verifier->getFailures();
         $this->assertEmpty(
             $failures,
-            "Consistency check failures:\n" . json_encode($verifier->getDetails(), JSON_PRETTY_PRINT)
+            "Consistency check failures:\n".json_encode($verifier->getDetails(), JSON_PRETTY_PRINT)
         );
 
         // 6. Verify minimum expected counts

@@ -63,7 +63,7 @@ class SimulationReporter
             }, $this->checks, array_keys($this->checks)),
             'meta' => [
                 'backend' => 'parkhub-php',
-                'framework' => 'Laravel ' . app()->version(),
+                'framework' => 'Laravel '.app()->version(),
                 'php_version' => PHP_VERSION,
                 'timestamp' => now()->toIso8601String(),
             ],

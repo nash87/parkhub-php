@@ -3,11 +3,9 @@
 namespace Tests\Simulation;
 
 use App\Models\Booking;
-use App\Models\ParkingSlot;
 use App\Models\RecurringBooking;
-use App\Models\User;
 use App\Models\WaitlistEntry;
-use Illuminate\Support\Str;
+use Carbon\Carbon;
 use Tests\TestCase;
 
 class ApiInjector
@@ -52,7 +50,7 @@ class ApiInjector
         }
     }
 
-    private function simulateDay(\Carbon\Carbon $day, int $dayIndex): void
+    private function simulateDay(Carbon $day, int $dayIndex): void
     {
         $dayOfWeek = (int) $day->format('N');
         $isWeekend = $dayOfWeek >= 6;
@@ -80,7 +78,7 @@ class ApiInjector
         $this->applyCancellations($day);
     }
 
-    private function createSingleBooking(\Carbon\Carbon $day): void
+    private function createSingleBooking(Carbon $day): void
     {
         $user = $this->generator->getRandomUser();
         $lot = $this->generator->getRandomLot();
@@ -125,7 +123,7 @@ class ApiInjector
         }
     }
 
-    private function createRecurringBooking(\Carbon\Carbon $day): void
+    private function createRecurringBooking(Carbon $day): void
     {
         $user = $this->generator->getRandomUser();
         $lot = $this->generator->getRandomLot();
@@ -153,7 +151,7 @@ class ApiInjector
         }
     }
 
-    private function createWaitlistEntry(\Carbon\Carbon $day): void
+    private function createWaitlistEntry(Carbon $day): void
     {
         $user = $this->generator->getRandomUser();
         $lot = $this->generator->getRandomLot();
@@ -172,7 +170,7 @@ class ApiInjector
         }
     }
 
-    private function attemptConflictBooking(\Carbon\Carbon $day): void
+    private function attemptConflictBooking(Carbon $day): void
     {
         // Find an existing booking and try to book the same slot/time
         $existingBooking = Booking::where('status', 'confirmed')
@@ -201,7 +199,7 @@ class ApiInjector
         }
     }
 
-    private function applyCancellations(\Carbon\Carbon $day): void
+    private function applyCancellations(Carbon $day): void
     {
         $dayBookings = Booking::where('status', 'confirmed')
             ->whereDate('start_time', $day)

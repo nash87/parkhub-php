@@ -91,8 +91,8 @@ class DataGenerator
                 $batch[] = [
                     'id' => Str::uuid()->toString(),
                     'name' => "{$firstName} {$lastName}",
-                    'username' => strtolower($firstName) . '_' . substr(Str::uuid()->toString(), 0, 8),
-                    'email' => Str::uuid() . '@sim.parkhub.test',
+                    'username' => strtolower($firstName).'_'.substr(Str::uuid()->toString(), 0, 8),
+                    'email' => Str::uuid().'@sim.parkhub.test',
                     'email_verified_at' => now(),
                     'password' => static::$hashedPassword,
                     'role' => 'user',
@@ -120,7 +120,7 @@ class DataGenerator
 
         for ($l = 0; $l < $this->profile->lotCount; $l++) {
             $lot = ParkingLot::create([
-                'name' => $lotNames[$l % count($lotNames)] . ' #' . ($l + 1),
+                'name' => $lotNames[$l % count($lotNames)].' #'.($l + 1),
                 'total_slots' => $this->profile->slotsPerLot,
                 'available_slots' => $this->profile->slotsPerLot,
                 'status' => 'open',
@@ -207,7 +207,7 @@ class DataGenerator
     {
         $cities = ['B', 'M', 'HH', 'K', 'F', 'S', 'D', 'DO', 'E', 'N', 'DD', 'L', 'HB', 'H', 'KA'];
         $city = $cities[array_rand($cities)];
-        $letters = chr(rand(65, 90)) . chr(rand(65, 90));
+        $letters = chr(rand(65, 90)).chr(rand(65, 90));
         $numbers = rand(100, 9999);
 
         return "{$city}-{$letters} {$numbers}";

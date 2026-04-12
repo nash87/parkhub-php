@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ParkingPass;
+use chillerlan\QRCode\QRCode;
+use chillerlan\QRCode\QROptions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -123,14 +125,14 @@ class ParkingPassController extends Controller
      */
     private function generateQrSvg(string $data): string
     {
-        $options = new \chillerlan\QRCode\QROptions([
-            'outputType' => \chillerlan\QRCode\QRCode::OUTPUT_MARKUP_SVG,
+        $options = new QROptions([
+            'outputType' => QRCode::OUTPUT_MARKUP_SVG,
             'svgViewBoxSize' => 200,
             'addQuietzone' => true,
             'quietzoneSize' => 2,
             'scale' => 5,
         ]);
 
-        return (new \chillerlan\QRCode\QRCode($options))->render($data);
+        return (new QRCode($options))->render($data);
     }
 }

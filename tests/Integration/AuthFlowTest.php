@@ -214,7 +214,7 @@ class AuthFlowTest extends IntegrationTestCase
         for ($i = 0; $i < 15; $i++) {
             $responses[] = $this->postJson('/api/v1/auth/login', [
                 'username' => $user->username,
-                'password' => 'WrongPassword' . $i,
+                'password' => 'WrongPassword'.$i,
             ]);
         }
 
