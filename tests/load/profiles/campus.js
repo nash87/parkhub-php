@@ -1,6 +1,6 @@
-// ParkHub PHP -- Stress Test
-// Push limits: ramp to 100 VUs over 10 minutes, hit all major endpoints
-// Run: k6 run tests/load/stress.js
+// ParkHub PHP -- Campus Profile Load Test
+// 100 VUs, p95<500ms -- multi-lot campus deployment
+// Run: k6 run tests/load/profiles/campus.js
 
 import http from "k6/http";
 import { check, sleep } from "k6";
@@ -13,23 +13,23 @@ import {
   getRandomLotId,
   createBooking,
   cancelBooking,
-} from "./config.js";
+} from "../config.js";
 
 const errorCount = new Counter("errors");
 
 export const options = {
   stages: [
-    { duration: "2m", target: 25 },
-    { duration: "3m", target: 50 },
+    { duration: "1m", target: 20 },
+    { duration: "2m", target: 100 },
     { duration: "3m", target: 100 },
-    { duration: "1m", target: 100 },
+    { duration: "1m", target: 50 },
     { duration: "1m", target: 0 },
   ],
   thresholds: {
-    http_req_duration: ["p(95)<1000", "p(99)<3000"],
-    http_req_failed: ["rate<0.05"],
-    errors: ["count<100"],
-    checks: ["rate>0.95"],
+    http_req_duration: ["p(95)<500", "p(99)<1500"],
+    http_req_failed: ["rate<0.02"],
+    errors: ["count<50"],
+    checks: ["rate>0.98"],
   },
 };
 
@@ -48,24 +48,21 @@ function hitEndpoint(url, headers, name) {
 
 export default function (data) {
   const endpoints = [
-    // Public
     { url: `${BASE_URL}/api/v1/health`, headers: HEADERS, name: "health" },
     {
       url: `${BASE_URL}/api/v1/public/occupancy`,
       headers: HEADERS,
       name: "occupancy",
     },
-
-    // User endpoints
-    {
-      url: `${BASE_URL}/api/v1/bookings`,
-      headers: data.userHeaders,
-      name: "bookings",
-    },
     {
       url: `${BASE_URL}/api/v1/lots`,
       headers: data.userHeaders,
       name: "lots",
+    },
+    {
+      url: `${BASE_URL}/api/v1/bookings`,
+      headers: data.userHeaders,
+      name: "bookings",
     },
     {
       url: `${BASE_URL}/api/v1/me`,
@@ -78,17 +75,15 @@ export default function (data) {
       name: "vehicles",
     },
     {
-      url: `${BASE_URL}/api/v1/absences`,
-      headers: data.userHeaders,
-      name: "absences",
-    },
-    {
       url: `${BASE_URL}/api/v1/team`,
       headers: data.userHeaders,
       name: "team",
     },
-
-    // Admin endpoints
+    {
+      url: `${BASE_URL}/api/v1/absences`,
+      headers: data.userHeaders,
+      name: "absences",
+    },
     {
       url: `${BASE_URL}/api/v1/admin/users`,
       headers: data.adminHeaders,
@@ -99,22 +94,31 @@ export default function (data) {
       headers: data.adminHeaders,
       name: "admin-bookings",
     },
-    {
-      url: `${BASE_URL}/api/v1/admin/audit-log`,
-      headers: data.adminHeaders,
-      name: "admin-audit",
-    },
   ];
 
-  // Hit 3-5 random endpoints per iteration
-  const count = 3 + Math.floor(Math.random() * 3);
+  // Hit 4-6 random endpoints per iteration
+  const count = 4 + Math.floor(Math.random() * 3);
   for (let i = 0; i < count; i++) {
     const ep = endpoints[Math.floor(Math.random() * endpoints.length)];
     hitEndpoint(ep.url, ep.headers, ep.name);
-    sleep(0.1);
+    sleep(0.05);
   }
 
-  // Occasionally do a full booking lifecycle
+  // Login flow (50% of iterations)
+  if (Math.random() < 0.5) {
+    const loginRes = http.post(
+      `${BASE_URL}/api/v1/auth/login`,
+      JSON.stringify({
+        email: CREDENTIALS.user.email,
+        username: CREDENTIALS.user.email.split("@")[0],
+        password: CREDENTIALS.user.password,
+      }),
+      { headers: HEADERS }
+    );
+    check(loginRes, { "login ok": (r) => r.status === 200 });
+  }
+
+  // Booking lifecycle (20% of iterations)
   if (Math.random() < 0.2) {
     const lotId = getRandomLotId(http, data.userHeaders);
     if (lotId) {
@@ -125,5 +129,5 @@ export default function (data) {
     }
   }
 
-  sleep(0.3);
+  sleep(0.2);
 }
