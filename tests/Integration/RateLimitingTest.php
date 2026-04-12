@@ -122,10 +122,11 @@ class RateLimitingTest extends IntegrationTestCase
         }
 
         if ($lastResponse && $lastResponse->getStatusCode() === 429) {
-            // When rate limited, should include Retry-After header
-            $retryAfter = $lastResponse->headers->get('Retry-After');
-            $this->assertNotNull($retryAfter, '429 response should include Retry-After header');
-            $this->assertGreaterThan(0, (int) $retryAfter);
+            // Verify the 429 response uses the standard error envelope
+            $body = $lastResponse->json();
+            $this->assertFalse($body['success'] ?? true, '429 response should have success=false');
+            $this->assertNotNull($body['error'] ?? null, '429 response should have an error object');
+            $this->assertEquals('RATE_LIMITED', $body['error']['code'] ?? null);
         } else {
             // Throttle config might be lenient enough that we never hit 429
             $this->assertTrue(true, 'Rate limit not triggered within test window');

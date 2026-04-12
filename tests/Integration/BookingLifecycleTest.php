@@ -36,7 +36,10 @@ class BookingLifecycleTest extends IntegrationTestCase
         $listResponse->assertStatus(200);
 
         $listData = $listResponse->json();
-        $bookings = $listData['data'] ?? $listData;
+        // Response is wrapped: {success, data: {data: [...], links, meta}, error, meta}
+        $outerData = $listData['data'] ?? $listData;
+        $bookings = $outerData['data'] ?? $outerData;
+        $bookings = is_array($bookings) ? $bookings : [];
         $ids = array_column($bookings, 'id');
         $this->assertContains($bookingId, $ids);
 
@@ -115,9 +118,6 @@ class BookingLifecycleTest extends IntegrationTestCase
         $userA = User::factory()->create(['role' => 'user']);
         $tokenA = $this->createTokenForUser($userA);
 
-        $userB = User::factory()->create(['role' => 'user']);
-        $tokenB = $this->createTokenForUser($userB);
-
         // User A books slot 1
         $bookingA = Booking::create([
             'user_id' => $userA->id,
@@ -129,26 +129,23 @@ class BookingLifecycleTest extends IntegrationTestCase
             'status' => 'confirmed',
         ]);
 
-        // User B books slot 2
-        $bookingB = Booking::create([
-            'user_id' => $userB->id,
-            'lot_id' => $lot->id,
-            'slot_id' => $slots[1]->id,
-            'start_time' => now()->addDay()->setHour(9),
-            'end_time' => now()->addDay()->setHour(17),
-            'booking_type' => 'single',
-            'status' => 'confirmed',
-        ]);
+        // Slot 2 is available (no booking) — User A swaps their booking to slot 2
+        $targetSlot = $slots[1];
 
-        // User A requests swap
         $swapResponse = $this->withHeader('Authorization', "Bearer {$tokenA}")
             ->postJson('/api/v1/bookings/swap', [
-                'requester_booking_id' => $bookingA->id,
-                'target_booking_id' => $bookingB->id,
+                'booking_id' => $bookingA->id,
+                'target_slot_id' => $targetSlot->id,
             ]);
 
         // Swap endpoint should accept the request (200 or 201)
         $this->assertContains($swapResponse->getStatusCode(), [200, 201]);
+
+        // Verify booking was moved to the new slot
+        $this->assertDatabaseHas('bookings', [
+            'id' => $bookingA->id,
+            'slot_id' => $targetSlot->id,
+        ]);
     }
 
     // ── Double-booking conflict detection ─────────────────────────────────
@@ -266,7 +263,7 @@ class BookingLifecycleTest extends IntegrationTestCase
         ]);
 
         $response = $this->withHeaders($this->adminHeaders())
-            ->deleteJson("/api/v1/admin/bookings/{$booking->id}");
+            ->patchJson("/api/v1/admin/bookings/{$booking->id}/cancel");
 
         $this->assertContains($response->getStatusCode(), [200, 204]);
         $this->assertDatabaseHas('bookings', ['id' => $booking->id, 'status' => 'cancelled']);

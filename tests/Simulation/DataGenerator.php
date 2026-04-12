@@ -91,7 +91,7 @@ class DataGenerator
                 $batch[] = [
                     'id' => Str::uuid()->toString(),
                     'name' => "{$firstName} {$lastName}",
-                    'username' => strtolower($firstName) . rand(100, 9999),
+                    'username' => strtolower($firstName) . '_' . substr(Str::uuid()->toString(), 0, 8),
                     'email' => Str::uuid() . '@sim.parkhub.test',
                     'email_verified_at' => now(),
                     'password' => static::$hashedPassword,

@@ -71,9 +71,13 @@ class ApiContractTest extends IntegrationTestCase
 
         $response->assertStatus(422);
         $body = $response->json();
-        $this->assertArrayHasKey('message', $body);
-        $this->assertArrayHasKey('errors', $body);
-        $this->assertIsArray($body['errors']);
+
+        // The API wraps errors: {success, data, error: {code, message}, meta}
+        $this->assertArrayHasKey('success', $body);
+        $this->assertFalse($body['success']);
+        $this->assertArrayHasKey('error', $body);
+        $this->assertIsArray($body['error']);
+        $this->assertArrayHasKey('message', $body['error']);
     }
 
     public function test_not_found_returns_404_with_message(): void
