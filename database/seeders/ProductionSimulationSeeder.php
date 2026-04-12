@@ -728,7 +728,7 @@ class ProductionSimulationSeeder extends Seeder
             ['action' => 'lot_updated', 'details' => ['lot' => 'P+R Hauptbahnhof']],
         ];
 
-        $ips = ['192.168.1.10', '192.168.1.22', '10.0.0.45', '172.16.0.100', '192.168.178.50'];
+        $ips = ['192.168.1.10', '192.168.1.22', '10.0.0.45', '172.16.0.100', '192.168.1.50'];
 
         $logs = [];
         // 200 audit log entries over the last 30 days

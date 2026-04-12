@@ -44,3 +44,8 @@ resources/js/src.bak/
 playwright-report/
 test-results/
 blob-report/
+
+# Local dev tooling (not for public repo)
+.aoe/
+.forge-operator/
+.fop/
