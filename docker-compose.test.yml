@@ -1,0 +1,97 @@
+# Test pipeline: build app, run integration + E2E + simulation
+# Usage: docker compose -f docker-compose.test.yml up --build --abort-on-container-exit
+services:
+  app:
+    build: .
+    container_name: parkhub-php-test
+    ports:
+      - "8082:10000"
+    environment:
+      - APP_NAME=ParkHub
+      - APP_ENV=testing
+      - APP_DEBUG=true
+      - APP_KEY=base64:dGVzdC1rZXktZm9yLWNpLXBpcGVsaW5l
+      - APP_URL=http://localhost:8082
+      - PORT=10000
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/database/database.sqlite
+      - SESSION_DRIVER=array
+      - CACHE_STORE=array
+      - QUEUE_CONNECTION=sync
+      - DEMO_MODE=true
+      - PARKHUB_ADMIN_EMAIL=admin@parkhub.test
+      - PARKHUB_ADMIN_PASSWORD=TestAdmin123!
+    volumes:
+      - test-storage:/var/www/html/storage
+    networks:
+      - test-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:10000/api/v1/health/live"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+      start_period: 45s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  test-runner:
+    image: node:22-slim
+    container_name: parkhub-php-test-runner
+    working_dir: /app
+    volumes:
+      - .:/app:ro
+      - test-results:/app/playwright-report
+    environment:
+      - E2E_BASE_URL=http://app:10000
+      - CI=true
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - test-net
+    command: >
+      sh -c "
+        npm ci &&
+        npx playwright install --with-deps chromium &&
+        echo '=== Running E2E smoke ===' &&
+        npx playwright test e2e/api.spec.ts e2e/pages.spec.ts --project=chromium &&
+        echo '=== Running E2E a11y ===' &&
+        npx playwright test e2e/a11y.spec.ts --project=chromium &&
+        echo '=== All E2E tests passed ==='
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  k6:
+    image: grafana/k6:latest
+    container_name: parkhub-php-k6
+    volumes:
+      - ./tests/load:/scripts:ro
+    environment:
+      - K6_BASE_URL=http://app:10000
+      - ADMIN_EMAIL=admin@parkhub.test
+      - ADMIN_PASSWORD=TestAdmin123!
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - test-net
+    command: run /scripts/smoke.js
+    profiles:
+      - load-test
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+networks:
+  test-net:
+    driver: bridge
+
+volumes:
+  test-storage:
+  test-results:

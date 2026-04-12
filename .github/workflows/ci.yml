@@ -265,6 +265,46 @@ jobs:
           cache-from: type=gha,scope=ci-docker
           cache-to: type=gha,scope=ci-docker,mode=max
 
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: actions/cache@v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Bootstrap Laravel
+        run: ./scripts/ci/bootstrap-laravel.sh
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+      - name: Run integration tests
+        run: php artisan test --testsuite=Integration
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
   static-analysis:
     name: Static analysis (PHPStan)
     runs-on: ubuntu-latest
@@ -307,6 +347,7 @@ jobs:
       - e2e-smoke
       - docker-validate
       - static-analysis
+      - integration
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
@@ -320,6 +361,7 @@ jobs:
           E2E_SMOKE: ${{ needs.e2e-smoke.result }}
           DOCKER_VALIDATE: ${{ needs.docker-validate.result }}
           STATIC_ANALYSIS: ${{ needs.static-analysis.result }}
+          INTEGRATION: ${{ needs.integration.result }}
         run: |
           for check in BACKEND_TESTS DOCKER_VALIDATE; do
             if [[ "${!check}" != "success" ]]; then
@@ -327,7 +369,7 @@ jobs:
               exit 1
             fi
           done
-          for check in WORKFLOW_HYGIENE BACKEND_QUALITY FRONTEND E2E_SMOKE STATIC_ANALYSIS; do
+          for check in WORKFLOW_HYGIENE BACKEND_QUALITY FRONTEND E2E_SMOKE STATIC_ANALYSIS INTEGRATION; do
             if [[ "${!check}" != "success" ]]; then
               echo "ADVISORY: ${check}: ${!check}"
             fi
