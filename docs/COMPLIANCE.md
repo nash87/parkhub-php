@@ -1,6 +1,6 @@
 # Legal Compliance Matrix — ParkHub PHP
 
-> **Version:** 3.2.0 | **Last updated:** 2026-03-22
+> **Version:** 3.3.0 | **Last updated:** 2026-04-12
 
 This document maps ParkHub PHP features to legal requirements across German, EU, and
 international data protection regulations. It is intended for operators evaluating ParkHub

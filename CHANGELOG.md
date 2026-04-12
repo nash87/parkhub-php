@@ -50,7 +50,7 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [4.3.0] - 2026-03-24
+## [4.3.0] - 2026-03-23
 
 ### Added
 - **RBAC (Role-Based Access Control)** (`MODULE_RBAC=true`)
