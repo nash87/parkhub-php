@@ -350,7 +350,7 @@ Eloquent models are transformed via Laravel API Resources before serialization:
 
 | Type          | Count | Framework | Location                        |
 |--------------|-------|-----------|---------------------------------|
-| Feature tests | 461   | PHPUnit   | `tests/Feature/*.php` (46 files) |
+| Feature tests | 500+  | PHPUnit   | `tests/Feature/*.php` (46 files) |
 | Unit tests    | 1     | PHPUnit   | `tests/Unit/ExampleTest.php`     |
 
 Feature tests cover the full HTTP surface: auth flows, booking CRUD, admin
@@ -364,6 +364,62 @@ Run with: `php artisan test` or `composer test`
 |--------------|-------|------------------|------------------------------|
 | Unit/component| 32    | Vitest + Testing Library | `src/**/*.test.{ts,tsx}` |
 | E2E           | 14    | Playwright       | `e2e/*.spec.ts`              |
+
+### Integration Tests
+
+10 integration test suites covering cross-module interactions:
+- Auth flow end-to-end (login, refresh, session management)
+- Booking lifecycle (create, modify, cancel, check-in, check-out)
+- Admin CRUD operations (lots, slots, zones, announcements)
+- Concurrent booking conflict detection
+- Credit system integration (deduction, refill, history)
+- Notification delivery pipeline
+- Webhook delivery and retry logic
+- GDPR data export and erasure
+- Module toggle validation (enabled/disabled states)
+- Security boundary enforcement (RBAC, rate limiting)
+
+### Simulation Engine
+
+A 1-month booking cycle simulation engine with 3 configurable profiles:
+
+| Profile | VUs | Duration | Scenario |
+|---------|-----|----------|----------|
+| Small office | 10 | 30 days | Single lot, standard hours |
+| Campus | 50 | 30 days | Multiple lots, recurring bookings, guest passes |
+| Enterprise | 200 | 30 days | Multi-tenant, dynamic pricing, high concurrency |
+
+The simulation creates realistic booking patterns including peak hours, cancellations,
+no-shows, and waitlist activity. Run via `php artisan test --filter=Simulation` or the
+E2E full-workflow spec.
+
+### Load Testing
+
+Performance testing scripts with [k6](https://grafana.com/docs/k6/) live in `tests/load/`:
+
+| Script | Profile | Description |
+|--------|---------|-------------|
+| `smoke.js` | 1 VU, 30s | Quick sanity check |
+| `load.js` | 50 VUs, 5min | Sustained load baseline |
+| `stress.js` | 100 VUs, 10min | All endpoints stress test |
+| `spike.js` | 1 -> 200 -> 1 VUs | Sudden surge test |
+
+### Test Pyramid
+
+```
+           +----------+
+           |  29 E2E  |  Playwright (browser + API)
+           |  specs   |
+          ++---------++
+          |  10 Integ. |  Cross-module API tests
+          |  suites    |
+         ++-----------++
+         |  ~500 Unit   |  PHPUnit + Vitest
+         |  tests       |
+        ++--------------+
+        |  k6 Load Tests |  smoke / load / stress / spike
+        +----------------+
+```
 
 ## Deployment
 

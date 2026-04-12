@@ -98,6 +98,66 @@ npx playwright test                 # All E2E tests
 npx playwright test --project=chromium  # Chromium only
 ```
 
+### Integration Tests
+
+Integration tests exercise cross-module interactions and full API lifecycles:
+
+```bash
+# Run all integration tests
+php artisan test --filter=Integration
+
+# Run the 1-month booking simulation
+php artisan test --filter=Simulation
+```
+
+### Running the Simulation Engine
+
+The booking simulation creates realistic 30-day booking patterns with configurable profiles:
+
+```bash
+# Default profile (small office, 10 users)
+php artisan test --filter=SimulationSmall
+
+# Campus profile (50 users, multi-lot)
+php artisan test --filter=SimulationCampus
+
+# Enterprise profile (200 users, multi-tenant)
+php artisan test --filter=SimulationEnterprise
+```
+
+### Running k6 Load Tests
+
+Performance testing with [k6](https://grafana.com/docs/k6/):
+
+```bash
+# Install k6
+brew install k6  # macOS
+# or: https://grafana.com/docs/k6/latest/set-up/install-k6/
+
+# Run smoke test (quick sanity check)
+k6 run tests/load/smoke.js
+
+# Run sustained load test (50 VUs, 5 minutes)
+k6 run tests/load/load.js
+
+# Run stress test (100 VUs, 10 minutes)
+k6 run tests/load/stress.js
+
+# Run spike test (1 → 200 → 1 VUs)
+k6 run tests/load/spike.js
+
+# Custom base URL
+K6_BASE_URL=http://localhost:8000 k6 run tests/load/load.js
+```
+
+### Running with Docker Compose Test Profile
+
+```bash
+docker compose -f docker-compose.yml -f test.yml up -d
+php artisan test
+docker compose -f docker-compose.yml -f test.yml down
+```
+
 ### Full Test Suite
 
 ```bash
