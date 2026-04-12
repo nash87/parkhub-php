@@ -22,23 +22,27 @@ test.describe('API — Public Endpoints', () => {
 
 test.describe('API — Auth Flow', () => {
   test('POST /api/v1/auth/login with valid creds → 200 + token', async ({ request }) => {
-    const res = await request.post('/api/v1/auth/login', { data: DEMO_ADMIN });
+    const res = await request.post('/api/v1/auth/login', {
+      data: { username: DEMO_ADMIN.email, password: DEMO_ADMIN.password },
+    });
     expect(res.status()).toBe(200);
 
     const body = await res.json();
-    const token = body.data?.token ?? body.token;
+    const token = body.data?.token ?? body.data?.tokens?.access_token ?? body.token;
     expect(token).toBeTruthy();
   });
 
   test('POST /api/v1/auth/login with bad creds → 401', async ({ request }) => {
     const res = await request.post('/api/v1/auth/login', {
-      data: { email: 'wrong@test.com', password: 'wrong' },
+      data: { username: 'wrong@test.com', password: 'wrong' },
     });
     expect(res.status()).toBe(401);
   });
 
   test('POST /api/v1/auth/login returns application/json', async ({ request }) => {
-    const res = await request.post('/api/v1/auth/login', { data: DEMO_ADMIN });
+    const res = await request.post('/api/v1/auth/login', {
+      data: { username: DEMO_ADMIN.email, password: DEMO_ADMIN.password },
+    });
     const ct = res.headers()['content-type'] ?? '';
     expect(ct).toContain('application/json');
   });
