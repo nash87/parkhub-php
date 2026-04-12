@@ -9,10 +9,10 @@ export const DEMO_ADMIN = {
 /** Authenticate via API and return the JWT/Sanctum token. */
 export async function loginViaApi(request: APIRequestContext): Promise<string> {
   const res = await request.post('/api/v1/auth/login', {
-    data: DEMO_ADMIN,
+    data: { username: DEMO_ADMIN.email, password: DEMO_ADMIN.password },
   });
   const body = await res.json();
-  return body.data?.token ?? body.token ?? '';
+  return body.data?.token ?? body.data?.tokens?.access_token ?? body.token ?? '';
 }
 
 /** Log in through the UI login form. */
