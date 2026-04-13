@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml"><img src="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v4.8.0-brightgreen.svg?style=flat-square" alt="v4.8.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v4.9.0-brightgreen.svg?style=flat-square" alt="v4.9.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="MIT License"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg?style=flat-square&logo=php&logoColor=white" alt="PHP 8.4"></a>
   <a href="https://laravel.com/"><img src="https://img.shields.io/badge/Laravel-12-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 12"></a>
@@ -38,19 +38,18 @@
 
 ---
 
-## What's New in v4.8.0
+## What's New in v4.9.0
 
 | Feature | Description |
 |---------|-------------|
-| **QR Check-In/Out** | Scan QR code at entrance, live elapsed timer, manual checkout |
-| **Swap Requests** | Trade parking spots between colleagues — offer, accept, decline |
-| **Guest Parking Pass** | Generate shareable QR passes for visitors with unique guest codes |
-| **Occupancy Heatmap** | 7x24 grid visualization of lot usage patterns (admin) |
-| **12 Design Themes** | Classic, Glass, Bento, Brutalist, Neon, Warm, Liquid, Mono, Ocean, Forest, Synthwave, Zen |
-| **Container Queries** | Self-responsive components that adapt to container, not viewport |
-| **Scroll Animations** | CSS scroll-driven reveal animations (zero JavaScript) |
-| **SEO Ready** | Open Graph, Twitter Card, JSON-LD structured data |
-| **10 Languages** | EN, DE, FR, ES, IT, PT, TR, PL, JA, ZH — 100% coverage |
+| **API Resilience** | Exponential backoff retry, GET deduplication, AbortController support |
+| **React 19 `useOptimistic`** | Instant UI feedback with auto-revert on failure |
+| **SW Update Prompt** | User-controlled service worker update with toast notification |
+| **Security Headers** | CSP, Permissions-Policy, HSTS middleware |
+| **ARIA Accessibility** | CommandPalette: WAI-ARIA 1.2 combobox; DataTable: proper table roles |
+| **WebSocket Heartbeat** | 30s ping detection, retry cap, manual reconnect |
+| **TypeScript Strict** | `noUncheckedIndexedAccess` + `noFallthroughCasesInSwitch` |
+| **822 Vitest** | 10 new tests, coverage thresholds enforced |
 
 ---
 

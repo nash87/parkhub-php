@@ -27,7 +27,7 @@ class SecurityHeadersTest extends TestCase
         $this->assertNotNull($permissionsPolicy);
         $this->assertStringContainsString('camera=()', $permissionsPolicy);
         $this->assertStringContainsString('microphone=()', $permissionsPolicy);
-        $this->assertStringContainsString('geolocation=()', $permissionsPolicy);
+        $this->assertStringContainsString('geolocation=(self)', $permissionsPolicy);
         $this->assertStringContainsString('payment=()', $permissionsPolicy);
         $this->assertStringContainsString('interest-cohort=()', $permissionsPolicy);
     }

@@ -1,9 +1,35 @@
 # Changelog
 
-All notable changes to ParkHub Rust are documented here.
+All notable changes to ParkHub PHP are documented here.
 
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
+
+---
+
+## [4.9.0] - 2026-04-13
+
+### Added
+- **API Client Resilience**: Exponential backoff retry for transient errors (502/503/504/429), GET request deduplication, AbortController support
+- **Service Worker Update Prompt**: User-controlled update flow with toast notification instead of auto-`skipWaiting()`
+- **CSP Meta Tag**: Content-Security-Policy for static deployments
+- **Security Headers Middleware**: CSP, Permissions-Policy, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
+- **React 19 `useOptimistic`**: Notifications view uses `useOptimistic` + `useTransition` for instant read toggle
+- **CommandPalette ARIA**: Full WAI-ARIA 1.2 combobox pattern with keyboard navigation
+- **WebSocket Heartbeat**: 30s ping, max retry cap (10), manual reconnect
+- **ErrorBoundary Event**: `app:error` custom event for external monitoring integration
+- **Vitest Coverage Thresholds**: Enforced minimums with `json-summary` reporter
+- 10 new Vitest tests (822 total)
+
+### Changed
+- TypeScript: `noUncheckedIndexedAccess` + `noFallthroughCasesInSwitch`
+- DataTable: proper ARIA table roles for screen readers
+- Updated deps: React 19.2.5, Astro 6.1.5, Vitest 4.1.4
+
+### Fixed
+- Framer Motion `layoutId` prop leaking to DOM in test mocks
+- Service Worker auto-`skipWaiting()` causing mid-session reloads
+- CHANGELOG incorrectly said "ParkHub Rust" instead of "ParkHub PHP"
 
 ---
 

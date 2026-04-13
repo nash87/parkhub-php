@@ -39,17 +39,19 @@ class SecurityHeaders
         $response->headers->set('X-XSS-Protection', '1; mode=block');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-        // --- Permissions-Policy: deny everything the SPA doesn't need ---
+        // --- Permissions-Policy: restrict browser features ---
         $response->headers->set('Permissions-Policy', implode(', ', [
             'accelerometer=()',
             'camera=()',
-            'geolocation=()',
+            'geolocation=(self)',   // needed for geofence check-in
             'gyroscope=()',
             'magnetometer=()',
             'microphone=()',
             'payment=()',
             'usb=()',
-            'interest-cohort=()',  // block FLoC/Topics
+            'bluetooth=()',
+            'serial=()',
+            'interest-cohort=()',   // block FLoC/Topics
         ]));
 
         // --- HSTS: opt-in via APP_HSTS=true (default off for local dev) ---
@@ -88,14 +90,14 @@ class SecurityHeaders
         $directives = [
             // Only allow resources from same origin by default
             "default-src 'self'",
-            // Scripts: self only (no inline — the SPA is bundled)
-            "script-src 'self'",
-            // Styles: self + nonce for Vite-injected critical CSS (no unsafe-inline)
-            "style-src 'self' 'nonce-{$nonce}'",
-            // Images: self, data URIs (base64 avatars), and HTTPS sources
-            "img-src 'self' data: https:",
-            // Fonts: self + Bunny Fonts CDN
-            "font-src 'self' https://fonts.bunny.net",
+            // Scripts: self + unsafe-inline for Astro hydration scripts
+            "script-src 'self' 'unsafe-inline'",
+            // Styles: self + unsafe-inline for Tailwind + framer-motion inline styles
+            "style-src 'self' 'unsafe-inline'",
+            // Images: self, data URIs (base64 avatars/QR), blob URIs
+            "img-src 'self' data: blob:",
+            // Fonts: self + data URIs + Bunny Fonts CDN
+            "font-src 'self' data: https://fonts.bunny.net",
             // API connections: self + configured app URL + Vite HMR websocket in dev
             "connect-src 'self' {$appUrl}".($this->isDev() ? ' ws://localhost:5173 ws://127.0.0.1:5173' : ''),
             // No iframes allowed
