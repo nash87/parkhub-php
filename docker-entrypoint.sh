@@ -84,4 +84,9 @@ php artisan route:cache --no-interaction 2>&1 || true
 # Render free tier doesn't support separate worker processes
 (while true; do php artisan schedule:run --no-interaction >> storage/logs/scheduler.log 2>&1; sleep 60; done) &
 
-exec "$@"
+# Drop root privileges — run the final process as www-data.
+# All setup above (chown, Apache config, artisan commands) requires root;
+# gosu ensures the runtime process (apache2-foreground) starts unprivileged.
+# Ensure Apache runtime dirs are writable by www-data when running unprivileged.
+chown -R www-data:www-data /var/run/apache2 /var/lock/apache2 /var/log/apache2 2>/dev/null || true
+exec gosu www-data "$@"
