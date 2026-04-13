@@ -1,0 +1,28 @@
+# ParkHub Code Owners
+# These owners are automatically requested for review on PRs.
+
+# Default owner for everything
+* @nash87
+
+# Backend (Laravel/PHP)
+/app/ @nash87
+/routes/ @nash87
+/database/ @nash87
+/config/ @nash87
+
+# Frontend (React/Astro)
+/parkhub-web/ @nash87
+
+# CI/CD & Infrastructure
+/.github/ @nash87
+/helm/ @nash87
+/Dockerfile @nash87
+/docker-compose*.yml @nash87
+
+# Documentation
+/*.md @nash87
+/docs/ @nash87
+
+# Tests
+/tests/ @nash87
+/e2e/ @nash87
