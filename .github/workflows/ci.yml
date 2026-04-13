@@ -215,7 +215,7 @@ jobs:
           RUN_STORAGE_LINK: '1'
         run: |
           ./scripts/ci/bootstrap-laravel.sh
-          php artisan migrate:fresh --seed --force
+          php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
 
           php artisan serve --host=127.0.0.1 --port=8082 > /tmp/parkhub-e2e.log 2>&1 &
           server_pid=$!
