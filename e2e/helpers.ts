@@ -19,7 +19,8 @@ export async function loginViaApi(request: APIRequestContext): Promise<string> {
 export async function loginViaUi(page: Page): Promise<void> {
   await page.goto('/login');
   await page.getByLabel(/email/i).fill(DEMO_ADMIN.email);
-  await page.locator('input[type="password"], input[name="password"]').first().fill(DEMO_ADMIN.password);
+  // Use placeholder text to find the password field (avoids resolving to "Show password" button)
+  await page.getByPlaceholder(/demo|password/i).first().fill(DEMO_ADMIN.password);
   await page.getByRole('button', { name: /sign in|log in|login/i }).click();
   // Wait for redirect away from login page
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10_000 });
