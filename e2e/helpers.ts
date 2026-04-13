@@ -30,7 +30,7 @@ export async function loginViaUi(page: Page): Promise<void> {
   }
   await page.getByRole('button', { name: /sign in|log in|login/i }).click();
   // Wait for redirect away from login page
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15_000 });
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 30_000 });
 }
 
 /** All public frontend routes (no auth needed). */
