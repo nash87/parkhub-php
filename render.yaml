@@ -6,6 +6,7 @@ services:
     # Image is built by GitHub Actions (.github/workflows/docker-publish.yml) on every push
     image:
       url: ghcr.io/nash87/parkhub-php:latest
+    port: 10000
     plan: free
     envVars:
       - key: APP_ENV
