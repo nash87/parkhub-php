@@ -7,6 +7,31 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [4.8.0] - 2026-04-13
+
+### Added
+- **QR Check-In/Out**: Scan QR code to check in at parking lot, live elapsed timer, auto-checkout
+- **Swap Requests**: Offer and accept parking spot trades between colleagues
+- **Guest Parking Pass**: Generate shareable QR passes for visitors with unique guest codes
+- **Occupancy Heatmap**: 7x24 grid visualization of lot usage patterns (admin)
+- **DESIGN.md**: Comprehensive AI-readable design system specification
+- **SEO**: Open Graph, Twitter Card meta tags, JSON-LD structured data
+- **CODEOWNERS**: Automated code review routing
+- **X-RateLimit headers**: Limit/Remaining/Retry-After on all API responses
+- Container queries and scroll-driven animations (CSS 2026)
+- Visual regression baselines (login, register, welcome)
+- 34 new Vitest tests (783 total), 4 new E2E specs (111 total)
+
+### Changed
+- i18n: 160+ untranslated strings filled across all 9 non-EN locales
+- CI: Use ProductionSimulationSeeder for E2E smoke tests
+- Typography: text-wrap balance/pretty, Inter var font optimization
+
+### Fixed
+- nav.favorites missing i18n key in sidebar
+
+---
+
 ## [4.7.0] - 2026-04-12
 
 ### Added
