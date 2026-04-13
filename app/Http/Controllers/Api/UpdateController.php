@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Process;
 
 /**
@@ -29,9 +29,9 @@ class UpdateController extends Controller
             $response = Http::withHeaders([
                 'User-Agent' => 'ParkHub-PHP',
                 'Accept' => 'application/vnd.github.v3+json',
-            ])->get("https://api.github.com/repos/" . self::GITHUB_REPO . "/releases/latest");
+            ])->get('https://api.github.com/repos/'.self::GITHUB_REPO.'/releases/latest');
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return response()->json([
                     'success' => false,
                     'error' => ['code' => 'UPSTREAM_ERROR', 'message' => 'GitHub API error'],
@@ -73,10 +73,10 @@ class UpdateController extends Controller
             $gitResult = Process::path(base_path())
                 ->run(['git', 'pull', 'origin', 'main']);
 
-            if (!$gitResult->successful()) {
+            if (! $gitResult->successful()) {
                 return response()->json([
                     'success' => false,
-                    'error' => ['code' => 'GIT_ERROR', 'message' => 'git pull failed: ' . $gitResult->errorOutput()],
+                    'error' => ['code' => 'GIT_ERROR', 'message' => 'git pull failed: '.$gitResult->errorOutput()],
                 ], 500);
             }
 
@@ -136,13 +136,13 @@ class UpdateController extends Controller
             $response = Http::withHeaders([
                 'User-Agent' => 'ParkHub-PHP',
                 'Accept' => 'application/vnd.github.v3+json',
-            ])->get("https://api.github.com/repos/" . self::GITHUB_REPO . "/releases?per_page=20");
+            ])->get('https://api.github.com/repos/'.self::GITHUB_REPO.'/releases?per_page=20');
 
-            if (!$response->successful()) {
+            if (! $response->successful()) {
                 return response()->json(['success' => true, 'data' => []]);
             }
 
-            $releases = collect($response->json())->map(fn($r) => [
+            $releases = collect($response->json())->map(fn ($r) => [
                 'version' => ltrim($r['tag_name'] ?? '', 'v'),
                 'tag' => $r['tag_name'] ?? '',
                 'name' => $r['name'] ?? '',
@@ -165,7 +165,7 @@ class UpdateController extends Controller
     public function rollback(Request $request): JsonResponse
     {
         $version = $request->input('version');
-        if (!$version) {
+        if (! $version) {
             return response()->json([
                 'success' => false,
                 'error' => ['code' => 'MISSING_VERSION', 'message' => 'Version is required'],
@@ -177,10 +177,10 @@ class UpdateController extends Controller
             $result = Process::path(base_path())
                 ->run(['git', 'checkout', "v{$version}"]);
 
-            if (!$result->successful()) {
+            if (! $result->successful()) {
                 return response()->json([
                     'success' => false,
-                    'error' => ['code' => 'GIT_ERROR', 'message' => 'Rollback failed: ' . $result->errorOutput()],
+                    'error' => ['code' => 'GIT_ERROR', 'message' => 'Rollback failed: '.$result->errorOutput()],
                 ], 500);
             }
 

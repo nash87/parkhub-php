@@ -18,12 +18,19 @@ export async function loginViaApi(request: APIRequestContext): Promise<string> {
 /** Log in through the UI login form. */
 export async function loginViaUi(page: Page): Promise<void> {
   await page.goto('/login');
-  await page.getByLabel(/email/i).fill(DEMO_ADMIN.email);
-  // Use placeholder text to find the password field (avoids resolving to "Show password" button)
-  await page.getByPlaceholder(/demo|password/i).first().fill(DEMO_ADMIN.password);
+  // Click demo credentials button to auto-fill email + password
+  const demoBtn = page.getByRole('button', { name: /demo/i });
+  if (await demoBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await demoBtn.click();
+    await page.waitForTimeout(500);
+  } else {
+    // Fallback: fill manually
+    await page.getByLabel(/email/i).fill(DEMO_ADMIN.email);
+    await page.locator('input[type="password"]').first().fill(DEMO_ADMIN.password);
+  }
   await page.getByRole('button', { name: /sign in|log in|login/i }).click();
   // Wait for redirect away from login page
-  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 10_000 });
+  await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 15_000 });
 }
 
 /** All public frontend routes (no auth needed). */
