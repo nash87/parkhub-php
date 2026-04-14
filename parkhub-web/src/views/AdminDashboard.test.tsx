@@ -167,4 +167,174 @@ describe('AdminDashboardPage', () => {
       expect(mockGetWidgetData).toHaveBeenCalled();
     });
   });
+
+  it('hides non-visible widgets', async () => {
+    render(<AdminDashboardPage />);
+    await waitFor(() => {
+      // recent_bookings is visible: false in sample layout
+      expect(screen.queryByText('Recent Bookings')).not.toBeInTheDocument();
+    });
+  });
+
+  it('handles API error on layout load', async () => {
+    mockGetWidgetLayout.mockRejectedValue(new Error('Network error'));
+    render(<AdminDashboardPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Dashboard Widgets')).toBeInTheDocument();
+    });
+  });
+
+  it('handles null layout', async () => {
+    mockGetWidgetLayout.mockResolvedValue({ success: false, data: null });
+    render(<AdminDashboardPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Dashboard Widgets')).toBeInTheDocument();
+    });
+  });
+
+  it('toggleWidget is a no-op when layout is null', async () => {
+    const user = userEvent.setup();
+    mockGetWidgetLayout.mockResolvedValue({ success: false, data: null });
+    render(<AdminDashboardPage />);
+    await waitFor(() => expect(screen.getByText('Customize')).toBeInTheDocument());
+    // Open catalog
+    await user.click(screen.getByText('Customize'));
+    // Click any widget toggle button - should not throw
+    const widgetButtons = screen.getAllByRole('button').filter(b => b.className.includes('rounded-lg border'));
+    if (widgetButtons.length > 0) {
+      await user.click(widgetButtons[0]);
+    }
+    // Layout still null, no errors
+    expect(mockSaveWidgetLayout).not.toHaveBeenCalled();
+  });
+
+  it('toggles help tooltip', async () => {
+    const user = userEvent.setup();
+    render(<AdminDashboardPage />);
+    await waitFor(() => expect(screen.getByTitle('Help')).toBeInTheDocument());
+
+    // Open help
+    await user.click(screen.getByTitle('Help'));
+    expect(screen.getByText('Customize your dashboard by adding, removing, and rearranging widgets')).toBeInTheDocument();
+
+    // Close help
+    await user.click(screen.getByTitle('Help'));
+    await waitFor(() => {
+      expect(screen.queryByText('Customize your dashboard by adding, removing, and rearranging widgets')).not.toBeInTheDocument();
+    });
+  });
+
+  it('closes widget catalog on second customize click', async () => {
+    const user = userEvent.setup();
+    render(<AdminDashboardPage />);
+    await waitFor(() => expect(screen.getByText('Customize')).toBeInTheDocument());
+
+    // Open catalog
+    await user.click(screen.getByText('Customize'));
+    await waitFor(() => expect(screen.getByText('Widget Catalog')).toBeInTheDocument());
+
+    // Close catalog
+    await user.click(screen.getByText('Customize'));
+    await waitFor(() => {
+      expect(screen.queryByText('Widget Catalog')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows all widget type options in catalog', async () => {
+    const user = userEvent.setup();
+    render(<AdminDashboardPage />);
+    await waitFor(() => expect(screen.getByText('Customize')).toBeInTheDocument());
+    await user.click(screen.getByText('Customize'));
+    await waitFor(() => {
+      expect(screen.getByText('Widget Catalog')).toBeInTheDocument();
+      expect(screen.getByText('Booking Heatmap')).toBeInTheDocument();
+      expect(screen.getByText('Active Alerts')).toBeInTheDocument();
+      expect(screen.getByText('Maintenance Status')).toBeInTheDocument();
+      expect(screen.getByText('EV Charging Status')).toBeInTheDocument();
+    });
+  });
+
+  it('toggles widget visibility from catalog', async () => {
+    const user = userEvent.setup();
+    render(<AdminDashboardPage />);
+    await waitFor(() => expect(screen.getByText('Customize')).toBeInTheDocument());
+    await user.click(screen.getByText('Customize'));
+    await waitFor(() => expect(screen.getByText('Widget Catalog')).toBeInTheDocument());
+
+    // Click Active Alerts (not currently in layout) to add it
+    await user.click(screen.getByText('Active Alerts'));
+
+    await waitFor(() => {
+      expect(mockSaveWidgetLayout).toHaveBeenCalled();
+    });
+  });
+
+  it('removes a widget from the grid', async () => {
+    const user = userEvent.setup();
+    render(<AdminDashboardPage />);
+    await waitFor(() => expect(screen.getByText('Occupancy Chart')).toBeInTheDocument());
+
+    // Click remove button on a widget
+    const removeBtns = screen.getAllByTitle('Remove');
+    await user.click(removeBtns[0]);
+
+    await waitFor(() => {
+      expect(mockSaveWidgetLayout).toHaveBeenCalled();
+    });
+  });
+
+  it('handles save layout error', async () => {
+    mockSaveWidgetLayout.mockRejectedValue(new Error('Network'));
+    const user = userEvent.setup();
+    render(<AdminDashboardPage />);
+    await waitFor(() => expect(screen.getByText('Customize')).toBeInTheDocument());
+    await user.click(screen.getByText('Customize'));
+    await waitFor(() => expect(screen.getByText('Widget Catalog')).toBeInTheDocument());
+
+    await user.click(screen.getByText('Booking Heatmap'));
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalled();
+    });
+  });
+
+  it('handles save layout API failure', async () => {
+    mockSaveWidgetLayout.mockResolvedValue({ success: false });
+    const user = userEvent.setup();
+    render(<AdminDashboardPage />);
+    await waitFor(() => expect(screen.getByText('Customize')).toBeInTheDocument());
+    await user.click(screen.getByText('Customize'));
+    await waitFor(() => expect(screen.getByText('Widget Catalog')).toBeInTheDocument());
+
+    await user.click(screen.getByText('Booking Heatmap'));
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalled();
+    });
+  });
+
+  it('displays widget data when loaded', async () => {
+    render(<AdminDashboardPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Occupancy Chart')).toBeInTheDocument();
+    });
+    // Widget data should load -- pre element with JSON
+    await waitFor(() => {
+      expect(mockGetWidgetData).toHaveBeenCalled();
+    });
+  });
+
+  it('handles widget data load failure gracefully', async () => {
+    mockGetWidgetData.mockRejectedValue(new Error('Failed'));
+    render(<AdminDashboardPage />);
+    await waitFor(() => {
+      expect(screen.getByText('Occupancy Chart')).toBeInTheDocument();
+    });
+    // Should not crash -- shows skeleton
+  });
+
+  it('loading state shows skeleton', () => {
+    mockGetWidgetLayout.mockReturnValue(new Promise(() => {}));
+    render(<AdminDashboardPage />);
+    const skeletons = document.querySelectorAll('.skeleton');
+    expect(skeletons.length).toBeGreaterThan(0);
+  });
 });

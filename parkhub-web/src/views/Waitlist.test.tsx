@@ -2,184 +2,194 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, opts?: Record<string, any>) => {
-      const map: Record<string, string> = {
-        'waitlistExt.title': 'Waitlist',
-        'waitlistExt.subtitle': 'Get notified when a spot becomes available',
-        'waitlistExt.help': 'Join the waitlist to get notified when a parking spot becomes available. You will receive a notification and have 15 minutes to accept.',
-        'waitlistExt.helpLabel': 'Help',
-        'waitlistExt.yourEntries': 'Your Waitlist Entries',
-        'waitlistExt.fullLots': 'Full Parking Lots',
-        'waitlistExt.joinWaitlist': 'Join Waitlist',
-        'waitlistExt.joiningWaitlist': 'Joining...',
-        'waitlistExt.leave': 'Leave',
-        'waitlistExt.accept': 'Accept',
-        'waitlistExt.decline': 'Decline',
-        'waitlistExt.joined': 'Joined waitlist',
-        'waitlistExt.left': 'Left waitlist',
-        'waitlistExt.accepted': 'Offer accepted',
-        'waitlistExt.declined': 'Offer declined',
-        'waitlistExt.noFullLots': 'All lots have available spots',
-        'waitlistExt.status.waiting': 'Waiting',
-        'waitlistExt.status.offered': 'Offered',
-        'waitlistExt.status.accepted': 'Accepted',
-        'waitlistExt.status.declined': 'Declined',
-        'waitlistExt.status.expired': 'Expired',
-        'waitlistExt.position': `Position #${opts?.pos}`,
-        'waitlistExt.estimatedWait': `~${opts?.minutes} min`,
-        'waitlistExt.lotFull': `${opts?.total} spots — all occupied`,
-        'common.error': 'Error',
-      };
-      return map[key] || key;
-    },
-  }),
-}));
-
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => o?.pos ? `Position ${o.pos}` : o?.minutes ? `${o.minutes} min` : o?.total ? `${o.total} slots` : k }) }));
 vi.mock('framer-motion', () => ({
-  motion: {
-    div: React.forwardRef(({ children, initial, animate, exit, transition, ...props }: any, ref: any) => (
-      <div ref={ref} {...props}>{children}</div>
-    )),
-  },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  motion: { div: React.forwardRef(({ children, ...p }: any, r: any) => <div ref={r} {...p}>{children}</div>) },
 }));
-
-vi.mock('@phosphor-icons/react', () => ({
-  Bell: (props: any) => <span data-testid="icon-bell" {...props} />,
-  Queue: (props: any) => <span data-testid="icon-queue" {...props} />,
-  Check: (props: any) => <span data-testid="icon-check" {...props} />,
-  X: (props: any) => <span data-testid="icon-x" {...props} />,
-  Question: (props: any) => <span data-testid="icon-question" {...props} />,
-  Clock: (props: any) => <span data-testid="icon-clock" {...props} />,
-  ArrowUp: (props: any) => <span data-testid="icon-arrow-up" {...props} />,
-}));
+vi.mock('@phosphor-icons/react', () => {
+  const C = (p: any) => <span {...p} />;
+  return { Bell: C, Queue: C, Check: C, X: C, Question: C, Clock: C, ArrowUp: C };
+});
+vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
 
 import { WaitlistPage } from './Waitlist';
+import toast from 'react-hot-toast';
 
-const sampleLots = [
-  { id: 'lot-1', name: 'Garage Alpha', total_slots: 20, available_slots: 0 },
-  { id: 'lot-2', name: 'Garage Beta', total_slots: 10, available_slots: 3 },
+const lots = [
+  { id: 'l1', name: 'Full Lot', total_slots: 10, available_slots: 0 },
+  { id: 'l2', name: 'Open Lot', total_slots: 10, available_slots: 5 },
 ];
 
-const sampleWaitlistResponse = {
-  success: true,
-  data: {
-    total: 5,
-    entries: [
-      {
-        entry: {
-          id: 'w1',
-          user_id: 'user-1',
-          lot_id: 'lot-1',
-          created_at: '2026-03-20T08:00:00Z',
-          notified_at: null,
-          status: 'waiting',
-          offer_expires_at: null,
-          accepted_booking_id: null,
-        },
-        position: 3,
-        total_ahead: 2,
-        estimated_wait_minutes: 60,
-      },
-    ],
-  },
-};
+const waitlistEntries = [
+  { entry: { id: 'w1', user_id: 'u1', lot_id: 'l1', created_at: '2026-04-10', notified_at: null, status: 'waiting', offer_expires_at: null, accepted_booking_id: null }, position: 2, total_ahead: 1, estimated_wait_minutes: 15 },
+];
+
+const offeredEntries = [
+  { entry: { id: 'w2', user_id: 'u1', lot_id: 'l1', created_at: '2026-04-10', notified_at: '2026-04-10', status: 'offered', offer_expires_at: '2026-04-11', accepted_booking_id: null }, position: 1, total_ahead: 0, estimated_wait_minutes: null },
+];
 
 describe('WaitlistPage', () => {
   beforeEach(() => {
-    global.fetch = vi.fn((url: string) => {
-      if (typeof url === 'string' && url.includes('/api/v1/lots') && !url.includes('waitlist')) {
-        return Promise.resolve({
-          json: () => Promise.resolve({ success: true, data: sampleLots }),
-        } as Response);
-      }
-      if (typeof url === 'string' && url.includes('/waitlist') && !url.includes('subscribe')) {
-        return Promise.resolve({
-          json: () => Promise.resolve(sampleWaitlistResponse),
-        } as Response);
-      }
-      return Promise.resolve({
-        json: () => Promise.resolve({ success: true, data: {} }),
-      } as Response);
-    });
+    vi.clearAllMocks();
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/subscribe')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (opts?.method === 'POST' && url.includes('/accept')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (opts?.method === 'POST' && url.includes('/decline')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (opts?.method === 'DELETE') return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: waitlistEntries } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lots }) } as Response);
+    }) as any;
   });
+  afterEach(() => vi.restoreAllMocks());
 
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('renders the waitlist page with title', async () => {
+  it('renders waitlist page', async () => {
     render(<WaitlistPage />);
-    await waitFor(() => expect(screen.getByText('Waitlist')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('waitlistExt.title')).toBeInTheDocument());
   });
 
-  it('shows subtitle', async () => {
+  it('shows user entries', async () => {
     render(<WaitlistPage />);
-    await waitFor(() =>
-      expect(screen.getByText('Get notified when a spot becomes available')).toBeTruthy()
-    );
+    await waitFor(() => expect(screen.getByText('waitlistExt.yourEntries')).toBeInTheDocument());
   });
 
-  it('shows help tooltip when clicking question icon', async () => {
-    render(<WaitlistPage />);
-    await waitFor(() => screen.getByText('Waitlist'));
-    const helpBtn = screen.getByLabelText('Help');
-    fireEvent.click(helpBtn);
-    await waitFor(() =>
-      expect(screen.getByText(/Join the waitlist to get notified/)).toBeTruthy()
-    );
-  });
-
-  it('displays full lots with join button', async () => {
-    // Return no waitlist entries for the user
-    global.fetch = vi.fn((url: string) => {
-      if (typeof url === 'string' && url.includes('/api/v1/lots') && !url.includes('waitlist')) {
-        return Promise.resolve({
-          json: () => Promise.resolve({ success: true, data: sampleLots }),
-        } as Response);
-      }
-      return Promise.resolve({
-        json: () => Promise.resolve({ success: true, data: { total: 0, entries: [] } }),
-      } as Response);
-    });
-
+  it('shows position and wait time', async () => {
     render(<WaitlistPage />);
     await waitFor(() => {
-      expect(screen.getByText('Garage Alpha')).toBeTruthy();
-      expect(screen.getByText('Join Waitlist')).toBeTruthy();
+      expect(screen.getByText('Position 2')).toBeInTheDocument();
+      expect(screen.getByText('15 min')).toBeInTheDocument();
     });
   });
 
-  it('shows waiting status with position', async () => {
+  it('join waitlist', async () => {
+    // Set up a lot that the user hasn't joined yet (l1 has entries, need new full lot)
+    const lotsWithExtra = [...lots, { id: 'l3', name: 'New Full', total_slots: 5, available_slots: 0 }];
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/subscribe')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (url.includes('/l3/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: [] } }) } as Response);
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: waitlistEntries } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lotsWithExtra }) } as Response);
+    }) as any;
     render(<WaitlistPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Waiting')).toBeTruthy();
-      expect(screen.getByText('Position #3')).toBeTruthy();
-    });
+    await waitFor(() => expect(screen.getByText('New Full')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('waitlistExt.joinWaitlist'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('waitlistExt.joined'));
   });
 
-  it('shows estimated wait time', async () => {
+  it('leave waitlist', async () => {
     render(<WaitlistPage />);
-    await waitFor(() => {
-      expect(screen.getByText('~60 min')).toBeTruthy();
-    });
+    await waitFor(() => expect(screen.getByText('waitlistExt.leave')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('waitlistExt.leave'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('waitlistExt.left'));
   });
 
-  it('shows empty state when no full lots', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        json: () => Promise.resolve({
-          success: true,
-          data: [{ id: 'lot-1', name: 'Garage A', total_slots: 10, available_slots: 5 }],
-        }),
-      } as Response)
-    );
-
+  it('accept offered spot', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/accept')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: offeredEntries } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lots }) } as Response);
+    }) as any;
     render(<WaitlistPage />);
-    await waitFor(() =>
-      expect(screen.getByText('All lots have available spots')).toBeTruthy()
-    );
+    await waitFor(() => expect(screen.getByText('waitlistExt.accept')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('waitlistExt.accept'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('waitlistExt.accepted'));
+  });
+
+  it('decline offered spot', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/decline')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: offeredEntries } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lots }) } as Response);
+    }) as any;
+    render(<WaitlistPage />);
+    await waitFor(() => expect(screen.getByText('waitlistExt.decline')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('waitlistExt.decline'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('waitlistExt.declined'));
+  });
+
+  it('shows help', async () => {
+    render(<WaitlistPage />);
+    await waitFor(() => fireEvent.click(screen.getByLabelText('waitlistExt.helpLabel')));
+    expect(screen.getByText('waitlistExt.help')).toBeInTheDocument();
+  });
+
+  it('shows no full lots state', async () => {
+    globalThis.fetch = vi.fn((url: string) => {
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: [] } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [{ id: 'l1', name: 'Open', total_slots: 10, available_slots: 5 }] }) } as Response);
+    }) as any;
+    render(<WaitlistPage />);
+    await waitFor(() => expect(screen.getByText('waitlistExt.noFullLots')).toBeInTheDocument());
+  });
+
+  it('join error', async () => {
+    const lotsWithNew = [{ id: 'l4', name: 'ErrorLot', total_slots: 5, available_slots: 0 }];
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/subscribe')) return Promise.resolve({ json: () => Promise.resolve({ success: false, error: { message: 'Already joined' } }) } as Response);
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: [] } }) } as Response);
+      if (url.includes('/lots')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lotsWithNew }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
+    }) as any;
+    render(<WaitlistPage />);
+    await waitFor(() => expect(screen.getByText('waitlistExt.joinWaitlist')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('waitlistExt.joinWaitlist'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Already joined'));
+  });
+
+  it('join network error', async () => {
+    const lotsWithNew = [{ id: 'l5', name: 'NetErrLot', total_slots: 5, available_slots: 0 }];
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST') return Promise.reject(new Error('net'));
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: [] } }) } as Response);
+      if (url.includes('/lots')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lotsWithNew }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
+    }) as any;
+    render(<WaitlistPage />);
+    await waitFor(() => expect(screen.getByText('waitlistExt.joinWaitlist')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('waitlistExt.joinWaitlist'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+  });
+
+  it('leave error', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'DELETE') return Promise.reject(new Error('net'));
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: waitlistEntries } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lots }) } as Response);
+    }) as any;
+    render(<WaitlistPage />);
+    await waitFor(() => fireEvent.click(screen.getByText('waitlistExt.leave')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+  });
+
+  it('accept error', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/accept')) return Promise.resolve({ json: () => Promise.resolve({ success: false, error: { message: 'Expired' } }) } as Response);
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: offeredEntries } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lots }) } as Response);
+    }) as any;
+    render(<WaitlistPage />);
+    await waitFor(() => fireEvent.click(screen.getByText('waitlistExt.accept')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Expired'));
+  });
+
+  it('accept network error', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/accept')) return Promise.reject(new Error('net'));
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: offeredEntries } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lots }) } as Response);
+    }) as any;
+    render(<WaitlistPage />);
+    await waitFor(() => fireEvent.click(screen.getByText('waitlistExt.accept')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
+  });
+
+  it('decline network error', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/decline')) return Promise.reject(new Error('net'));
+      if (url.includes('/waitlist')) return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { entries: offeredEntries } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: lots }) } as Response);
+    }) as any;
+    render(<WaitlistPage />);
+    await waitFor(() => fireEvent.click(screen.getByText('waitlistExt.decline')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 });

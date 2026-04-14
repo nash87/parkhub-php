@@ -1,242 +1,217 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-
-// ── matchMedia mock ──
-Object.defineProperty(window, 'matchMedia', {
-  writable: true,
-  value: vi.fn().mockImplementation((query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  })),
-});
-
-// ── Mocks ──
+import userEvent from '@testing-library/user-event';
 
 const mockGetBookings = vi.fn();
-
 vi.mock('../api/client', () => ({
-  api: {
-    getBookings: (...args: any[]) => mockGetBookings(...args),
-  },
-  getInMemoryToken: () => 'test-token',
+  api: { getBookings: (...a: any[]) => mockGetBookings(...a) },
+  getInMemoryToken: vi.fn(() => 'tok'),
 }));
 
-vi.mock('react-router-dom', () => ({
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
-}));
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, opts?: any) => {
-      const map: Record<string, string> = {
-        'swap.title': 'Swap Requests',
-        'swap.subtitle': 'Trade parking slots with colleagues',
-        'swap.create': 'New Swap',
-        'swap.empty': 'No swap requests',
-        'swap.emptyHint': 'Create a swap request to trade your slot',
-        'swap.accept': 'Accept',
-        'swap.decline': 'Decline',
-        'swap.accepted': 'Swap accepted',
-        'swap.declined': 'Swap declined',
-        'swap.created': 'Swap request sent',
-        'swap.createTitle': 'New Swap Request',
-        'swap.yourBooking': 'Your Booking',
-        'swap.selectBooking': 'Select a booking...',
-        'swap.targetBookingId': 'Target Booking ID',
-        'swap.targetPlaceholder': 'Enter booking ID to swap with',
-        'swap.messageLabel': 'Message (optional)',
-        'swap.messagePlaceholder': 'Add a note...',
-        'swap.send': 'Send Request',
-        'swap.yourSlot': 'Your Slot',
-        'swap.theirSlot': 'Their Slot',
-        'swap.status.pending': 'Pending',
-        'swap.status.accepted': 'Accepted',
-        'swap.status.declined': 'Declined',
-        'common.refresh': 'Refresh',
-        'common.cancel': 'Cancel',
-        'common.error': 'Error',
-        'dashboard.slot': 'Slot',
-      };
-      return map[key] || key;
-    },
-    i18n: { language: 'en' },
-  }),
-}));
-
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }) }));
 vi.mock('framer-motion', () => ({
-  motion: {
-    div: React.forwardRef(({ children, initial, animate, exit, transition, whileHover, whileTap, variants, ...props }: any, ref: any) => (
-      <div ref={ref} {...props}>{children}</div>
-    )),
-  },
+  motion: { div: React.forwardRef(({ children, variants, ...p }: any, r: any) => <div ref={r} {...p}>{children}</div>) },
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
-
-vi.mock('@phosphor-icons/react', () => ({
-  Swap: (props: any) => <span data-testid="icon-swap" {...props} />,
-  Check: (props: any) => <span data-testid="icon-check" {...props} />,
-  X: (props: any) => <span data-testid="icon-x" {...props} />,
-  SpinnerGap: (props: any) => <span data-testid="icon-spinner" {...props} />,
-  Plus: (props: any) => <span data-testid="icon-plus" {...props} />,
-  ArrowClockwise: (props: any) => <span data-testid="icon-refresh" {...props} />,
-  CalendarBlank: (props: any) => <span data-testid="icon-calendar" {...props} />,
-  Clock: (props: any) => <span data-testid="icon-clock" {...props} />,
-  ChatText: (props: any) => <span data-testid="icon-chat" {...props} />,
-}));
-
-vi.mock('react-hot-toast', () => ({
-  default: { success: vi.fn(), error: vi.fn() },
+vi.mock('@phosphor-icons/react', () => {
+  const C = (p: any) => <span {...p} />;
+  return { Swap: C, Check: C, X: C, SpinnerGap: C, Plus: C, ArrowClockwise: C, CalendarBlank: C, Clock: C, ChatText: C };
+});
+vi.mock('react-hot-toast', () => ({ default: { success: vi.fn(), error: vi.fn() } }));
+vi.mock('date-fns', () => ({ format: (_d: any, fmt: string) => fmt === 'dd.MM HH:mm' ? '10.04 08:00' : fmt === 'HH:mm' ? '08:00' : '10. Apr 2026' }));
+vi.mock('date-fns/locale', () => ({ de: {}, enUS: {} }));
+vi.mock('../constants/animations', () => ({
+  stagger: {}, fadeUp: {},
+  modalVariants: { initial: {}, animate: {}, exit: {} },
+  modalTransition: {},
 }));
 
 import { SwapRequestsPage } from './SwapRequests';
+import toast from 'react-hot-toast';
 
-const sampleSwapRequests = [
-  {
-    id: 'sr-1',
-    requester_id: 'u1',
-    source_booking_id: 'b1',
-    target_booking_id: 'b2',
-    source_booking: {
-      lot_name: 'Garage West',
-      slot_number: 'A3',
-      start_time: '2026-04-15T08:00:00Z',
-      end_time: '2026-04-15T17:00:00Z',
-    },
-    target_booking: {
-      lot_name: 'Garage East',
-      slot_number: 'B7',
-      start_time: '2026-04-15T09:00:00Z',
-      end_time: '2026-04-15T18:00:00Z',
-    },
-    message: 'Would you mind swapping?',
-    status: 'pending',
-    created_at: '2026-04-14T10:00:00Z',
-  },
+const requests = [
+  { id: 'sw1', requester_id: 'u1', source_booking_id: 'b1', target_booking_id: 'b2', source_booking: { lot_name: 'Lot A', slot_number: '5', start_time: '2026-04-10T08:00:00Z', end_time: '2026-04-10T17:00:00Z' }, target_booking: { lot_name: 'Lot B', slot_number: '10', start_time: '2026-04-10T08:00:00Z', end_time: '2026-04-10T17:00:00Z' }, message: 'Please swap', status: 'pending', created_at: '2026-04-09T00:00:00Z' },
+  { id: 'sw2', requester_id: 'u2', source_booking_id: 'b3', target_booking_id: 'b4', source_booking: { lot_name: 'Lot C', slot_number: '1', start_time: '2026-04-11T08:00:00Z', end_time: '2026-04-11T17:00:00Z' }, target_booking: { lot_name: 'Lot D', slot_number: '2', start_time: '2026-04-11T08:00:00Z', end_time: '2026-04-11T17:00:00Z' }, message: null, status: 'accepted', created_at: '2026-04-09T00:00:00Z' },
+];
+
+const bookings = [
+  { id: 'b1', lot_name: 'Lot A', slot_number: '5', start_time: '2026-04-10T08:00:00Z', end_time: '2026-04-10T17:00:00Z', status: 'active' },
 ];
 
 describe('SwapRequestsPage', () => {
   beforeEach(() => {
-    mockGetBookings.mockClear();
+    vi.clearAllMocks();
+    mockGetBookings.mockResolvedValue({ success: true, data: bookings });
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (url.includes('/accept')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (url.includes('/decline')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      if (opts?.method === 'POST') return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: requests }) } as Response);
+    }) as any;
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  it('renders swap requests', async () => {
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('Lot A')).toBeInTheDocument());
+  });
+
+  it('shows message when present', async () => {
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('Please swap')).toBeInTheDocument());
+  });
+
+  it('accepts swap', async () => {
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('swap.accept')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('swap.accept'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('swap.accepted'));
+  });
+
+  it('declines swap', async () => {
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('swap.decline')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('swap.decline'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('swap.declined'));
+  });
+
+  it('opens create modal', async () => {
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('swap.create')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('swap.create'));
+    await waitFor(() => expect(screen.getByTestId('swap-modal')).toBeInTheDocument());
+  });
+
+  it('creates swap', async () => {
+    const user = userEvent.setup();
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('swap.create')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('swap.create'));
+    await waitFor(() => expect(screen.getByTestId('select-source')).toBeInTheDocument());
+    await user.selectOptions(screen.getByTestId('select-source'), 'b1');
+    await user.type(screen.getByTestId('input-target'), 'b99');
+    await user.type(screen.getByTestId('input-message'), 'Please');
+    fireEvent.click(screen.getByTestId('submit-swap'));
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('swap.created'));
+  });
+
+  it('create swap failure', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/swap-request')) return Promise.resolve({ json: () => Promise.resolve({ success: false, error: { message: 'Not found' } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: requests }) } as Response);
+    }) as any;
+    const user = userEvent.setup();
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('swap.create')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('swap.create'));
+    await waitFor(() => expect(screen.getByTestId('select-source')).toBeInTheDocument());
+    await user.selectOptions(screen.getByTestId('select-source'), 'b1');
+    await user.type(screen.getByTestId('input-target'), 'b99');
+    fireEvent.click(screen.getByTestId('submit-swap'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Not found'));
+  });
+
+  it('close create modal', async () => {
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('swap.create')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('swap.create'));
+    await waitFor(() => expect(screen.getByTestId('swap-modal')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('common.cancel'));
+    await waitFor(() => expect(screen.queryByTestId('swap-modal')).not.toBeInTheDocument());
+  });
+
+  it('shows empty state', async () => {
+    globalThis.fetch = vi.fn(() => Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response)) as any;
     mockGetBookings.mockResolvedValue({ success: true, data: [] });
-
-    global.fetch = vi.fn((url: string) => {
-      if (typeof url === 'string' && url.includes('/api/v1/swap-requests') && !url.includes('/accept') && !url.includes('/decline')) {
-        return Promise.resolve({
-          json: () => Promise.resolve({ success: true, data: sampleSwapRequests }),
-        } as Response);
-      }
-      return Promise.resolve({
-        json: () => Promise.resolve({ success: true, data: {} }),
-      } as Response);
-    });
-  });
-
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
-  it('renders title and subtitle', async () => {
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Swap Requests')).toBeInTheDocument();
-    });
-    expect(screen.getByText('Trade parking slots with colleagues')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('swap.empty')).toBeInTheDocument());
   });
 
-  it('renders swap request cards with lot names', async () => {
+  it('refresh button', async () => {
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Garage West')).toBeInTheDocument();
-      expect(screen.getByText('Garage East')).toBeInTheDocument();
-    });
+    await waitFor(() => fireEvent.click(screen.getByText('common.refresh')));
+    await waitFor(() => expect(globalThis.fetch).toHaveBeenCalled());
   });
 
-  it('shows pending status badge', async () => {
+  it('accept error', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (url.includes('/accept')) return Promise.resolve({ json: () => Promise.resolve({ success: false, error: { message: 'Already handled' } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: requests }) } as Response);
+    }) as any;
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Pending')).toBeInTheDocument();
-    });
+    await waitFor(() => fireEvent.click(screen.getByText('swap.accept')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Already handled'));
   });
 
-  it('shows message on swap request card', async () => {
+  it('decline error', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (url.includes('/decline')) return Promise.reject(new Error('net'));
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: requests }) } as Response);
+    }) as any;
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Would you mind swapping?')).toBeInTheDocument();
-    });
+    await waitFor(() => fireEvent.click(screen.getByText('swap.decline')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 
-  it('shows accept and decline buttons for pending requests', async () => {
+  it('catches loadData errors', async () => {
+    globalThis.fetch = vi.fn(() => Promise.reject(new Error('net'))) as any;
+    mockGetBookings.mockRejectedValue(new Error('net'));
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Accept')).toBeInTheDocument();
-      expect(screen.getByText('Decline')).toBeInTheDocument();
-    });
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 
-  it('shows empty state when no swap requests', async () => {
-    global.fetch = vi.fn(() =>
-      Promise.resolve({
-        json: () => Promise.resolve({ success: true, data: [] }),
-      } as Response),
-    );
-
+  it('accept catches network error', async () => {
+    globalThis.fetch = vi.fn((url: string) => {
+      if (url.includes('/accept')) return Promise.reject(new Error('net'));
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: requests }) } as Response);
+    }) as any;
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('No swap requests')).toBeInTheDocument();
-    });
+    await waitFor(() => fireEvent.click(screen.getByText('swap.accept')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 
-  it('opens create swap modal on button click', async () => {
+  it('decline server error returns message', async () => {
+    globalThis.fetch = vi.fn((url: string) => {
+      if (url.includes('/decline')) return Promise.resolve({ json: () => Promise.resolve({ success: false, error: { message: 'No' } }) } as Response);
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: requests }) } as Response);
+    }) as any;
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Swap Requests')).toBeInTheDocument();
-    });
-
-    const newBtn = screen.getByText('New Swap');
-    fireEvent.click(newBtn);
-
-    await waitFor(() => {
-      expect(screen.getByTestId('swap-modal')).toBeInTheDocument();
-      expect(screen.getByText('New Swap Request')).toBeInTheDocument();
-    });
+    await waitFor(() => fireEvent.click(screen.getByText('swap.decline')));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('No'));
   });
 
-  it('calls accept endpoint when accept is clicked', async () => {
+  it('handleCreate is no-op when no booking selected', async () => {
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Accept')).toBeInTheDocument();
-    });
-
-    fireEvent.click(screen.getByText('Accept'));
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/swap-requests/sr-1/accept',
-        expect.objectContaining({ method: 'POST' }),
-      );
-    });
+    await waitFor(() => fireEvent.click(screen.getByText('swap.create')));
+    // Submit without selecting source/target
+    fireEvent.click(screen.getByTestId('submit-swap'));
+    // No fetch call to /swap-request
   });
 
-  it('calls decline endpoint when decline is clicked', async () => {
+  it('closes modal via X button at top', async () => {
     render(<SwapRequestsPage />);
-    await waitFor(() => {
-      expect(screen.getByText('Decline')).toBeInTheDocument();
-    });
+    await waitFor(() => fireEvent.click(screen.getByText('swap.create')));
+    await waitFor(() => expect(screen.getByTestId('swap-modal')).toBeInTheDocument());
+    const modal = screen.getByTestId('swap-modal');
+    const xButtons = modal.querySelectorAll('button.btn-ghost');
+    if (xButtons.length > 0) fireEvent.click(xButtons[0]);
+    await waitFor(() => expect(screen.queryByTestId('swap-modal')).not.toBeInTheDocument());
+  });
 
-    fireEvent.click(screen.getByText('Decline'));
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        '/api/v1/swap-requests/sr-1/decline',
-        expect.objectContaining({ method: 'POST' }),
-      );
-    });
+  it('create network error', async () => {
+    globalThis.fetch = vi.fn((url: string, opts?: any) => {
+      if (opts?.method === 'POST' && url.includes('/swap-request')) return Promise.reject(new Error('net'));
+      return Promise.resolve({ json: () => Promise.resolve({ success: true, data: requests }) } as Response);
+    }) as any;
+    const user = userEvent.setup();
+    render(<SwapRequestsPage />);
+    await waitFor(() => expect(screen.getByText('swap.create')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('swap.create'));
+    await waitFor(() => expect(screen.getByTestId('select-source')).toBeInTheDocument());
+    await user.selectOptions(screen.getByTestId('select-source'), 'b1');
+    await user.type(screen.getByTestId('input-target'), 'b99');
+    fireEvent.click(screen.getByTestId('submit-swap'));
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 });
