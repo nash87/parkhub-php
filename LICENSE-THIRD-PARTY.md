@@ -1,17 +1,48 @@
 # Third-Party Licenses -- ParkHub PHP
 
 ParkHub PHP is MIT licensed. This file documents all third-party dependencies and their
-licenses to ensure compatibility with open-source distribution.
+licenses to ensure correct attribution and downstream compatibility.
 
-> **Last updated:** 2026-03-22 (v3.2.0)
+> **Last updated:** 2026-04-14 (v4.9.0)
 
 ---
 
 ## License Compatibility Summary
 
-All production dependencies use permissive licenses (MIT, Apache-2.0, BSD-3-Clause).
-No GPL, LGPL, or other copyleft licenses are present in the dependency tree.
-This project is fully compatible with MIT distribution of both source and binaries.
+**Default runtime is MIT-compatible OSS, with weak-copyleft (LGPL) and Apache-2.0
+dependencies properly attributed.**
+
+ParkHub itself is MIT licensed. The dependency tree includes:
+
+- Permissive licenses: MIT, BSD-3-Clause, ISC (the majority)
+- Apache-2.0 (with required NOTICE attribution — see `NOTICE`)
+- Weak-copyleft LGPL-2.1 (dompdf, libvips) — used as dynamically linked libraries
+  with no source modification
+- One non-OSI ethical-use license (react-leaflet, Hippocratic-2.1) inside the
+  optional MAP module
+
+A complete inventory follows. Operators bound by strict OSI compliance can disable
+the MAP module by setting `MODULE_MAP=false`; see the **License Compatibility**
+section below for the full guidance.
+
+---
+
+## Notable Licenses Inventory
+
+The following dependencies require explicit attribution or operator awareness because
+they are not MIT/BSD/ISC. They are listed first so they cannot be missed.
+
+| Package | License | Where | Notes |
+|---------|---------|-------|-------|
+| dompdf/dompdf | LGPL-2.1 | composer (transitive of `barryvdh/laravel-dompdf`) | PDF generation. Dynamically linked, **not statically linked into ParkHub source**. LGPL-compliant. |
+| chillerlan/php-qrcode | Apache-2.0 | composer (direct) | QR code generation. **NOTICE attribution required** — see `NOTICE`. |
+| phpoption/phpoption | Apache-2.0 | composer (transitive) | Option type helper. **NOTICE attribution required**. |
+| nette/schema | BSD-3-Clause OR GPL-2.0/3.0 (dual) | composer (transitive) | We rely on the **BSD-3-Clause** interpretation. |
+| nette/utils | BSD-3-Clause OR GPL-2.0/3.0 (dual) | composer (transitive) | We rely on the **BSD-3-Clause** interpretation. |
+| react-leaflet | Hippocratic-2.1 | npm `parkhub-web` (MAP module) | **Non-OSI** ethical-use clause. Operators with strict OSI compliance requirements should disable the MAP module via `MODULE_MAP=false`. |
+| leaflet | BSD-2-Clause | npm `parkhub-web` (MAP module) | Permissive. |
+| libvips | LGPL-2.1+ | npm (native, via sharp) | Image processing. Dynamically linked, LGPL-compliant. |
+| @axe-core/playwright | MPL-2.0 | npm dev | Weak copyleft, dev-only, not redistributed at runtime. |
 
 ---
 
