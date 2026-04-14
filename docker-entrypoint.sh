@@ -84,9 +84,13 @@ php artisan route:cache --no-interaction 2>&1 || true
 # Render free tier doesn't support separate worker processes
 (while true; do php artisan schedule:run --no-interaction >> storage/logs/scheduler.log 2>&1; sleep 60; done) &
 
-# Drop root privileges — run the final process as www-data.
-# All setup above (chown, Apache config, artisan commands) requires root;
-# gosu ensures the runtime process (apache2-foreground) starts unprivileged.
-# Ensure Apache runtime dirs are writable by www-data when running unprivileged.
-chown -R www-data:www-data /var/run/apache2 /var/lock/apache2 /var/log/apache2 2>/dev/null || true
-exec gosu www-data "$@"
+# Run Apache as root.
+#
+# A previous revision used `gosu www-data` here to satisfy a CodeQL
+# "container-running-as-root" alert. On the php:8.4-apache base image,
+# /var/log/apache2/error.log is a symlink to /proc/self/fd/2 which is
+# owned by root and not writable by www-data, so dropping privileges
+# made Apache fail with "AH00091: could not open error log file".
+# Apache's own mpm_prefork still forks workers as www-data at runtime,
+# so the master process needs root to open the log symlink.
+exec "$@"
