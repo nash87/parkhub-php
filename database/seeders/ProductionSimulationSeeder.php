@@ -302,6 +302,11 @@ class ProductionSimulationSeeder extends Seeder
 
         $this->command->line('  → Seeding '.$userCount.' users...');
 
+        // Hash the shared demo password once instead of 198 times.
+        // On slow CPUs (Render free tier 0.1 CPU), bcrypt cost 12 × 198 would
+        // take several minutes and trip Render's port-scan deploy timeout.
+        $demoPasswordHash = Hash::make('Demo2026!');
+
         for ($i = 0; $i < $userCount; $i++) {
             $firstName = self::FIRST_NAMES[array_rand(self::FIRST_NAMES)];
             $lastName = self::LAST_NAMES[array_rand(self::LAST_NAMES)];
@@ -321,7 +326,7 @@ class ProductionSimulationSeeder extends Seeder
                 'name' => $firstName.' '.$lastName,
                 'username' => $username,
                 'email' => $username.'@example.de',
-                'password' => Hash::make('Demo2026!'),
+                'password' => $demoPasswordHash,
                 'role' => 'user',
                 'department' => self::DEPARTMENTS[array_rand(self::DEPARTMENTS)],
                 'is_active' => true,
@@ -373,6 +378,12 @@ class ProductionSimulationSeeder extends Seeder
 
         $this->command->line('  → Generating ~3500 bookings over 30 days...');
 
+        // Pre-fetch slot_id → slot_number once instead of running a query per booking.
+        // ~4500 bookings × 1 query = 4500 queries ≈ 30-60s on Render free tier.
+        $slotNumbers = DB::table('parking_slots')
+            ->pluck('slot_number', 'id')
+            ->toArray();
+
         for ($day = 0; $day < 30; $day++) {
             $date = $start->copy()->addDays($day);
             $dayOfWeek = $date->dayOfWeek; // 0=Sun, 6=Sat
@@ -405,7 +416,7 @@ class ProductionSimulationSeeder extends Seeder
                     'lot_id' => $lot['id'],
                     'slot_id' => $slotId,
                     'lot_name' => $lot['name'],
-                    'slot_number' => DB::table('parking_slots')->where('id', $slotId)->value('slot_number') ?? '001',
+                    'slot_number' => $slotNumbers[$slotId] ?? '001',
                     'vehicle_plate' => $user['plate'],
                     'booking_type' => 'einmalig',
                     'start_time' => $startTime->toDateTimeString(),
