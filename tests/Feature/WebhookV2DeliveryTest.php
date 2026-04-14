@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class WebhookV2DeliveryTest extends TestCase
@@ -44,21 +45,33 @@ class WebhookV2DeliveryTest extends TestCase
     }
 
     /**
-     * Helper: create a webhook and return its data array.
-     * Uses an immediately-failing URL so test deliveries resolve without network delay.
+     * Helper: create a webhook directly in the JSON store.
+     *
+     * Bypasses the API (and its SSRF validation) so delivery tests can use
+     * internal URLs like 127.0.0.1:1 for immediate connection-refused errors
+     * without triggering the SSRF protection.
      */
     private function createWebhook(string $token, string $url = 'http://127.0.0.1:1/webhook'): array
     {
-        $response = $this->withHeader('Authorization', 'Bearer '.$token)
-            ->postJson('/api/v1/admin/webhooks-v2', [
-                'url' => $url,
-                'events' => ['booking.created', 'payment.completed'],
-                'description' => 'Delivery test webhook',
-            ]);
+        $webhook = [
+            'id' => 'wh-'.Str::random(12),
+            'url' => $url,
+            'secret' => 'whsec_'.Str::random(32),
+            'events' => ['booking.created', 'payment.completed'],
+            'active' => true,
+            'description' => 'Delivery test webhook',
+            'created_at' => now()->toIso8601String(),
+            'updated_at' => now()->toIso8601String(),
+        ];
 
-        $response->assertStatus(201);
+        $path = storage_path('app/webhooks_v2.json');
+        $webhooks = file_exists($path)
+            ? (json_decode(file_get_contents($path), true) ?: [])
+            : [];
+        $webhooks[] = $webhook;
+        file_put_contents($path, json_encode($webhooks, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
-        return $response->json('data');
+        return $webhook;
     }
 
     public function test_deliveries_for_nonexistent_webhook_returns_404(): void

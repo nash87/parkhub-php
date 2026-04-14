@@ -15,6 +15,12 @@ class SystemPublicTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['app.metrics_token' => 'test-metrics-token']);
+    }
+
     public function test_health_check(): void
     {
         $this->getJson('/api/health')
@@ -168,7 +174,8 @@ class SystemPublicTest extends TestCase
 
     public function test_metrics_endpoint_exists(): void
     {
-        $this->getJson('/api/metrics')
+        $this->withHeaders(['Authorization' => 'Bearer test-metrics-token'])
+            ->getJson('/api/metrics')
             ->assertStatus(200);
     }
 }

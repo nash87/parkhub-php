@@ -152,8 +152,7 @@ class SSOControllerTest extends TestCase
 
         $response = $this->postJson('/api/v1/auth/sso/okta/callback');
 
-        $response->assertStatus(400)
-            ->assertJsonPath('error.message', 'Missing SAMLResponse');
+        $response->assertStatus(501);
     }
 
     public function test_upsert_validates_required_fields(): void

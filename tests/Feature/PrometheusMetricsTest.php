@@ -13,9 +13,21 @@ class PrometheusMetricsTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        config(['app.metrics_token' => 'test-metrics-token']);
+    }
+
+    private function metricsGet(string $uri = '/api/metrics')
+    {
+        return $this->withHeaders(['Authorization' => 'Bearer test-metrics-token'])
+            ->get($uri);
+    }
+
     public function test_metrics_endpoint_returns_prometheus_content_type(): void
     {
-        $response = $this->get('/api/metrics');
+        $response = $this->metricsGet();
 
         $response->assertStatus(200);
         $this->assertStringContainsString('text/plain', $response->headers->get('Content-Type'));
@@ -24,7 +36,7 @@ class PrometheusMetricsTest extends TestCase
 
     public function test_metrics_endpoint_includes_required_metric_names(): void
     {
-        $response = $this->get('/api/metrics');
+        $response = $this->metricsGet();
 
         $body = $response->getContent();
 
@@ -38,7 +50,7 @@ class PrometheusMetricsTest extends TestCase
 
     public function test_metrics_includes_help_and_type_directives(): void
     {
-        $response = $this->get('/api/metrics');
+        $response = $this->metricsGet();
         $body = $response->getContent();
 
         $this->assertStringContainsString('# HELP parkhub_users_total', $body);
@@ -51,7 +63,7 @@ class PrometheusMetricsTest extends TestCase
     {
         User::factory()->count(3)->create();
 
-        $response = $this->get('/api/metrics');
+        $response = $this->metricsGet();
         $body = $response->getContent();
 
         $this->assertStringContainsString('parkhub_users_total 3', $body);
@@ -75,7 +87,7 @@ class PrometheusMetricsTest extends TestCase
             'status' => 'confirmed',
         ]);
 
-        $response = $this->get('/api/metrics');
+        $response = $this->metricsGet();
         $body = $response->getContent();
 
         $this->assertStringContainsString('parkhub_bookings_total{status="confirmed"} 1', $body);

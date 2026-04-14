@@ -3,6 +3,7 @@
 namespace Tests\Integration;
 
 use App\Models\Webhook;
+use Illuminate\Support\Str;
 
 class WebhookDeliveryTest extends IntegrationTestCase
 {
@@ -136,15 +137,35 @@ class WebhookDeliveryTest extends IntegrationTestCase
 
     // ── V2 Webhook test delivery ──────────────────────────────────────
 
+    /**
+     * Write a v2 webhook directly to the JSON store, bypassing SSRF validation.
+     */
+    private function createV2WebhookDirect(string $url = 'http://127.0.0.1:1/webhook'): string
+    {
+        $webhook = [
+            'id' => 'wh-'.Str::random(12),
+            'url' => $url,
+            'secret' => 'whsec_'.Str::random(32),
+            'events' => ['booking.created'],
+            'active' => true,
+            'description' => 'Integration test webhook',
+            'created_at' => now()->toIso8601String(),
+            'updated_at' => now()->toIso8601String(),
+        ];
+
+        $path = storage_path('app/webhooks_v2.json');
+        $webhooks = file_exists($path)
+            ? (json_decode(file_get_contents($path), true) ?: [])
+            : [];
+        $webhooks[] = $webhook;
+        file_put_contents($path, json_encode($webhooks, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+
+        return $webhook['id'];
+    }
+
     public function test_v2_test_delivery_creates_delivery_record(): void
     {
-        $createResponse = $this->withHeaders($this->adminHeaders())
-            ->postJson('/api/v1/admin/webhooks-v2', [
-                'url' => 'http://127.0.0.1:1/webhook',
-                'events' => ['booking.created'],
-            ]);
-        $createResponse->assertStatus(201);
-        $webhookId = $createResponse->json('data.id');
+        $webhookId = $this->createV2WebhookDirect('http://127.0.0.1:1/webhook');
 
         // Trigger test delivery
         $testResponse = $this->withHeaders($this->adminHeaders())
@@ -166,12 +187,7 @@ class WebhookDeliveryTest extends IntegrationTestCase
     public function test_v2_delivery_failure_recorded(): void
     {
         // Use port 1 which causes immediate connection-refused
-        $createResponse = $this->withHeaders($this->adminHeaders())
-            ->postJson('/api/v1/admin/webhooks-v2', [
-                'url' => 'http://127.0.0.1:1/unreachable',
-                'events' => ['booking.created'],
-            ]);
-        $webhookId = $createResponse->json('data.id');
+        $webhookId = $this->createV2WebhookDirect('http://127.0.0.1:1/unreachable');
 
         $testResponse = $this->withHeaders($this->adminHeaders())
             ->postJson("/api/v1/admin/webhooks-v2/{$webhookId}/test");
@@ -210,12 +226,7 @@ class WebhookDeliveryTest extends IntegrationTestCase
 
     public function test_v2_multiple_deliveries_ordered_newest_first(): void
     {
-        $createResponse = $this->withHeaders($this->adminHeaders())
-            ->postJson('/api/v1/admin/webhooks-v2', [
-                'url' => 'http://127.0.0.1:1/webhook',
-                'events' => ['booking.created'],
-            ]);
-        $webhookId = $createResponse->json('data.id');
+        $webhookId = $this->createV2WebhookDirect('http://127.0.0.1:1/webhook');
 
         for ($i = 0; $i < 3; $i++) {
             $this->withHeaders($this->adminHeaders())
