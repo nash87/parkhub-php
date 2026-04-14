@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
@@ -90,7 +91,7 @@ class SSOController extends Controller
      */
     public function callback(Request $request, string $provider): JsonResponse
     {
-        \Illuminate\Support\Facades\Log::error('SAML callback rejected: no signature verification library installed', [
+        Log::error('SAML callback rejected: no signature verification library installed', [
             'provider' => $provider,
             'ip' => $request->ip(),
         ]);

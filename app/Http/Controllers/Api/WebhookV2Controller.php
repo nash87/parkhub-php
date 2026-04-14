@@ -25,6 +25,7 @@ use Illuminate\Support\Str;
 class WebhookV2Controller extends Controller
 {
     use ValidatesExternalUrls;
+
     /**
      * List all v2 webhooks.
      */

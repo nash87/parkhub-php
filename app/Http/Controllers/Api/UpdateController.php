@@ -172,7 +172,7 @@ class UpdateController extends Controller
             ], 400);
         }
 
-        if (!preg_match('/^\d+\.\d+\.\d+$/', $version)) {
+        if (! preg_match('/^\d+\.\d+\.\d+$/', $version)) {
             return response()->json(['error' => ['message' => 'Invalid version format']], 422);
         }
 
