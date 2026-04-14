@@ -3,7 +3,9 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Crypt;
 use Laravel\Sanctum\PersonalAccessToken;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -26,7 +28,27 @@ class AuthenticateFromCookie
             return $next($request);
         }
 
-        $cookieToken = $request->cookie('parkhub_token');
+        // The cookie is encrypted by Laravel's EncryptCookies middleware.
+        // Normally the middleware stack decrypts cookies before they reach
+        // application code, so $request->cookie() returns the plaintext.
+        // We keep a try/catch as a safety net in case the value is still
+        // encrypted (e.g. middleware ordering edge cases) or was tampered with.
+        $rawCookie = $request->cookie('parkhub_token');
+
+        if (! $rawCookie) {
+            return $next($request);
+        }
+
+        try {
+            // If EncryptCookies already decrypted this, decryptString will
+            // throw because the plaintext isn't valid ciphertext — fall back
+            // to using the value as-is (already decrypted).
+            $cookieToken = Crypt::decryptString($rawCookie);
+        } catch (DecryptException) {
+            // Value was already decrypted by EncryptCookies middleware or is
+            // a plain Sanctum token format — use it directly.
+            $cookieToken = $rawCookie;
+        }
 
         if (! $cookieToken) {
             return $next($request);

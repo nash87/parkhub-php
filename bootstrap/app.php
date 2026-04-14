@@ -32,9 +32,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Security headers on every response (web + API)
         $middleware->append(SecurityHeaders::class);
 
-        // Exclude parkhub_token from encryption so our AuthenticateFromCookie
-        // middleware can read the raw Sanctum token value from the cookie.
-        $middleware->encryptCookies(except: ['parkhub_token']);
+        // All cookies are encrypted — including parkhub_token. The
+        // AuthenticateFromCookie middleware decrypts it before use.
 
         $middleware->validateCsrfTokens(except: [
             'api/*',
