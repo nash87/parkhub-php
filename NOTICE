@@ -1,0 +1,32 @@
+ParkHub PHP
+Copyright (c) 2025-2026 ParkHub Contributors
+
+Licensed under the MIT License (see LICENSE).
+
+This product includes software developed by third parties. A complete
+dependency inventory is maintained in LICENSE-THIRD-PARTY.md.
+
+Notable redistributed works requiring attribution:
+
+  chillerlan/php-qrcode (Apache-2.0)
+    Copyright 2017 Smiley
+    https://github.com/chillerlan/php-qrcode
+
+  ZXing (Apache-2.0, via chillerlan/php-qrcode)
+    Copyright 2014 ZXing authors
+    https://github.com/zxing/zxing
+
+  phpoption/phpoption (Apache-2.0)
+    Copyright (c) 2012 Johannes Schmitt
+
+  dompdf/dompdf (LGPL-2.1)
+    Copyright The dompdf Project
+    https://github.com/dompdf/dompdf
+    Dynamically linked, no source modification.
+
+  react-leaflet (Hippocratic-2.1) — optional MAP module only
+    Non-OSI license with ethical-use clause.
+    Disable via MODULE_MAP=false for strict OSI compliance.
+
+See LICENSE-THIRD-PARTY.md for the full dependency list and license
+compatibility notes.
