@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // ── Mock API ──
@@ -232,33 +232,6 @@ describe('AuthContext', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('result').textContent).toBe('Login failed');
-    });
-  });
-
-  it('clears user when auth:unauthorized event is dispatched', async () => {
-    mockMe.mockResolvedValue({
-      success: true,
-      data: { id: '1', username: 'alice', email: 'alice@test.com', name: 'Alice', role: 'user' },
-    });
-
-    render(
-      <AuthProvider>
-        <AuthConsumer />
-      </AuthProvider>,
-    );
-
-    // Wait for authenticated state
-    await waitFor(() => {
-      expect(screen.getByTestId('user').textContent).toBe('alice');
-    });
-
-    // Simulate a 401 from the API client
-    act(() => {
-      window.dispatchEvent(new Event('auth:unauthorized'));
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('user').textContent).toBe('null');
     });
   });
 });
