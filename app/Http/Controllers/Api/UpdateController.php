@@ -172,6 +172,10 @@ class UpdateController extends Controller
             ], 400);
         }
 
+        if (!preg_match('/^\d+\.\d+\.\d+$/', $version)) {
+            return response()->json(['error' => ['message' => 'Invalid version format']], 422);
+        }
+
         try {
             // Checkout the specific tag
             $result = Process::path(base_path())

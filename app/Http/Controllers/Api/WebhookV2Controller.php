@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Concerns\ValidatesExternalUrls;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,6 +24,7 @@ use Illuminate\Support\Str;
  */
 class WebhookV2Controller extends Controller
 {
+    use ValidatesExternalUrls;
     /**
      * List all v2 webhooks.
      */
@@ -69,11 +71,19 @@ class WebhookV2Controller extends Controller
             'active' => 'boolean',
         ]);
 
+        $url = $request->input('url');
+        if (! $this->isExternalUrl($url)) {
+            return response()->json([
+                'success' => false,
+                'error' => ['message' => 'URL must be a valid external (non-private) HTTP(S) address'],
+            ], 422);
+        }
+
         $webhooks = $this->loadWebhooks();
 
         $webhook = [
             'id' => 'wh-'.Str::random(12),
-            'url' => $request->input('url'),
+            'url' => $url,
             'secret' => 'whsec_'.Str::random(32),
             'events' => $request->input('events'),
             'active' => $request->boolean('active', true),
@@ -115,7 +125,14 @@ class WebhookV2Controller extends Controller
         }
 
         $webhook = $webhooks[$index];
-        $webhook['url'] = $request->input('url', $webhook['url']);
+        $newUrl = $request->input('url', $webhook['url']);
+        if ($newUrl !== $webhook['url'] && ! $this->isExternalUrl($newUrl)) {
+            return response()->json([
+                'success' => false,
+                'error' => ['message' => 'URL must be a valid external (non-private) HTTP(S) address'],
+            ], 422);
+        }
+        $webhook['url'] = $newUrl;
         $webhook['events'] = $request->input('events', $webhook['events']);
         $webhook['description'] = $request->input('description', $webhook['description']);
         $webhook['active'] = $request->boolean('active', $webhook['active']);

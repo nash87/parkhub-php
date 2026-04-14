@@ -74,6 +74,9 @@ COPY --chown=www-data:www-data --from=vendor /app/vendor/ ./vendor/
 # Overlay built Astro frontend assets into Laravel's public directory
 COPY --chown=www-data:www-data --from=frontend /app/dist/ ./public/
 
+# Remove installer (should not be accessible in production)
+RUN rm -f /var/www/html/public/install.php
+
 # Set permissions and create required directories
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 storage bootstrap/cache \

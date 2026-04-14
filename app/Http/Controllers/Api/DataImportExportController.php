@@ -57,7 +57,7 @@ class DataImportExportController extends Controller
                     'username' => $username,
                     'email' => $email,
                     'name' => $name ?: $username,
-                    'role' => in_array($role, ['user', 'premium', 'admin']) ? $role : 'user',
+                    'role' => in_array($role, ['user', 'premium']) ? $role : 'user',
                     'password' => Hash::make($password ?: Str::random(16)),
                     'is_active' => true,
                 ]);

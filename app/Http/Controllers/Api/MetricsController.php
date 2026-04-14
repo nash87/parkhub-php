@@ -22,7 +22,7 @@ class MetricsController extends Controller
     public function index(Request $request): Response
     {
         $expectedToken = config('app.metrics_token');
-        if ($expectedToken && $request->bearerToken() !== $expectedToken) {
+        if (!$expectedToken || $request->bearerToken() !== $expectedToken) {
             return response('Unauthorized', 401);
         }
 

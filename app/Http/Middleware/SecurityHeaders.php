@@ -90,8 +90,8 @@ class SecurityHeaders
         $directives = [
             // Only allow resources from same origin by default
             "default-src 'self'",
-            // Scripts: self + unsafe-inline for Astro hydration scripts
-            "script-src 'self' 'unsafe-inline'",
+            // Scripts: self + nonce for Astro hydration scripts
+            "script-src 'self' 'nonce-{$nonce}'",
             // Styles: self + unsafe-inline for Tailwind + framer-motion inline styles
             "style-src 'self' 'unsafe-inline'",
             // Images: self, data URIs (base64 avatars/QR), blob URIs
