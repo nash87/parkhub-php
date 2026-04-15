@@ -69,9 +69,9 @@ test.describe('Pages — Admin Routes (after admin login)', () => {
 test.describe('Pages — Redirects', () => {
   test('/ without auth redirects to /login or /welcome', async ({ page }) => {
     await page.goto('/');
-    // AuthProvider shows LoadingSplash on mount until /api/v1/users/me resolves,
-    // so URL rewrites to /login or /welcome only AFTER the unauth check returns.
-    // Wait for the redirect before reading the URL.
+    // AuthProvider shows LoadingSplash on mount until /api/v1/users/me
+    // resolves, so URL rewrites to /login or /welcome only AFTER the
+    // unauth check returns. Wait for the redirect before reading URL.
     await page.waitForURL(/\/(login|welcome)/, { timeout: 10_000 });
   });
 
