@@ -84,18 +84,21 @@ class HttpOnlyCookieAuthTest extends TestCase
         $response->assertJsonPath('data.username', 'cookieauth');
     }
 
-    public function test_cookie_auth_rejected_without_csrf_header(): void
+    public function test_cookie_auth_skipped_without_csrf_header(): void
     {
         $user = User::factory()->create();
         $token = $user->createToken('test')->plainTextToken;
 
-        // Cookie present but no X-Requested-With header -> CSRF rejection
+        // Cookie present but no X-Requested-With: the middleware silently
+        // declines to inject a Bearer header (so public routes that only
+        // carry cookies, like App.tsx's `fetch('/api/v1/theme')`, still
+        // work), and auth:sanctum then serves a normal 401 for protected
+        // routes. A blanket 403 broke every raw fetch() on the frontend.
         $response = $this->withCredentials()
             ->withUnencryptedCookie('parkhub_token', $token)
             ->getJson('/api/v1/users/me');
 
-        $response->assertStatus(403);
-        $response->assertJsonPath('error', 'CSRF_REQUIRED');
+        $response->assertStatus(401);
     }
 
     public function test_bearer_header_takes_precedence_over_cookie(): void

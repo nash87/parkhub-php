@@ -174,14 +174,12 @@ class PaginationTest extends TestCase
         $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/swap-requests');
 
+        // swapRequests() now returns a flat SwapRequest[] (matching the
+        // frontend's typed expectation) instead of the old paginated
+        // {incoming, outgoing} envelope — direction is derivable from
+        // requester_id vs the current user.
         $response->assertStatus(200);
-        $response->assertJsonStructure([
-            'data' => [
-                'outgoing' => ['data', 'meta'],
-                'incoming' => ['data', 'meta'],
-            ],
-        ]);
-        $this->assertCount(1, $response->json('data.outgoing.data'));
-        $this->assertCount(0, $response->json('data.incoming.data'));
+        $this->assertCount(1, $response->json('data'));
+        $this->assertSame($requester->id, $response->json('data.0.requester_id'));
     }
 }
