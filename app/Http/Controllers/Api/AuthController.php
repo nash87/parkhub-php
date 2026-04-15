@@ -28,7 +28,16 @@ class AuthController extends Controller
      */
     private function authCookie(string $token): Cookie
     {
-        $secure = app()->environment('production');
+        // Mark the cookie Secure only when the actual request came in
+        // over HTTPS. `isSecure()` consults both the protocol and
+        // X-Forwarded-Proto (via TrustProxies), so this is correct
+        // behind Render/Cloudflare/Fly reverse proxies AND on a local
+        // http://127.0.0.1 demo. Pinning it to APP_ENV=production
+        // broke WebKit mobile-safari E2E tests: WebKit's mobile
+        // emulation drops Secure cookies on HTTP even on localhost,
+        // so the session vanished between requests and every
+        // ProtectedRoute navigation redirected to /welcome.
+        $secure = request()?->isSecure() ?? app()->environment('production');
 
         return new Cookie(
             name: 'parkhub_token',
@@ -46,7 +55,9 @@ class AuthController extends Controller
      */
     private function forgetAuthCookie(): Cookie
     {
-        $secure = app()->environment('production');
+        // Match authCookie() — the Secure attribute has to line up or
+        // WebKit won't find the cookie to unset.
+        $secure = request()?->isSecure() ?? app()->environment('production');
 
         return new Cookie(
             name: 'parkhub_token',

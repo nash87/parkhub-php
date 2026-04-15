@@ -32,6 +32,20 @@ return Application::configure(basePath: dirname(__DIR__))
         // Security headers on every response (web + API)
         $middleware->append(SecurityHeaders::class);
 
+        // Trust every upstream proxy and honour the full X-Forwarded-*
+        // header set. Render, Cloudflare, and Fly.io all terminate TLS
+        // upstream, so without this Laravel sees every request as plain
+        // HTTP and $request->isSecure() returns false — which in turn
+        // makes authCookie() emit a non-Secure cookie on HTTPS and would
+        // make `redirect()->secure()` silently downgrade.
+        $middleware->trustProxies(at: '*', headers:
+            \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR
+            | \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST
+            | \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT
+            | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
+            | \Illuminate\Http\Request::HEADER_X_FORWARDED_AWS_ELB,
+        );
+
         // All cookies are encrypted — including parkhub_token. The
         // AuthenticateFromCookie middleware decrypts it before use.
 
