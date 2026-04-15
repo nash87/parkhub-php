@@ -119,6 +119,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
+    # Fan out into (project × shard) jobs so the total suite fits in the
+    # 45-minute job ceiling. Four shards × three projects = 12 parallel
+    # jobs, each seeding its own database and booting its own server.
+    # Shard 1..4 / 4 is Playwright's native partitioning — tests are
+    # deterministically split by file+title hash, so no shared state.
+    # fail-fast: false keeps one shard's failure from cancelling its
+    # siblings, which matters on a nightly where we want the full
+    # signal, not the first red light.
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile-chrome, mobile-safari]
+        shard: [1, 2, 3, 4]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -166,7 +180,7 @@ jobs:
       - name: Build browser assets for Laravel
         run: npm run build:php --prefix parkhub-web
 
-      - name: Run full Playwright suite
+      - name: Run Playwright shard ${{ matrix.shard }}/4 on ${{ matrix.project }}
         env:
           CI: true
           DB_CONNECTION: sqlite
@@ -190,30 +204,29 @@ jobs:
           # empty database and everything that walks a list 404s.
           php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
 
-          php artisan serve --host=127.0.0.1 --port=8082 > /tmp/parkhub-nightly-e2e.log 2>&1 &
+          php artisan serve --host=127.0.0.1 --port=8082 > "/tmp/parkhub-nightly-e2e-${{ matrix.project }}-${{ matrix.shard }}.log" 2>&1 &
           server_pid=$!
           trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
 
           ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
-          # chromium only for now — running all three projects (chromium
-          # + mobile-chrome + mobile-safari) pushes the suite past the
-          # 45-minute job timeout on Render's free-tier runner. Enable
-          # the mobile projects back once the suite is sharded or the
-          # runner is upgraded.
-          npx playwright test --project=chromium
+          npx playwright test \
+            --project="${{ matrix.project }}" \
+            --shard="${{ matrix.shard }}/4"
 
-      - name: Upload Playwright report
+      - name: Upload Playwright report (${{ matrix.project }} shard ${{ matrix.shard }})
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nightly-playwright-report
+          name: nightly-playwright-report-${{ matrix.project }}-${{ matrix.shard }}
           path: playwright-report/
           retention-days: 7
+          if-no-files-found: ignore
 
-      - name: Upload Laravel server log
+      - name: Upload Laravel server log (${{ matrix.project }} shard ${{ matrix.shard }})
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: nightly-e2e-server-log
-          path: /tmp/parkhub-nightly-e2e.log
+          name: nightly-e2e-server-log-${{ matrix.project }}-${{ matrix.shard }}
+          path: /tmp/parkhub-nightly-e2e-${{ matrix.project }}-${{ matrix.shard }}.log
           retention-days: 7
+          if-no-files-found: ignore
