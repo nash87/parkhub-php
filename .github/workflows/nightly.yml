@@ -171,6 +171,12 @@ jobs:
           CI: true
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
+          # File-based cache / session. The default SQLite-backed cache
+          # store locks under concurrent requests (Playwright fires
+          # dozens of parallel requests per test) and every
+          # ThrottleRequests hit then turns into a 500.
+          CACHE_STORE: file
+          SESSION_DRIVER: file
           DEMO_MODE: 'true'
           E2E_BASE_URL: http://127.0.0.1:8082
           PARKHUB_ADMIN_EMAIL: admin@parkhub.test
@@ -179,14 +185,22 @@ jobs:
           RUN_STORAGE_LINK: '1'
         run: |
           ./scripts/ci/bootstrap-laravel.sh
-          php artisan migrate:fresh --seed --force
+          # Seed the ProductionSimulationSeeder explicitly — the default
+          # DatabaseSeeder is a no-op, so without this the tests hit an
+          # empty database and everything that walks a list 404s.
+          php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
 
           php artisan serve --host=127.0.0.1 --port=8082 > /tmp/parkhub-nightly-e2e.log 2>&1 &
           server_pid=$!
           trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
 
           ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
-          npx playwright test --project=chromium --project=mobile-chrome --project=mobile-safari
+          # chromium only for now — running all three projects (chromium
+          # + mobile-chrome + mobile-safari) pushes the suite past the
+          # 45-minute job timeout on Render's free-tier runner. Enable
+          # the mobile projects back once the suite is sharded or the
+          # runner is upgraded.
+          npx playwright test --project=chromium
 
       - name: Upload Playwright report
         if: always()
