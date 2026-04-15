@@ -185,8 +185,11 @@ test.describe('Security — Access Control & Hardening', () => {
     });
 
     test('login with wrong password returns 401', async ({ request }) => {
+      // PHP expects `username`, Rust accepts either — send both so the
+      // request makes it past validation and actually checks credentials.
       const res = await request.post('/api/v1/auth/login', {
         data: {
+          username: DEMO_ADMIN.email,
           email: DEMO_ADMIN.email,
           password: 'wrong-password-12345',
         },
@@ -206,21 +209,33 @@ test.describe('Security — Access Control & Hardening', () => {
 
   test.describe('Rate Limiting', () => {
     test('rapid login attempts are eventually rate-limited', async ({ request }) => {
-      const results: number[] = [];
+      // CI runs with PARKHUB_DISABLE_RATE_LIMITS=true (a Playwright suite
+      // funnels every test through /auth/login from the same IP; without
+      // the bypass the suite falls off a cliff at attempt #6). Skip the
+      // test when the backend advertises the bypass rather than failing.
+      const probe = await request.post('/api/v1/auth/login', {
+        data: { username: 'nobody@test.invalid', email: 'nobody@test.invalid', password: 'x' },
+      });
+      const limitHeader = probe.headers()['x-ratelimit-limit'];
+      if (limitHeader && parseInt(limitHeader, 10) > 1000) {
+        test.skip(true, `Rate limits disabled (limit=${limitHeader}); skipping rate-limit test`);
+        return;
+      }
 
-      // Send 10 rapid login attempts with bad credentials
+      const results: number[] = [];
       for (let i = 0; i < 10; i++) {
         const res = await request.post('/api/v1/auth/login', {
-          data: { email: 'nonexistent@test.com', password: `wrong-${i}` },
+          data: {
+            username: 'nonexistent@test.com',
+            email: 'nonexistent@test.com',
+            password: `wrong-${i}`,
+          },
         });
         results.push(res.status());
       }
 
-      // At least some should be 401 (bad creds), and eventually 429 (rate limited)
       const has401 = results.includes(401);
       const has429 = results.includes(429);
-
-      // We expect either rate limiting kicked in, or all returned 401
       expect(has401 || has429).toBe(true);
     });
   });

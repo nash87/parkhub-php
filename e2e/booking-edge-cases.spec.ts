@@ -169,14 +169,18 @@ test.describe('Booking — Edge Cases', () => {
   // ── Credits Integration ──
 
   test('credits balance is available', async ({ request }) => {
-    const res = await request.get('/api/v1/credits', {
+    // Rust exposes /api/v1/credits, PHP nests it under /user/credits.
+    let res = await request.get('/api/v1/credits', {
       headers: { Authorization: `Bearer ${token}` },
     });
+    if (res.status() === 404) {
+      res = await request.get('/api/v1/user/credits', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    }
     expect(res.status()).toBe(200);
     const body = await res.json();
-    const data = body.data ?? body;
-    // Should return a balance or credits object
-    expect(data).toBeDefined();
+    expect(body.data ?? body).toBeDefined();
   });
 
   // ── Waitlist ──

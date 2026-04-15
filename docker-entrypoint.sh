@@ -80,9 +80,21 @@ php artisan view:clear --no-interaction 2>&1 || true
 php artisan config:cache --no-interaction 2>&1 || true
 php artisan route:cache --no-interaction 2>&1 || true
 
-# Start Laravel scheduler in background (needed for auto-release, demo resets, etc.)
-# Render free tier doesn't support separate worker processes
-(while true; do php artisan schedule:run --no-interaction >> storage/logs/scheduler.log 2>&1; sleep 60; done) &
+# Every artisan command above ran as root (the entrypoint runs as root so
+# it can touch /etc/apache2/* and later `exec apache2-foreground`). Apache's
+# prefork workers run as www-data, so anything those artisan commands
+# wrote — fresh config cache, route cache, cache subdirectories created
+# during migrate:fresh + seed, vapid key files — has to be owned by
+# www-data or the worker can't read/update it. Laravel's file cache
+# failing with `file_put_contents` permission errors on /api/v1/discover
+# (and any other endpoint that touches the cache) was a direct
+# consequence of the mixed ownership.
+chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+
+# Start Laravel scheduler in background (needed for auto-release, demo
+# resets, etc.). Run the scheduler as www-data too so it doesn't
+# re-introduce root-owned files under storage/ at runtime.
+(while true; do gosu www-data php artisan schedule:run --no-interaction >> storage/logs/scheduler.log 2>&1; sleep 60; done) &
 
 # Run Apache as root.
 #

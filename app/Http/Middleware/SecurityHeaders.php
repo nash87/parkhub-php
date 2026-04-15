@@ -90,8 +90,16 @@ class SecurityHeaders
         $directives = [
             // Only allow resources from same origin by default
             "default-src 'self'",
-            // Scripts: self + nonce for Astro hydration scripts
-            "script-src 'self' 'nonce-{$nonce}'",
+            // Scripts: self + unsafe-inline. A nonce-based CSP is the
+            // modern default, but the Astro SPA shell in public/index.html
+            // contains two inline bootstrap scripts (FOUC guard + React
+            // mount) that are generated at build time — the per-request
+            // server nonce can't be injected into them without HTML
+            // rewriting, and nonce+unsafe-inline together means CSP3
+            // browsers ignore the fallback and block the inline scripts
+            // anyway. Until we pin static SHA-256 hashes for those two
+            // blocks, use 'unsafe-inline' so the SPA actually boots.
+            "script-src 'self' 'unsafe-inline'",
             // Styles: self + unsafe-inline for Tailwind + framer-motion inline styles
             "style-src 'self' 'unsafe-inline'",
             // Images: self, data URIs (base64 avatars/QR), blob URIs
