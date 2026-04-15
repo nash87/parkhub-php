@@ -54,9 +54,26 @@ class BookingController extends Controller
 
         $perPage = min((int) $request->get('per_page', 50), 200);
 
-        return BookingResource::collection(
-            $query->orderBy('start_time', 'desc')->paginate($perPage)
-        );
+        $paginated = $query->orderBy('start_time', 'desc')->paginate($perPage);
+
+        // Return the canonical {success, data, error, meta} envelope so the
+        // frontend sees Booking[] directly at `data`. Without this wrap
+        // Laravel's ResourceCollection ships `{data: [...], links, meta}`
+        // which breaks the `getBookings(): Booking[]` contract and causes
+        // Bookings.tsx to crash on `.filter()` over an object.
+        return response()->json([
+            'success' => true,
+            'data' => BookingResource::collection($paginated->items())->toArray($request),
+            'error' => null,
+            'meta' => [
+                'pagination' => [
+                    'current_page' => $paginated->currentPage(),
+                    'last_page' => $paginated->lastPage(),
+                    'per_page' => $paginated->perPage(),
+                    'total' => $paginated->total(),
+                ],
+            ],
+        ]);
     }
 
     public function store(StoreBookingRequest $request)

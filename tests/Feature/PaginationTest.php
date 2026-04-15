@@ -60,14 +60,13 @@ class PaginationTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertJsonStructure([
-            'data' => [
-                'data',
-                'links',
-                'meta' => ['current_page', 'last_page', 'per_page', 'total'],
-            ],
+            'success',
+            'data',
+            'meta' => ['pagination' => ['current_page', 'last_page', 'per_page', 'total']],
         ]);
 
-        $this->assertEquals(5, $response->json('data.meta.total'));
+        $this->assertSame(5, $response->json('meta.pagination.total'));
+        $this->assertIsArray($response->json('data'));
     }
 
     public function test_booking_index_respects_per_page_param(): void
@@ -92,9 +91,9 @@ class PaginationTest extends TestCase
             ->getJson('/api/v1/bookings?per_page=3');
 
         $response->assertStatus(200);
-        $this->assertCount(3, $response->json('data.data'));
-        $this->assertEquals(3, $response->json('data.meta.per_page'));
-        $this->assertEquals(10, $response->json('data.meta.total'));
+        $this->assertCount(3, $response->json('data'));
+        $this->assertEquals(3, $response->json('meta.pagination.per_page'));
+        $this->assertEquals(10, $response->json('meta.pagination.total'));
     }
 
     public function test_booking_index_page_2_returns_correct_results(): void
@@ -119,8 +118,8 @@ class PaginationTest extends TestCase
             ->getJson('/api/v1/bookings?per_page=3&page=2');
 
         $response->assertStatus(200);
-        $this->assertCount(2, $response->json('data.data'));
-        $this->assertEquals(2, $response->json('data.meta.current_page'));
+        $this->assertCount(2, $response->json('data'));
+        $this->assertEquals(2, $response->json('meta.pagination.current_page'));
     }
 
     public function test_booking_index_per_page_capped_at_200(): void
@@ -132,7 +131,7 @@ class PaginationTest extends TestCase
             ->getJson('/api/v1/bookings?per_page=9999');
 
         $response->assertStatus(200);
-        $this->assertLessThanOrEqual(200, $response->json('data.meta.per_page'));
+        $this->assertLessThanOrEqual(200, $response->json('meta.pagination.per_page'));
     }
 
     public function test_swap_requests_returns_paginated_incoming_and_outgoing(): void

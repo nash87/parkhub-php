@@ -129,7 +129,15 @@ class AuthController extends Controller
     public function register(RegisterRequest $request): JsonResponse
     {
         if (Setting::get('self_registration', 'true') !== 'true') {
-            return response()->json(['message' => 'Registration is currently disabled'], 403);
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'REGISTRATION_DISABLED',
+                    'message' => 'Self-registration is currently disabled. Contact an administrator.',
+                ],
+                'meta' => null,
+            ], 403);
         }
 
         $user = User::create([

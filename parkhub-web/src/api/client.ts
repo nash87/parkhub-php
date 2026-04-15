@@ -36,7 +36,10 @@ function isTransientError(status: number): boolean {
 async function requestOnce<T>(path: string, opts: RequestInit): Promise<ApiResponse<T>> {
   const res = await fetch(`${BASE_URL}${path}`, opts);
 
-  if (res.status === 401) {
+  // 401 on /auth/login is a wrong-password, not a session expiration — don't
+  // wipe auth state or dispatch the global unauth event mid-login form.
+  const isLoginPath = path.includes('/auth/login');
+  if (res.status === 401 && !isLoginPath) {
     _inMemoryToken = null;
     window.dispatchEvent(new Event('auth:unauthorized'));
     return { success: false, data: null, error: { code: 'UNAUTHORIZED', message: 'Session expired' } };

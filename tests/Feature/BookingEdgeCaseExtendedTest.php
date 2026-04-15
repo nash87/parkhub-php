@@ -368,7 +368,7 @@ class BookingEdgeCaseExtendedTest extends TestCase
             ->getJson('/api/v1/bookings?status=confirmed');
 
         $response->assertStatus(200);
-        $bookings = $response->json('data.data');
+        $bookings = $response->json('data');
         $this->assertCount(1, $bookings);
     }
 
