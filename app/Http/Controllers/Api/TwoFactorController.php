@@ -20,6 +20,20 @@ class TwoFactorController extends Controller
     }
 
     /**
+     * Return whether 2FA is enabled for the current user.
+     *
+     * The Profile page calls this on mount to decide whether to render the
+     * "Enable" or "Disable" button. Without the route, the request 404'd
+     * and every navigation to /profile surfaced as a blank error page.
+     */
+    public function status(Request $request): JsonResponse
+    {
+        return response()->json([
+            'enabled' => (bool) $request->user()->two_factor_enabled,
+        ]);
+    }
+
+    /**
      * Generate a 2FA secret and provisioning URI for QR code.
      */
     public function setup(Request $request): JsonResponse

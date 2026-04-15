@@ -54,13 +54,17 @@ class AuthenticateFromCookie
             return $next($request);
         }
 
-        // CSRF protection: cookie-based auth requires this header to prove
-        // the request originates from our SPA, not a cross-site form.
+        // CSRF protection: cookie-based auth requires X-Requested-With to
+        // prove the request originates from our SPA, not a cross-site form.
+        // If the header is missing we simply do not inject the Bearer header
+        // — downstream middleware (auth:sanctum) will then return its normal
+        // 401 for protected routes, and public routes (/theme, /branding,
+        // /translations/overrides) still work with anonymous fetch('/…').
+        // Returning 403 here previously broke every page-mount fetch that
+        // didn't set the header explicitly, including the global theme load
+        // in App.tsx.
         if ($request->header('X-Requested-With') !== 'XMLHttpRequest') {
-            return response()->json([
-                'error' => 'CSRF_REQUIRED',
-                'message' => 'Cookie-based authentication requires the X-Requested-With: XMLHttpRequest header.',
-            ], 403);
+            return $next($request);
         }
 
         // Validate the token exists in the database before injecting it.

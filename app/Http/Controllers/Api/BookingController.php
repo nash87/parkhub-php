@@ -499,6 +499,36 @@ class BookingController extends Controller
         return BookingResource::make($booking)->response()->setStatusCode(200);
     }
 
+    /**
+     * List guest passes created by the current user.
+     *
+     * The GuestPass page calls this on mount to render its booking table.
+     * Without the endpoint the request 404'd and the list sat empty — the
+     * page still "worked" (create flow was unaffected) but users couldn't
+     * see or cancel their own guest passes.
+     */
+    public function listGuestBookings(Request $request): JsonResponse
+    {
+        $guests = GuestBooking::where('created_by', $request->user()->id)
+            ->orderBy('start_time', 'desc')
+            ->limit(200)
+            ->get();
+
+        return GuestBookingResource::collection($guests)->response();
+    }
+
+    /**
+     * Cancel a guest pass owned by the current user.
+     */
+    public function deleteGuestBooking(Request $request, string $id): JsonResponse
+    {
+        $guest = GuestBooking::where('created_by', $request->user()->id)
+            ->findOrFail($id);
+        $guest->update(['status' => Booking::STATUS_CANCELLED]);
+
+        return response()->json(['success' => true, 'data' => null, 'error' => null, 'meta' => null]);
+    }
+
     public function guestBooking(Request $request)
     {
         // Enforce allow_guest_bookings setting
@@ -1006,22 +1036,21 @@ class BookingController extends Controller
 
     public function swapRequests(Request $request)
     {
+        // The frontend expects a flat SwapRequest[] array — direction is
+        // derived from the requester_id field vs the current user. Returning
+        // the paginated {incoming, outgoing} envelope (as we used to) crashed
+        // the Swap Requests page with "w.map is not a function".
         $userId = $request->user()->id;
-        $perPage = min((int) $request->get('per_page', 50), 200);
+        $limit = min((int) $request->get('limit', 100), 200);
 
-        $incoming = SwapRequest::where('target_id', $userId)
-            ->with(['requesterBooking', 'targetBooking', 'requester'])
+        $swaps = SwapRequest::where(function ($q) use ($userId) {
+            $q->where('target_id', $userId)->orWhere('requester_id', $userId);
+        })
+            ->with(['requesterBooking', 'targetBooking', 'requester', 'target'])
             ->orderBy('created_at', 'desc')
-            ->paginate($perPage, ['*'], 'incoming_page');
+            ->limit($limit)
+            ->get();
 
-        $outgoing = SwapRequest::where('requester_id', $userId)
-            ->with(['requesterBooking', 'targetBooking', 'target'])
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage, ['*'], 'outgoing_page');
-
-        return response()->json([
-            'incoming' => SwapRequestResource::collection($incoming)->response()->getData(true),
-            'outgoing' => SwapRequestResource::collection($outgoing)->response()->getData(true),
-        ]);
+        return SwapRequestResource::collection($swaps)->response();
     }
 }

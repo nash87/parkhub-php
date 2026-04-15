@@ -301,7 +301,7 @@ class AuthController extends Controller
             ->limit(20)
             ->get();
 
-        return response()->json($history);
+        return response()->json($history->map(fn ($h) => $this->loginHistoryEntry($h)));
     }
 
     /**
@@ -316,7 +316,27 @@ class AuthController extends Controller
             ->limit(50)
             ->get();
 
-        return response()->json($history);
+        return response()->json($history->map(fn ($h) => $this->loginHistoryEntry($h)));
+    }
+
+    /**
+     * Serialize a login history row into the shape the frontend expects.
+     *
+     * The database column is `logged_in_at` but the shared TypeScript type
+     * and the Rust backend both use `timestamp`. Returning the raw column
+     * name broke the Profile page with "Invalid time value" when date-fns
+     * tried to format `undefined`.
+     */
+    private function loginHistoryEntry(LoginHistory $h): array
+    {
+        return [
+            'timestamp' => $h->logged_in_at?->toIso8601String(),
+            'ip_address' => $h->ip_address,
+            'user_agent' => $h->user_agent,
+            // Only successful logins are recorded today; failed attempts
+            // live in the audit_log table and aren't surfaced here.
+            'success' => true,
+        ];
     }
 
     private function userResponse(User $user): array

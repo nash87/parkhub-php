@@ -91,6 +91,7 @@ Route::middleware(['auth:sanctum', 'throttle:api'])->group(function () {
     Route::patch('/users/me/password', [AuthController::class, 'changePassword']);
 
     // 2FA
+    Route::get('/auth/2fa/status', [TwoFactorController::class, 'status']);
     Route::post('/auth/2fa/setup', [TwoFactorController::class, 'setup']);
     Route::post('/auth/2fa/verify', [TwoFactorController::class, 'verify']);
     Route::post('/auth/2fa/disable', [TwoFactorController::class, 'disable']);

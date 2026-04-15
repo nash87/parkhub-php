@@ -87,16 +87,30 @@ class AbsenceController extends Controller
 
     public function getPattern(Request $request): JsonResponse
     {
-        $pattern = Setting::get('homeoffice_pattern_'.$request->user()->id, null);
+        // The frontend expects an array of AbsencePattern objects
+        // ([{absence_type, weekdays}, ...]) so it can .find() the homeoffice
+        // entry. Returning {pattern: [...]} instead — as we used to —
+        // crashed the Absences page with "j.find is not a function".
+        $raw = Setting::get('homeoffice_pattern_'.$request->user()->id, null);
+        $weekdays = $raw ? json_decode($raw, true) : [];
 
-        return response()->json(['pattern' => $pattern ? json_decode($pattern, true) : []]);
+        return response()->json(
+            $weekdays ? [['absence_type' => 'homeoffice', 'weekdays' => $weekdays]] : []
+        );
     }
 
     public function setPattern(Request $request): JsonResponse
     {
-        Setting::set('homeoffice_pattern_'.$request->user()->id, json_encode($request->input('pattern', [])));
+        // Accept the canonical {absence_type, weekdays} payload the Rust
+        // backend uses. Legacy clients sending {pattern: [...]} still work
+        // because we fall back to the old key.
+        $weekdays = $request->input('weekdays', $request->input('pattern', []));
+        Setting::set('homeoffice_pattern_'.$request->user()->id, json_encode($weekdays));
 
-        return response()->json(['message' => 'Pattern saved', 'pattern' => $request->input('pattern', [])]);
+        return response()->json([
+            'absence_type' => 'homeoffice',
+            'weekdays' => $weekdays,
+        ]);
     }
 
     public function importIcal(Request $request): JsonResponse
