@@ -7,6 +7,21 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [4.10.0] - 2026-04-15
+
+### Added
+- **Kinetic Observatory dashboard**: new `KpiCard`, `TrendCard`, `SensorFeedCard`, `RecentActivityCard` component kit in `parkhub-web/src/components/KineticObservatory.tsx`, composed by `DashboardPage` into a 4-KPI row + trend chart + sensor feed + recent activity table. Added i18n keys (`dashboard.totalBookings`, `weeklyActivityTitle`, `liveSensorFeed`, `recentActivity`, etc.) for all 10 languages.
+
+### Changed
+- **Container build**: dropped `linux/arm64` from `Release Container` workflow. Render only runs amd64 and QEMU arm64 emulation was the critical-path bottleneck. Removed `setup-qemu-action` step entirely.
+
+### Fixed
+- **Render deploy Apache log permission**: reverted the `gosu www-data` privilege drop from commit 62a954f. The `php:8.4-apache` base image symlinks `/var/log/apache2/error.log` -> `/proc/self/fd/2` (owned by root), so running Apache as `www-data` failed with `AH00091: could not open error log file` and every deploy since 2026-04-13 16:45 UTC silently rolled back to the last working image. The CodeQL "container-running-as-root" alert for this image is a false positive in a single-tenant Render container and has been dismissed.
+- **Production seeder performance on Render free tier**: `Hash::make('Demo2026!')` ran inside a 198-iteration loop with bcrypt cost 12 -- ~5 minutes on Render's 0.1 CPU, long enough to trip the port-scan deploy timeout. Hash the shared demo password once and reuse it. Also pre-fetch the `parking_slots` `id -> slot_number` map before the bookings loop to kill an N+1 query that would have added another ~4500 queries during seeding.
+- **Pint style**: applied `not_operator_with_successor_space`, `fully_qualified_strict_types`, `unary_operator_spaces`, `ordered_imports`, and `class_attributes_separation` fixes to `MetricsController`, `SSOController`, `UpdateController`, and `WebhookV2Controller`.
+
+---
+
 ## [4.9.0] - 2026-04-13
 
 ### Added

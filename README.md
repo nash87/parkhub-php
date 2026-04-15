@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml"><img src="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v4.9.0-brightgreen.svg?style=flat-square" alt="v4.9.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v4.10.0-brightgreen.svg?style=flat-square" alt="v4.10.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="MIT License"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg?style=flat-square&logo=php&logoColor=white" alt="PHP 8.4"></a>
   <a href="https://laravel.com/"><img src="https://img.shields.io/badge/Laravel-12-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 12"></a>
@@ -38,18 +38,15 @@
 
 ---
 
-## What's New in v4.9.0
+## What's New in v4.10.0
 
 | Feature | Description |
 |---------|-------------|
-| **API Resilience** | Exponential backoff retry, GET deduplication, AbortController support |
-| **React 19 `useOptimistic`** | Instant UI feedback with auto-revert on failure |
-| **SW Update Prompt** | User-controlled service worker update with toast notification |
-| **Security Headers** | CSP, Permissions-Policy, HSTS middleware |
-| **ARIA Accessibility** | CommandPalette: WAI-ARIA 1.2 combobox; DataTable: proper table roles |
-| **WebSocket Heartbeat** | 30s ping detection, retry cap, manual reconnect |
-| **TypeScript Strict** | `noUncheckedIndexedAccess` + `noFallthroughCasesInSwitch` |
-| **822 Vitest** | 10 new tests, coverage thresholds enforced |
+| **Kinetic Observatory dashboard** | New `KpiCard`, `TrendCard`, `SensorFeedCard`, `RecentActivityCard` kit drives the home dashboard: 4-KPI row, SVG trend chart with period selector, pulsing sensor feed, responsive activity table |
+| **Seeder ~30x faster on low-CPU hosts** | `Hash::make()` hoisted out of the 198-user loop and `parking_slots.slot_number` pre-fetched before the ~3500-booking loop — demo seeding runs in ~10 s instead of hanging past Render's port-scan deploy timeout |
+| **Apache runs as root again** | Reverted the `gosu www-data` drop because Apache's error log symlinks to `/proc/self/fd/2`, which only root can open — the CodeQL container-running-as-root alert is dismissed as a false positive for a single-tenant Render container |
+| **Single-arch container** | Dropped `linux/arm64` from Release Container — QEMU emulation was the deploy bottleneck and Render only runs amd64 |
+| **Pint style pass** | `MetricsController`, `SSOController`, `UpdateController`, `WebhookV2Controller` clean under `pint --test` |
 
 ---
 
