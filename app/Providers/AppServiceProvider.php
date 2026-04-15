@@ -53,7 +53,7 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Define named rate limiters for sensitive endpoints.
      *
-     * When PARKHUB_DISABLE_RATE_LIMITS=true is set (E2E test runs only,
+     * When config('app.disable_rate_limits') is true (E2E test runs only,
      * never production) every limiter is raised to 100_000 per minute so
      * a full Playwright suite — which funnels every test through the
      * loginViaUi helper from the same localhost IP — doesn't cascade into
@@ -61,7 +61,7 @@ class AppServiceProvider extends ServiceProvider
      */
     private function configureRateLimiting(): void
     {
-        $disabled = filter_var(env('PARKHUB_DISABLE_RATE_LIMITS', false), FILTER_VALIDATE_BOOLEAN);
+        $disabled = (bool) config('app.disable_rate_limits', false);
         $limit = static fn (int $normal): int => $disabled ? 100_000 : $normal;
 
         // Auth endpoints: 5 attempts per minute per IP (brute-force protection)

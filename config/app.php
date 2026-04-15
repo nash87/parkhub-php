@@ -151,6 +151,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Disable Rate Limits (E2E only)
+    |--------------------------------------------------------------------------
+    |
+    | When true, every named RateLimiter is raised to an effectively
+    | infinite budget so a full Playwright suite — which funnels every
+    | test through loginViaUi() from the same localhost IP — doesn't
+    | cascade into 429s. NEVER set this in production.
+    |
+    */
+
+    'disable_rate_limits' => filter_var(
+        env('PARKHUB_DISABLE_RATE_LIMITS', false),
+        FILTER_VALIDATE_BOOLEAN,
+    ),
+
+    /*
+    |--------------------------------------------------------------------------
     | VAPID Subject
     |--------------------------------------------------------------------------
     |
