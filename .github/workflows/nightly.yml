@@ -185,7 +185,7 @@ jobs:
           trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
 
           ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
-          npx playwright test --project=chromium --project=mobile-chrome --project=mobile-safari --retries=2
+          npx playwright test --project=chromium --project=mobile-chrome --project=mobile-safari
 
       - name: Upload Playwright report
         if: always()
