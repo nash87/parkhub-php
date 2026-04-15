@@ -21,7 +21,7 @@ parameters:
 		-
 			message: '#^Relation ''requesterBooking'' is not found in App\\Models\\SwapRequest model\.$#'
 			identifier: larastan.relationExistence
-			count: 2
+			count: 1
 			path: app/Http/Controllers/Api/BookingController.php
 
 		-
@@ -33,7 +33,7 @@ parameters:
 		-
 			message: '#^Relation ''targetBooking'' is not found in App\\Models\\SwapRequest model\.$#'
 			identifier: larastan.relationExistence
-			count: 2
+			count: 1
 			path: app/Http/Controllers/Api/BookingController.php
 
 		-

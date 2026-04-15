@@ -40,14 +40,15 @@ class AuthenticateFromCookieTest extends TestCase
         $this->assertEquals(200, $response->getStatusCode());
     }
 
-    public function test_returns_403_when_cookie_present_without_xhr_header(): void
+    public function test_passes_through_when_cookie_present_without_xhr_header(): void
     {
-        // Cookie present but no X-Requested-With header — CSRF protection kicks in
+        // Cookie present but no X-Requested-With: the middleware silently
+        // refuses to inject a Bearer header instead of returning 403. Public
+        // routes (/theme, /branding, /translations/overrides) must still
+        // work from an anonymous fetch that only sets `credentials:
+        // 'include'`, and auth:sanctum will still 401 the protected ones.
         $response = $this->runMiddleware(['parkhub_token' => 'cookie-token']);
-        $this->assertEquals(403, $response->getStatusCode());
-
-        $content = json_decode($response->getContent(), true);
-        $this->assertEquals('CSRF_REQUIRED', $content['error']);
+        $this->assertEquals(200, $response->getStatusCode());
     }
 
     public function test_injects_bearer_from_cookie_with_xhr_header(): void

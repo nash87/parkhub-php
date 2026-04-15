@@ -139,17 +139,29 @@ class AbsenceEdgeCaseTest extends TestCase
         $user = User::factory()->create();
         $token = $user->createToken('test')->plainTextToken;
 
-        $pattern = ['monday' => true, 'wednesday' => true, 'friday' => false];
+        // The shared TS client expects AbsencePattern[] — an array of
+        // {absence_type, weekdays} objects. Post the canonical Rust shape
+        // and expect the same thing back on the list endpoint.
+        $weekdays = [0, 2, 4]; // Mon, Wed, Fri
 
         $this->withHeader('Authorization', 'Bearer '.$token)
-            ->postJson('/api/v1/absences/pattern', ['pattern' => $pattern])
-            ->assertStatus(200);
+            ->postJson('/api/v1/absences/pattern', [
+                'absence_type' => 'homeoffice',
+                'weekdays' => $weekdays,
+            ])
+            ->assertStatus(200)
+            ->assertJson([
+                'data' => ['absence_type' => 'homeoffice', 'weekdays' => $weekdays],
+            ]);
 
         $response = $this->withHeader('Authorization', 'Bearer '.$token)
             ->getJson('/api/v1/absences/pattern');
 
         $response->assertStatus(200);
-        $this->assertEquals($pattern, $response->json('data.pattern'));
+        $this->assertEquals(
+            [['absence_type' => 'homeoffice', 'weekdays' => $weekdays]],
+            $response->json('data'),
+        );
     }
 
     public function test_absence_type_via_type_field(): void
