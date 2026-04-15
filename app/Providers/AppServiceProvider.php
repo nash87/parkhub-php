@@ -52,42 +52,53 @@ class AppServiceProvider extends ServiceProvider
 
     /**
      * Define named rate limiters for sensitive endpoints.
+     *
+     * When PARKHUB_DISABLE_RATE_LIMITS=true is set (E2E test runs only,
+     * never production) every limiter is raised to 100_000 per minute so
+     * a full Playwright suite — which funnels every test through the
+     * loginViaUi helper from the same localhost IP — doesn't cascade into
+     * 429s after the first 5 tests.
      */
     private function configureRateLimiting(): void
     {
+        $disabled = filter_var(env('PARKHUB_DISABLE_RATE_LIMITS', false), FILTER_VALIDATE_BOOLEAN);
+        $limit = static fn (int $normal): int => $disabled ? 100_000 : $normal;
+
         // Auth endpoints: 5 attempts per minute per IP (brute-force protection)
-        RateLimiter::for('auth', function (Request $request) {
-            return Limit::perMinute(5)->by($request->ip());
+        RateLimiter::for('auth', function (Request $request) use ($limit) {
+            return Limit::perMinute($limit(5))->by($request->ip());
         });
 
         // Password reset: 3 attempts per 15 minutes per IP
-        RateLimiter::for('password-reset', function (Request $request) {
-            return Limit::perMinutes(15, 3)->by($request->ip());
+        RateLimiter::for('password-reset', function (Request $request) use ($disabled) {
+            return $disabled
+                ? Limit::perMinute(100_000)->by($request->ip())
+                : Limit::perMinutes(15, 3)->by($request->ip());
         });
 
         // Demo reset: 2 per minute per IP (heavy DB operation)
-        RateLimiter::for('demo-action', function (Request $request) {
-            return Limit::perMinute(2)->by($request->ip());
+        RateLimiter::for('demo-action', function (Request $request) use ($limit) {
+            return Limit::perMinute($limit(2))->by($request->ip());
         });
 
         // Setup mutations: 3 per minute per IP
-        RateLimiter::for('setup', function (Request $request) {
-            return Limit::perMinute(3)->by($request->ip());
+        RateLimiter::for('setup', function (Request $request) use ($limit) {
+            return Limit::perMinute($limit(3))->by($request->ip());
         });
 
         // Payment endpoints: 10 per minute per user (prevent abuse)
-        RateLimiter::for('payments', function (Request $request) {
-            return Limit::perMinute(10)->by($request->user()?->id ?: $request->ip());
+        RateLimiter::for('payments', function (Request $request) use ($limit) {
+            return Limit::perMinute($limit(10))->by($request->user()?->id ?: $request->ip());
         });
 
         // Lobby display: 10 per minute per IP (public kiosk polling)
-        RateLimiter::for('lobby-display', function (Request $request) {
-            return Limit::perMinute(10)->by($request->ip());
+        RateLimiter::for('lobby-display', function (Request $request) use ($limit) {
+            return Limit::perMinute($limit(10))->by($request->ip());
         });
 
         // Authenticated API: 120 per minute per user (or IP if unauthenticated)
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(120)->by($request->user()?->id ?: $request->ip());
+        RateLimiter::for('api', function (Request $request) use ($limit) {
+            return Limit::perMinute($limit(120))->by($request->user()?->id ?: $request->ip());
         });
     }
 }

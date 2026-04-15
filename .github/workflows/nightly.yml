@@ -175,6 +175,7 @@ jobs:
           E2E_BASE_URL: http://127.0.0.1:8082
           PARKHUB_ADMIN_EMAIL: admin@parkhub.test
           PARKHUB_ADMIN_PASSWORD: demo
+          PARKHUB_DISABLE_RATE_LIMITS: 'true'
           RUN_STORAGE_LINK: '1'
         run: |
           ./scripts/ci/bootstrap-laravel.sh
