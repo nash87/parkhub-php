@@ -38,12 +38,11 @@ return Application::configure(basePath: dirname(__DIR__))
         // HTTP and $request->isSecure() returns false — which in turn
         // makes authCookie() emit a non-Secure cookie on HTTPS and would
         // make `redirect()->secure()` silently downgrade.
-        $middleware->trustProxies(at: '*', headers:
-            \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR
-            | \Illuminate\Http\Request::HEADER_X_FORWARDED_HOST
-            | \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT
-            | \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO
-            | \Illuminate\Http\Request::HEADER_X_FORWARDED_AWS_ELB,
+        $middleware->trustProxies(at: '*', headers: Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_HOST
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_PROTO
+            | Request::HEADER_X_FORWARDED_AWS_ELB,
         );
 
         // All cookies are encrypted — including parkhub_token. The
