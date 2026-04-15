@@ -26,9 +26,15 @@ return [
     // Specific origin patterns can be added via APP_EXTRA_ALLOWED_ORIGINS env var
     // (comma-separated). Do NOT use wildcard patterns for PaaS provider domains
     // as they would allow any tenant on those platforms to make cross-origin requests.
+    //
+    // Patterns MUST include PCRE delimiters — fruitcake/php-cors calls preg_match()
+    // on them directly, and a delimiter-less string crashes the middleware with
+    // "No ending delimiter" for every request that carries an Origin header.
     'allowed_origins_patterns' => array_filter([
-        // Allow demos page on GitHub Pages
-        '^https://nash87\.github\.io$',
+        // Demos page on GitHub Pages
+        '#^https://nash87\.github\.io$#',
+        // Any localhost / loopback port (dev servers, Playwright E2E, curl tests)
+        '#^http://(localhost|127\.0\.0\.1)(:\d+)?$#',
     ]),
 
     // Explicit headers — only what the frontend actually sends.

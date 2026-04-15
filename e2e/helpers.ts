@@ -1,4 +1,4 @@
-import { type Page, type APIRequestContext } from '@playwright/test';
+import { expect, type Page, type APIRequestContext } from '@playwright/test';
 
 /** Demo credentials used across all E2E tests. */
 export const DEMO_ADMIN = {
@@ -17,19 +17,38 @@ export async function loginViaApi(request: APIRequestContext): Promise<string> {
 
 /** Log in through the UI login form. */
 export async function loginViaUi(page: Page): Promise<void> {
-  await page.goto('/login');
-  // Click demo credentials button to auto-fill email + password
-  const demoBtn = page.getByRole('button', { name: /demo/i });
-  if (await demoBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
-    await demoBtn.click();
-    await page.waitForTimeout(500);
-  } else {
-    // Fallback: fill manually
-    await page.getByLabel(/email/i).fill(DEMO_ADMIN.email);
-    await page.locator('input[type="password"]').first().fill(DEMO_ADMIN.password);
+  // Wait for network to idle so all lazy-loaded chunks + React hydration have
+  // completed before we interact with the form. Without this, page.fill()
+  // can run against a DOM input whose react-hook-form register() listener
+  // hasn't attached yet — the DOM shows the typed value but the form state
+  // stays empty, and submit surfaces a "Required" alert.
+  await page.goto('/login', { waitUntil: 'networkidle' });
+
+  const submit = page.getByRole('button', { name: /sign in|log in|login/i });
+  await submit.waitFor({ state: 'visible' });
+  await expect(submit).toBeEnabled();
+
+  const emailField = page.getByLabel(/email/i);
+  const passwordField = page.locator('input[type="password"]').first();
+
+  // Focus-then-fill forces React to respond to a real interaction before we
+  // set the value, which flushes any remaining hydration for this subtree.
+  await emailField.click();
+  await emailField.fill(DEMO_ADMIN.email);
+  await passwordField.click();
+  await passwordField.fill(DEMO_ADMIN.password);
+
+  // Verify form state was captured. react-hook-form updates its internal
+  // map on the input event; if the DOM shows the value but the state is
+  // empty, blur+refill recovers without a test-level retry.
+  if ((await emailField.inputValue()) !== DEMO_ADMIN.email) {
+    await emailField.fill(DEMO_ADMIN.email);
   }
-  await page.getByRole('button', { name: /sign in|log in|login/i }).click();
-  // Wait for redirect away from login page
+  if ((await passwordField.inputValue()) !== DEMO_ADMIN.password) {
+    await passwordField.fill(DEMO_ADMIN.password);
+  }
+
+  await submit.click();
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 30_000 });
 }
 
