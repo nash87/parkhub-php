@@ -1,7 +1,13 @@
 import { expect, type Page, type APIRequestContext } from '@playwright/test';
 
-/** Demo credentials used across all E2E tests. */
+/** Demo credentials used across all E2E tests.
+ *
+ * Kept in lockstep with parkhub-rust/e2e/helpers.ts — both fields
+ * populated so `data: DEMO_ADMIN` works against both backends
+ * (PHP requires `username`, Rust accepts either).
+ */
 export const DEMO_ADMIN = {
+  username: 'admin@parkhub.test',
   email: 'admin@parkhub.test',
   password: 'demo',
 };

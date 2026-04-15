@@ -100,7 +100,12 @@ describe('AdminScheduledReportsPage', () => {
 
   it('cancel form', async () => {
     render(<AdminScheduledReportsPage />);
-    await waitFor(() => fireEvent.click(screen.getByTestId('create-schedule-btn')));
+    // Wait for the create button to be available, then click it.
+    await waitFor(() => expect(screen.getByTestId('create-schedule-btn')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('create-schedule-btn'));
+    // Form renders behind AnimatePresence on the next tick — wait for
+    // it to actually mount before reaching for the cancel button.
+    await waitFor(() => expect(screen.getByTestId('form-cancel-btn')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('form-cancel-btn'));
     await waitFor(() => expect(screen.queryByTestId('schedule-form')).not.toBeInTheDocument());
   });
