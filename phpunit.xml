@@ -39,6 +39,7 @@
         <env name="PULSE_ENABLED" value="false"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="METRICS_TOKEN" value="test-metrics-token"/>
         <!-- Enable all modules for testing (some default to false in production) -->
         <env name="MODULE_STRIPE" value="true"/>
         <env name="MODULE_OAUTH" value="true"/>
