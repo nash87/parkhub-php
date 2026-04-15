@@ -4,7 +4,11 @@ import { api, type User, setInMemoryToken } from '../api/client';
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (
+    username: string,
+    password: string,
+    two_factor_code?: string,
+  ) => Promise<{ success: boolean; error?: string; requires2fa?: boolean }>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -33,9 +37,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('auth:unauthorized', onUnauthorized);
   }, []);
 
-  async function login(username: string, password: string) {
-    const res = await api.login(username, password);
-    if (res.success && res.data?.tokens?.access_token) {
+  async function login(username: string, password: string, two_factor_code?: string) {
+    const res = await api.login(username, password, two_factor_code);
+
+    // 2FA challenge: backend returned success=true + data.requires_2fa.
+    // Surface it to the caller so Login.tsx can show the code input.
+    if (res.success && res.data && 'requires_2fa' in res.data && res.data.requires_2fa) {
+      return { success: false, requires2fa: true, error: res.data.message };
+    }
+
+    if (
+      res.success &&
+      res.data &&
+      'tokens' in res.data &&
+      res.data.tokens?.access_token
+    ) {
       // Store token in memory as fallback (not localStorage -- XSS safe).
       // The httpOnly cookie is the primary auth mechanism for the browser.
       setInMemoryToken(res.data.tokens.access_token);

@@ -73,27 +73,47 @@ class AuthController extends Controller
                 'ip_address' => $request->ip(),
             ]);
 
-            return response()->json(['error' => 'INVALID_CREDENTIALS', 'message' => 'Invalid username or password'], 401);
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => ['code' => 'INVALID_CREDENTIALS', 'message' => 'Invalid username or password'],
+                'meta' => null,
+            ], 401);
         }
 
         if (! $user->is_active) {
-            return response()->json(['error' => 'ACCOUNT_DISABLED', 'message' => 'Account is disabled'], 403);
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => ['code' => 'ACCOUNT_DISABLED', 'message' => 'Account is disabled'],
+                'meta' => null,
+            ], 403);
         }
 
-        // 2FA check: if enabled, require code or return challenge
+        // 2FA check: if enabled, require code or return challenge.
+        // The challenge response is HTTP 200 with success=true + data.requires_2fa
+        // so the frontend request() helper can inspect data without treating
+        // the challenge as an error.
         if ($user->two_factor_enabled) {
             if (! $request->has('two_factor_code')) {
                 return response()->json([
-                    'requires_2fa' => true,
-                    'message' => 'Two-factor authentication code required.',
+                    'success' => true,
+                    'data' => [
+                        'requires_2fa' => true,
+                        'message' => 'Two-factor authentication code required.',
+                    ],
+                    'error' => null,
+                    'meta' => null,
                 ]);
             }
 
             $valid = TwoFactorController::validateLoginCode($user, $request->two_factor_code);
             if (! $valid) {
                 return response()->json([
-                    'error' => 'INVALID_2FA_CODE',
-                    'message' => 'Invalid two-factor authentication code.',
+                    'success' => false,
+                    'data' => null,
+                    'error' => ['code' => 'INVALID_2FA_CODE', 'message' => 'Invalid two-factor authentication code.'],
+                    'meta' => null,
                 ], 401);
             }
         }
@@ -117,12 +137,17 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
-            'user' => $this->userResponse($user),
-            'tokens' => [
-                'access_token' => $token->plainTextToken,
-                'token_type' => 'Bearer',
-                'expires_at' => now()->addDays(7)->toISOString(),
+            'success' => true,
+            'data' => [
+                'user' => $this->userResponse($user),
+                'tokens' => [
+                    'access_token' => $token->plainTextToken,
+                    'token_type' => 'Bearer',
+                    'expires_at' => now()->addDays(7)->toISOString(),
+                ],
             ],
+            'error' => null,
+            'meta' => null,
         ])->withCookie($this->authCookie($token->plainTextToken));
     }
 

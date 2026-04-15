@@ -161,7 +161,8 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: 'Sign In' }));
 
     await waitFor(() => {
-      expect(mockLogin).toHaveBeenCalledWith('admin', 'demo');
+      // login() now takes an optional two_factor_code param.
+      expect(mockLogin).toHaveBeenCalledWith('admin', 'demo', undefined);
     });
 
     await waitFor(() => {

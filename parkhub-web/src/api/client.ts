@@ -138,10 +138,26 @@ async function requestBlob(path: string, signal?: AbortSignal): Promise<Blob> {
 }
 
 // ── Auth ──
+export interface LoginChallenge {
+  requires_2fa: true;
+  message?: string;
+}
+
+export interface LoginSuccess {
+  user?: User;
+  tokens: { access_token: string; token_type?: string; expires_at?: string };
+}
+
 export const api = {
-  login: (username: string, password: string) =>
-    request<{ tokens: { access_token: string } }>('/api/v1/auth/login', {
-      method: 'POST', body: JSON.stringify({ username, password }),
+  login: (username: string, password: string, two_factor_code?: string) =>
+    request<LoginSuccess | LoginChallenge>('/api/v1/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username, password, ...(two_factor_code ? { two_factor_code } : {}) }),
+    }),
+
+  refresh: () =>
+    request<{ access_token: string; expires_at?: string }>('/api/v1/auth/refresh', {
+      method: 'POST',
     }),
 
   register: (data: { name: string; email: string; password: string; password_confirmation: string }) =>

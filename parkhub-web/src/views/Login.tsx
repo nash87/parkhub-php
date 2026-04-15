@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -26,6 +26,8 @@ export function LoginPage() {
   const { login, user } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [twoFactorRequired, setTwoFactorRequired] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
 
   const {
     register,
@@ -37,19 +39,24 @@ export function LoginPage() {
     defaultValues: { username: '', password: '' },
   });
 
-  if (user) {
-    navigate('/', { replace: true });
-    return null;
-  }
+  // Redirect via effect — navigate() in render triggers a React 19 warning
+  // and can double-mount under StrictMode.
+  useEffect(() => {
+    if (user) navigate('/', { replace: true });
+  }, [user, navigate]);
 
   async function onSubmit(data: LoginForm) {
     setServerError(null);
-    const result = await login(data.username, data.password);
+    const result = await login(data.username, data.password, twoFactorCode || undefined);
     if (result.success) {
       navigate('/', { replace: true });
-    } else {
-      setServerError(result.error || t('auth.loginError'));
+      return;
     }
+    if (result.requires2fa) {
+      setTwoFactorRequired(true);
+      return;
+    }
+    setServerError(result.error || t('auth.loginError'));
   }
 
   function autofillDemo() {
@@ -191,6 +198,34 @@ export function LoginPage() {
               </div>
             </div>
 
+            {twoFactorRequired && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-2"
+              >
+                <label htmlFor="two-factor-code" className="block text-sm font-medium text-surface-700 dark:text-surface-300">
+                  {t('auth.twoFactorCode', 'Two-factor authentication code')}
+                </label>
+                <input
+                  id="two-factor-code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={twoFactorCode}
+                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
+                  className="input"
+                  placeholder="123456"
+                  aria-describedby="two-factor-hint"
+                />
+                <p id="two-factor-hint" className="text-xs text-surface-500 dark:text-surface-400">
+                  {t('auth.twoFactorHint', 'Enter the 6-digit code from your authenticator app.')}
+                </p>
+              </motion.div>
+            )}
+
             {serverError && (
               <motion.p
                 initial={{ opacity: 0, y: -4 }}
@@ -205,11 +240,13 @@ export function LoginPage() {
             <button
               id="login-submit"
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (twoFactorRequired && twoFactorCode.length < 6)}
               className={`btn btn-primary w-full py-2.5 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary-500/15 ${isSubmitting ? 'btn-shimmer' : ''}`}
             >
               {isSubmitting ? (
                 <><SpinnerGap weight="bold" className="w-4 h-4 animate-spin" /> {t('auth.loggingIn')}</>
+              ) : twoFactorRequired ? (
+                t('auth.verifyCode', 'Verify code')
               ) : (
                 t('auth.signIn')
               )}
