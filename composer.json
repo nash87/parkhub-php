@@ -20,8 +20,7 @@
         "laravel/sanctum": "^4.3",
         "laravel/tinker": "^3.0.0",
         "minishlink/web-push": "^10.0",
-        "pragmarx/google2fa-laravel": "^3.0",
-        "sentry/sentry-laravel": "^4.15"
+        "pragmarx/google2fa-laravel": "^3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.24",
