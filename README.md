@@ -10,6 +10,7 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="MIT License"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg?style=flat-square&logo=php&logoColor=white" alt="PHP 8.4"></a>
   <a href="https://laravel.com/"><img src="https://img.shields.io/badge/Laravel-12-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 12"></a>
+  <a href="https://astro.build/"><img src="https://img.shields.io/badge/Astro-6-BC52EE.svg?style=flat-square&logo=astro&logoColor=white" alt="Astro 6"></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB.svg?style=flat-square&logo=react&logoColor=black" alt="React 19"></a>
   <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4.svg?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4"></a>
   <img src="https://img.shields.io/badge/Tests-1700%2B-success.svg?style=flat-square" alt="1700+ tests">
@@ -22,7 +23,7 @@
 <p align="center">
   <strong>Ihre Daten. Ihr Server. Ihre Kontrolle.</strong><br>
   The on-premise parking management runtime for the canonical ParkHub product -- optimized for shared hosting, VPS, Docker, and Kubernetes.<br>
-  Built with Laravel 12, React 19, and Tailwind CSS 4. Zero cloud. Zero tracking. 100% GDPR compliant by design.
+  Built with Laravel 12, Astro 6, React 19, and Tailwind CSS 4. Zero cloud. Zero tracking. 100% GDPR compliant by design.
 </p>
 
 <p align="center">
