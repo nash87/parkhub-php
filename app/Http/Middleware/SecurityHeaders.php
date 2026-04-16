@@ -62,6 +62,15 @@ class SecurityHeaders
             );
         }
 
+        // --- Site isolation: COOP + CORP ---
+        // COOP same-origin prevents cross-origin windows from sharing a
+        // browsing context group (blocks window.opener attacks).
+        // CORP same-origin stops this origin's responses from being embedded
+        // cross-origin. Both are safe for a standalone app — we don't embed
+        // or get embedded.
+        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+        $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
+
         // --- Content-Security-Policy for the SPA ---
         // Only apply CSP to HTML responses (not API JSON or static assets)
         $contentType = $response->headers->get('Content-Type', '');
