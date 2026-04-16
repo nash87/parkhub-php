@@ -70,6 +70,13 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Sentry-compatible error tracking (works against Sentry.io or a
+        // self-hosted GlitchTip). Opts in via SENTRY_LARAVEL_DSN env var;
+        // a no-op when unset, so local dev and the AGPL release pay no
+        // cost. Registers a reporter so any uncaught exception is shipped
+        // before Laravel's render pipeline runs.
+        \Sentry\Laravel\Integration::handles($exceptions);
+
         // Consistent JSON error responses for API routes
         $exceptions->render(function (ModelNotFoundException $e, Request $request) {
             if ($request->expectsJson() || $request->is('api/*')) {
