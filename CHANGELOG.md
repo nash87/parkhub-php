@@ -7,6 +7,25 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [4.11.0] - 2026-04-16
+
+### Added
+- **Keepalive cron** (`.github/workflows/keepalive-demo.yml`): pings the Render demo's `/up` every 10 minutes between 05-22 UTC so the free-tier 15-minute idle spin-down never drops a cold 30-60 s wake-up on the first visitor of the day.
+- **HSTS in production**: `APP_HSTS=true` added to `render.yaml` so `SecurityHeaders` emits `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` on every response. Parity with parkhub-rust.
+
+### Changed
+- **Astro** `6.1.5 → 6.1.7` in `parkhub-web/`. npm audit clean, parity with parkhub-rust.
+- **Docker FROM digest-pinning** for supply-chain hardening: `node:22-slim` (frontend), `composer:2` (vendor), and `php:8.4-apache` (runtime) now all carry immutable `@sha256:…` references. Dependabot's `docker` ecosystem block refreshes these on its weekly cycle.
+- **`.htaccess` cache strategy**: `/_astro/*` (content-hashed chunks) now carry `Cache-Control: public, max-age=31536000, immutable` so the Cloudflare CDN in front of the Render demo caches them for a year without revalidation; `favicon.*`, `manifest.json`, `sw.js`, `offline.html` get `public, max-age=3600, must-revalidate` so the PWA shell still updates promptly. Previously these assets shipped with no `Cache-Control` header at all and Cloudflare reported `cf-cache-status: DYNAMIC` on every navigation.
+- **`composer dev` and root `npm run dev`** now route to `parkhub-web/` (Astro) instead of the legacy Vite/React `resources/js/` backup, mirroring the `build` script.
+- **Repo metadata**: README gains Astro 6 badge; GitHub description and topics list Astro explicitly.
+- **Astro build output** (`public/_astro/`, `public/index.html`, `public/manifest.json`, `public/sw.js`, `public/offline.html`, `public/og-image.svg`, favicons) is no longer tracked — the Dockerfile rebuilds these from `parkhub-web/` at container build time, so committing them caused dirty working trees after local `npm run build`. Eight orphaned Vite-era assets (`vite.svg`, `pwa-*.svg`, old `icon-*.png`, `apple-touch-icon.png`, `favicon.png`) were deleted in the same pass.
+
+### Fixed
+- **`VERSION` file** bumped `4.9.0 → 4.11.0`. The live demo was reporting `4.9.0` via `/api/v1/system/version` while the CHANGELOG and git tag already said `4.10.0` because `VERSION` (the single source of truth for `SystemController::appVersion()`) had never been updated when v4.10.0 was tagged.
+
+---
+
 ## [4.10.0] - 2026-04-15
 
 ### Added

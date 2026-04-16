@@ -37,6 +37,16 @@ resources/js/src.bak/
 /public/assets/
 .gstack/
 
+# Astro build output — Dockerfile builds parkhub-web/ and copies dist/ -> public/
+/public/_astro/
+/public/index.html
+/public/manifest.json
+/public/sw.js
+/public/offline.html
+/public/og-image.svg
+/public/favicon.ico
+/public/favicon.svg
+
 # Claude Code
 /.claude/
 
