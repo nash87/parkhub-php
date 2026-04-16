@@ -5,6 +5,7 @@ use App\Http\Middleware\ApiVersionHeader;
 use App\Http\Middleware\AuthenticateFromCookie;
 use App\Http\Middleware\CheckModule;
 use App\Http\Middleware\ForceJsonResponse;
+use App\Http\Middleware\RequestIdLogging;
 use App\Http\Middleware\RequireAdmin;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Auth\AuthenticationException;
@@ -29,6 +30,11 @@ return Application::configure(basePath: dirname(__DIR__))
         apiPrefix: 'api',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Request correlation ID — mirrors the rust server's x-request-id
+        // plumbing. Must run first so every downstream log line + the
+        // SecurityHeaders response echo can see the same ID.
+        $middleware->prepend(RequestIdLogging::class);
+
         // Security headers on every response (web + API)
         $middleware->append(SecurityHeaders::class);
 

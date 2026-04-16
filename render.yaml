@@ -20,6 +20,8 @@ services:
         value: https://parkhub-php-demo.onrender.com
       - key: APP_KEY
         generateValue: true
+      - key: METRICS_TOKEN
+        generateValue: true
       - key: DB_CONNECTION
         value: sqlite
       - key: DB_DATABASE
