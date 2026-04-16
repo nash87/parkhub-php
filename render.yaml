@@ -13,6 +13,8 @@ services:
         value: production
       - key: APP_DEBUG
         value: "false"
+      - key: APP_HSTS
+        value: "true"
       - key: APP_URL
         # ⚠️  UPDATE THIS after creating the Render service (copy the .onrender.com URL)
         value: https://parkhub-php-demo.onrender.com
