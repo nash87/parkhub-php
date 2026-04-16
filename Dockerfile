@@ -37,7 +37,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libpq-dev gosu \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j"$(nproc)" pdo pdo_mysql pdo_sqlite pdo_pgsql pgsql gd zip bcmath opcache \
-    && a2enmod rewrite headers \
+    && a2enmod rewrite headers brotli deflate expires \
     && rm -rf /var/lib/apt/lists/* /tmp/*
 
 # PHP production hardening + OPcache tuning
