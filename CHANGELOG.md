@@ -7,6 +7,28 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [4.12.0] - 2026-04-16
+
+### Added
+- **Brotli compression** via `mod_brotli` + `.htaccess`. Apache 2.4.26+ ships the module but it was not enabled; enable alongside deflate + expires so text assets (HTML/JS/CSS/JSON/SVG) compress 20-30% smaller than gzip at the same CPU budget. Cloudflare now keeps separate cache entries for br vs gzip via `Vary: Accept-Encoding`.
+- **`Cross-Origin-Opener-Policy: same-origin`** and **`Cross-Origin-Resource-Policy: same-origin`** in `SecurityHeaders` — parity with parkhub-rust's site-isolation headers.
+- **`x-request-id` log correlation**: new `RequestIdLogging` middleware prepended to the global stack mints a UUID v4 if Render / Cloudflare / client didn't forward one, stores it via `Log::withContext(['request_id' => $id])`, and echoes it back on the response. A single `grep request_id=` now threads one visitor's full session end-to-end.
+- **Stripe webhook tamper + replay rejection tests**: the existing `test_webhook_rejects_bad_signature` only proved that literal garbage in the Stripe-Signature header is rejected. Two adversarial paths were uncovered — (1) valid HMAC computed over the original body, then body rewritten to mint free credits (MITM), and (2) real HMAC but timestamp beyond the 5-minute tolerance (replay). Added positive + both rejection-path tests in `StripeControllerTest`.
+- **`scripts/locale-coverage.mjs`** + `npm run i18n:coverage`: enumerates every leaf key under en.translation and reports missing keys per locale. All ten files currently ship at 100% (1,543 keys each); the script guards future feature work against en-only key regressions.
+- **`METRICS_TOKEN` generated in `render.yaml`**: `MetricsController` already exposed the full Prometheus gauge set (`parkhub_users_total`, `parkhub_bookings_total{status}`, `parkhub_lot_occupancy_percent`, `parkhub_active_sessions`, slot counts), but every request to `/api/metrics` returned 401 because no token was ever set. Render now mints one; external Prometheus scrapes authenticate with `Authorization: Bearer $METRICS_TOKEN`.
+
+### Changed
+- **Pre-auth critical path trimmed by ~150 KB** via `React.lazy` on the Layout shell — synced from parkhub-rust.
+- **Non-English locales now lazy-load** via `import.meta.glob` — ~450 KB raw JS saved per user.
+- **`/_astro/*` hashed chunks now carry `Cache-Control: public, max-age=31536000, immutable`**, unhashed PWA shell assets (favicon, manifest.json, sw.js, offline.html) get `public, max-age=3600, must-revalidate`. Previously these assets shipped with no Cache-Control header at all; Cloudflare reported `cf-cache-status: DYNAMIC` on every navigation.
+- **`composer dev` + root `npm run dev`** now route to `parkhub-web/` (Astro) instead of the legacy Vite/React `resources/js/` backup, mirroring the `build` script.
+- **Admin dashboard KPI row no longer reads zeros on first login**: `seedAdmins` now sets `credits_balance=35/28`, and new `seedAdminBookings` gives each admin a vehicle + 18 bookings (mix of completed / cancelled / no_show / active / confirmed) spread across the last 25 days and next 5.
+
+### Fixed
+- **`e2e/*.spec.ts`**: replaced 37 `waitForLoadState('networkidle')` + one `helpers.ts goto({waitUntil: 'networkidle'})` call site with `'domcontentloaded'` — Playwright has discouraged `networkidle` since 1.x because modern apps run continuous background traffic that keeps the 500 ms idle timer from ever firing.
+
+---
+
 ## [4.11.0] - 2026-04-16
 
 ### Added
