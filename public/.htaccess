@@ -7,6 +7,20 @@
     # Keep only the process-level "hide implementation details" directives.
     Header unset X-Powered-By
     Header always unset Server
+
+    # Immutable caching for Astro-hashed chunks. Filenames carry a content
+    # hash (e.g. /_astro/client.ltbowV7u.js) so the URL changes whenever
+    # the file changes — 1-year max-age with immutable is safe and lets
+    # Cloudflare / browsers skip revalidation entirely on repeat visits.
+    <If "%{REQUEST_URI} =~ m#^/_astro/#">
+        Header set Cache-Control "public, max-age=31536000, immutable"
+    </If>
+
+    # Favicons, manifest, SW: short cache, must revalidate. These don't
+    # have hashed filenames so they need to update when the source does.
+    <FilesMatch "^(favicon\.(ico|svg)|manifest\.json|sw\.js|offline\.html)$">
+        Header set Cache-Control "public, max-age=3600, must-revalidate"
+    </FilesMatch>
 </IfModule>
 
 <IfModule mod_rewrite.c>
