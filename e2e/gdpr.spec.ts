@@ -32,7 +32,7 @@ test.describe('GDPR — Data Privacy Compliance', () => {
 
   test('privacy/legal content served', async ({ page }) => {
     await page.goto('/login');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Look for legal/privacy links on login page
     const legalLinks = page.locator(

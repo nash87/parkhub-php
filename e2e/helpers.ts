@@ -28,7 +28,7 @@ export async function loginViaUi(page: Page): Promise<void> {
   // can run against a DOM input whose react-hook-form register() listener
   // hasn't attached yet — the DOM shows the typed value but the form state
   // stays empty, and submit surfaces a "Required" alert.
-  await page.goto('/login', { waitUntil: 'networkidle' });
+  await page.goto('/login', { waitUntil: 'domcontentloaded' });
 
   const submit = page.getByRole('button', { name: /sign in|log in|login/i });
   await submit.waitFor({ state: 'visible' });
