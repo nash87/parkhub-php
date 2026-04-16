@@ -166,6 +166,90 @@ class StripeControllerTest extends TestCase
         $response->assertStatus(403);
     }
 
+    public function test_webhook_accepts_valid_hmac_signature(): void
+    {
+        $secret = 'whsec_test_correct';
+        config(['services.stripe.webhook_secret' => $secret]);
+
+        $payload = json_encode(['type' => 'test.event', 'id' => 'evt_test_1']);
+        $timestamp = time();
+        $sig = hash_hmac('sha256', "{$timestamp}.{$payload}", $secret);
+
+        $response = $this->call(
+            'POST',
+            '/api/v1/payments/webhook',
+            [],
+            [],
+            [],
+            [
+                'HTTP_Stripe-Signature' => "t={$timestamp},v1={$sig}",
+                'CONTENT_TYPE' => 'application/json',
+            ],
+            $payload,
+        );
+
+        // Anything other than 403 proves the signature passed; unknown event
+        // types get a benign 200 from the handler's default branch.
+        $this->assertNotEquals(403, $response->getStatusCode());
+    }
+
+    public function test_webhook_rejects_valid_hmac_on_tampered_body(): void
+    {
+        // MITM scenario: attacker sees a genuine webhook in transit, computes
+        // a valid HMAC for the original body, then rewrites the body to mint
+        // free credits for themselves. Signature must not validate.
+        $secret = 'whsec_test_correct';
+        config(['services.stripe.webhook_secret' => $secret]);
+
+        $originalBody = json_encode(['amount' => 100]);
+        $tamperedBody = json_encode(['amount' => 1000000]);
+        $timestamp = time();
+        $sigForOriginal = hash_hmac('sha256', "{$timestamp}.{$originalBody}", $secret);
+
+        $response = $this->call(
+            'POST',
+            '/api/v1/payments/webhook',
+            [],
+            [],
+            [],
+            [
+                'HTTP_Stripe-Signature' => "t={$timestamp},v1={$sigForOriginal}",
+                'CONTENT_TYPE' => 'application/json',
+            ],
+            $tamperedBody,
+        );
+
+        $response->assertStatus(403);
+    }
+
+    public function test_webhook_rejects_replay_with_stale_timestamp(): void
+    {
+        // Replay scenario: attacker captured a valid webhook 10 minutes ago
+        // and replays it now to double-credit the user. Timestamp delta
+        // beyond the 5-minute tolerance must reject, even with a valid HMAC.
+        $secret = 'whsec_test_correct';
+        config(['services.stripe.webhook_secret' => $secret]);
+
+        $payload = json_encode(['type' => 'test.event']);
+        $staleTimestamp = time() - 600; // 10 minutes old
+        $sig = hash_hmac('sha256', "{$staleTimestamp}.{$payload}", $secret);
+
+        $response = $this->call(
+            'POST',
+            '/api/v1/payments/webhook',
+            [],
+            [],
+            [],
+            [
+                'HTTP_Stripe-Signature' => "t={$staleTimestamp},v1={$sig}",
+                'CONTENT_TYPE' => 'application/json',
+            ],
+            $payload,
+        );
+
+        $response->assertStatus(403);
+    }
+
     public function test_stripe_disabled_when_module_off(): void
     {
         config(['modules.stripe' => false]);
