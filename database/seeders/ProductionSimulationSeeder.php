@@ -92,6 +92,7 @@ class ProductionSimulationSeeder extends Seeder
         $lotData = $this->seedLots();
         $userIds = $this->seedUsers();
         $this->seedBookings($lotData, $userIds);
+        $this->seedAdminBookings($adminIds, $lotData);
         $this->seedAbsences($userIds);
         $this->seedAnnouncements($adminIds);
         $this->seedNotifications($userIds);
@@ -196,6 +197,11 @@ class ProductionSimulationSeeder extends Seeder
                 'role' => 'superadmin',
                 'department' => 'IT',
                 'is_active' => true,
+                // Give admin a credits balance too — otherwise the dashboard
+                // KPI row reads "Credits 0" and the demo looks dead on login.
+                'credits_balance' => 35,
+                'credits_monthly_quota' => 40,
+                'credits_last_refilled' => now()->startOfMonth(),
                 'created_at' => now()->subDays(35),
                 'updated_at' => now()->subDays(35),
             ],
@@ -208,6 +214,9 @@ class ProductionSimulationSeeder extends Seeder
                 'role' => 'admin',
                 'department' => 'Verwaltung',
                 'is_active' => true,
+                'credits_balance' => 28,
+                'credits_monthly_quota' => 40,
+                'credits_last_refilled' => now()->startOfMonth(),
                 'created_at' => now()->subDays(35),
                 'updated_at' => now()->subDays(35),
             ],
@@ -440,6 +449,89 @@ class ProductionSimulationSeeder extends Seeder
         }
 
         $this->command->line('  → '.DB::table('bookings')->count().' bookings inserted');
+    }
+
+    // -------------------------------------------------------------------------
+    // Admin bookings — seed a handful so the admin dashboard is not empty
+    // on first login. Gives the demo "Guten Morgen, Administrator" screen
+    // real numbers in the KPI row (active, this month, total).
+    // -------------------------------------------------------------------------
+
+    private function seedAdminBookings(array $adminIds, array $lotData): void
+    {
+        if (empty($adminIds) || empty($lotData)) {
+            return;
+        }
+
+        $slotNumbers = DB::table('parking_slots')
+            ->pluck('slot_number', 'id')
+            ->toArray();
+
+        $now = Carbon::now();
+        $plates = ['B-AA-1000', 'B-AD-2000'];
+        $rows = [];
+
+        foreach ($adminIds as $i => $adminId) {
+            $plate = $plates[$i] ?? 'B-AA-'.(1000 + $i);
+
+            // Give each admin a vehicle so the booking's vehicle_plate is real.
+            DB::table('vehicles')->insertOrIgnore([
+                'id' => (string) Str::uuid(),
+                'user_id' => $adminId,
+                'plate' => $plate,
+                'make' => $i === 0 ? 'Tesla' : 'BMW',
+                'model' => $i === 0 ? 'Model 3' : 'i4',
+                'color' => $i === 0 ? 'Weiß' : 'Schwarz',
+                'is_default' => true,
+                'created_at' => now()->subDays(30),
+                'updated_at' => now()->subDays(30),
+            ]);
+
+            // 18 bookings per admin spread across the last 25 days + next 5.
+            // Mix of completed (past), active/confirmed (current), and future
+            // so the dashboard surfaces meaningful counts in every KPI slot.
+            for ($b = 0; $b < 18; $b++) {
+                $offsetDays = rand(-25, 5);
+                $date = $now->copy()->addDays($offsetDays);
+                $isWeekend = in_array($date->dayOfWeek, [0, 6], true);
+                [$startTime, $endTime] = $this->bookingWindow($date, $isWeekend);
+
+                $status = 'confirmed';
+                if ($endTime->isPast()) {
+                    $r = rand(1, 100);
+                    $status = $r <= 80 ? 'completed' : ($r <= 90 ? 'cancelled' : 'no_show');
+                } elseif ($startTime->isPast() && $endTime->isFuture()) {
+                    $status = 'active';
+                }
+
+                $lot = $lotData[array_rand($lotData)];
+                $slotId = $lot['slot_ids'][array_rand($lot['slot_ids'])];
+
+                $rows[] = [
+                    'id' => (string) Str::uuid(),
+                    'user_id' => $adminId,
+                    'lot_id' => $lot['id'],
+                    'slot_id' => $slotId,
+                    'lot_name' => $lot['name'],
+                    'slot_number' => $slotNumbers[$slotId] ?? '001',
+                    'vehicle_plate' => $plate,
+                    'booking_type' => 'einmalig',
+                    'start_time' => $startTime->toDateTimeString(),
+                    'end_time' => $endTime->toDateTimeString(),
+                    'status' => $status,
+                    'checked_in_at' => $status === 'completed' || $status === 'active'
+                        ? $startTime->copy()->addMinutes(rand(1, 15))->toDateTimeString()
+                        : null,
+                    'created_at' => $startTime->copy()->subHours(rand(1, 48))->toDateTimeString(),
+                    'updated_at' => $startTime->copy()->subHours(rand(0, 2))->toDateTimeString(),
+                ];
+            }
+        }
+
+        if ($rows) {
+            DB::table('bookings')->insert($rows);
+        }
+        $this->command->line('  → '.count($rows).' admin bookings inserted');
     }
 
     // -------------------------------------------------------------------------
