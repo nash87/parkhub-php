@@ -184,28 +184,38 @@ export function SetupWizardPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="setup-timezone"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   {t('setup.timezone', 'Timezone')}
                 </label>
                 <select
+                  id="setup-timezone"
                   value={timezone}
                   onChange={e => setTimezone(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
                   data-testid="select-timezone"
+                  aria-label={t('setup.timezone', 'Timezone')}
                 >
                   {TIMEZONES.map(tz => <option key={tz} value={tz}>{tz}</option>)}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label
+                  htmlFor="setup-logo"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                >
                   Logo (optional)
                 </label>
                 <input
+                  id="setup-logo"
                   type="file"
                   accept="image/*"
                   onChange={handleLogoUpload}
                   className="text-sm text-gray-500"
                   data-testid="input-logo"
+                  aria-label="Upload logo (optional)"
                 />
               </div>
             </div>
