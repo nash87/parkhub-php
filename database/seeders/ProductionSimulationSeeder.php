@@ -193,7 +193,15 @@ class ProductionSimulationSeeder extends Seeder
                 'name' => 'Administrator',
                 'username' => 'admin',
                 'email' => 'admin@parkhub.test',
-                'password' => Hash::make(env('PARKHUB_ADMIN_PASSWORD', 'demo')),
+                // env() returns '' (not the default) when the var is declared
+                // but empty. Normalise so an empty PARKHUB_ADMIN_PASSWORD in .env
+                // still lands on the documented default 'demo' instead of an
+                // unusable empty password.
+                'password' => Hash::make(
+                    ((string) env('PARKHUB_ADMIN_PASSWORD', 'demo')) !== ''
+                        ? (string) env('PARKHUB_ADMIN_PASSWORD', 'demo')
+                        : 'demo'
+                ),
                 'role' => 'superadmin',
                 'department' => 'IT',
                 'is_active' => true,
