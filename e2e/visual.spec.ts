@@ -20,13 +20,29 @@ import { loginViaUi } from './helpers';
  */
 
 const SURFACES = [
+  // Public
   { name: 'login', path: '/login', auth: false },
+  { name: 'register', path: '/register', auth: false },
+  { name: 'forgot-password', path: '/forgot-password', auth: false },
+  { name: 'welcome', path: '/welcome', auth: false },
+  // Authenticated user
   { name: 'dashboard', path: '/', auth: true },
   { name: 'book', path: '/book', auth: true },
   { name: 'bookings', path: '/bookings', auth: true },
   { name: 'vehicles', path: '/vehicles', auth: true },
+  { name: 'credits', path: '/credits', auth: true },
+  { name: 'favorites', path: '/favorites', auth: true },
+  { name: 'absences', path: '/absences', auth: true },
+  { name: 'notifications', path: '/notifications', auth: true },
+  { name: 'calendar', path: '/calendar', auth: true },
+  { name: 'profile', path: '/profile', auth: true },
+  // Admin
   { name: 'admin', path: '/admin', auth: true },
   { name: 'admin-modules', path: '/admin/modules', auth: true },
+  { name: 'admin-settings', path: '/admin/settings', auth: true },
+  { name: 'admin-users', path: '/admin/users', auth: true },
+  { name: 'admin-lots', path: '/admin/lots', auth: true },
+  { name: 'admin-analytics', path: '/admin/analytics', auth: true },
 ];
 
 const VIEWPORTS = [
@@ -115,19 +131,6 @@ for (const viewport of VIEWPORTS) {
           await page
             .waitForLoadState('networkidle', { timeout: 10_000 })
             .catch(() => { /* some pages stream long-poll — fall through */ });
-          // Hard-wait past the "Loading ParkHub" splash. Without this the
-          // very first paint can land in the screenshot and cause a bogus
-          // diff against the real UI baseline.
-          await page
-            .waitForFunction(
-              () => !/^\s*P?\s*$/.test(document.body?.textContent ?? '')
-                && !/Loading ParkHub/i.test(document.body?.textContent ?? ''),
-              null,
-              { timeout: 10_000 },
-            )
-            .catch(() => {
-              /* some static pages (e.g. /login) may settle instantly — fall through */
-            });
           await page.waitForTimeout(800);
 
           await expect(page).toHaveScreenshot(
