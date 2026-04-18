@@ -6,6 +6,13 @@
 *.md diff=markdown
 *.php diff=php
 
+# Keep GitHub's primary-language pill on PHP. The co-located frontend
+# monorepo is real first-party TypeScript (not vendored), but counting it
+# against repo language stats flips the pill to TypeScript on a PHP/Laravel
+# backend project. linguist-detectable=false preserves syntax highlighting
+# while excluding the directory from aggregate stats.
+parkhub-web/** linguist-detectable=false
+
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
