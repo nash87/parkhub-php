@@ -18,6 +18,10 @@ env:
   # Dummy app key for template rendering only (chart requires config.appKey).
   CI_APP_KEY: 'base64:Q0lfREVGQVVMVF9URVNUX0FQUF9LRVlfTk9UX0ZPUl9QUk9EVUNUSU9OX1VTRQ=='
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     name: Lint + Template
