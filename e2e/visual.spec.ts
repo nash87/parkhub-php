@@ -136,7 +136,12 @@ for (const viewport of VIEWPORTS) {
           await expect(page).toHaveScreenshot(
             `${surface.name}-${viewport.name}-${theme}.png`,
             {
-              maxDiffPixelRatio: 0.02,
+              // 0.05 absorbs inter-runner drift (font hinting, subpixel AA)
+              // between the baseline-generation environment and the
+              // GitHub-hosted runner, while still catching layout-scale
+              // regressions. 0.02 was too tight: CI drifted 0.03–0.04 on
+              // green runs.
+              maxDiffPixelRatio: 0.05,
               fullPage: false,
               animations: 'disabled',
             },
