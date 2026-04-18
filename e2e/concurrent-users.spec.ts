@@ -222,6 +222,36 @@ test.describe('Concurrent Users — Booking Conflict Detection', () => {
     await pageA.waitForLoadState('domcontentloaded');
     await pageB.waitForLoadState('domcontentloaded');
 
+    // The SPA shows a "Loading ParkHub" splash for a few hundred ms before
+    // React hydrates and the router decides to either render /book or
+    // redirect to /login|/welcome. Wait until hydration settles (body text
+    // length grows past the splash and URL stops changing) so the two
+    // contexts are compared against their final rendered DOM, not the
+    // in-flight placeholder.
+    const waitForSpaReady = async (p: typeof pageA) => {
+      await p.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {});
+      await p
+        .waitForFunction(
+          () => {
+            const txt = document.body?.textContent ?? '';
+            return txt.length > 80 && !/^\s*Loading ParkHub/i.test(txt);
+          },
+          null,
+          { timeout: 10_000 },
+        )
+        .catch(() => { /* assertion will produce the failure message */ });
+      // Let the router commit (redirects happen after the initial paint).
+      let lastUrl = p.url();
+      for (let i = 0; i < 20; i++) {
+        await p.waitForTimeout(100);
+        const cur = p.url();
+        if (cur === lastUrl) break;
+        lastUrl = cur;
+      }
+    };
+    await waitForSpaReady(pageA);
+    await waitForSpaReady(pageB);
+
     // Both should see the booking page
     const bodyA = await pageA.locator('body').textContent();
     const bodyB = await pageB.locator('body').textContent();

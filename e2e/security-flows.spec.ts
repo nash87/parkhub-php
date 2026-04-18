@@ -35,7 +35,25 @@ test.describe('Security — Access Control & Hardening', () => {
         await page.goto(route);
         await page.waitForLoadState('domcontentloaded');
 
-        // Should either redirect to /login or show access denied
+        // React AuthContext performs a client-side redirect after hydration,
+        // so the URL may still be the original route for a tick. Wait (up to
+        // 10s) for either a URL change to /login|/welcome or for an
+        // access-denied body string before asserting.
+        try {
+          await page.waitForFunction(
+            () => {
+              const href = window.location.href;
+              if (href.includes('/login') || href.includes('/welcome')) return true;
+              const txt = document.body?.textContent ?? '';
+              return /forbidden|access denied|unauthorized|not authorized/i.test(txt);
+            },
+            null,
+            { timeout: 10_000 },
+          );
+        } catch {
+          // fall through — assertion below will produce the useful failure message
+        }
+
         const url = page.url();
         const body = await page.locator('body').textContent();
         const isBlocked =
