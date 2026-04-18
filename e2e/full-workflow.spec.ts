@@ -1,5 +1,5 @@
 import { test, expect, type APIRequestContext, type APIResponse } from '@playwright/test';
-import { loginViaApi, DEMO_ADMIN } from './helpers';
+import { loginViaApi, loginViaUi, DEMO_ADMIN } from './helpers';
 
 const BASE = process.env.E2E_BASE_URL || 'http://localhost:8082';
 
@@ -78,12 +78,30 @@ test.describe('Full User Workflow', () => {
     // cookie; others return 200/201 with a new token. Either behaviour
     // is a valid implementation of "refresh token works".
     expect(res.status()).toBeLessThan(500);
+
+    // PHP's Sanctum-based refresh revokes the old PAT and returns a new
+    // one. Capture it so subsequent tests in this describe share a valid
+    // bearer. Without this, every test that runs after `refresh` inherits
+    // the revoked token and hits 401 on protected endpoints.
+    if (res.status() < 400) {
+      const body = await res.json().catch(() => null);
+      const next =
+        body?.data?.tokens?.access_token ??
+        body?.tokens?.access_token ??
+        body?.data?.token ??
+        body?.token;
+      if (typeof next === 'string' && next.length > 0) {
+        token = next;
+      }
+    }
   });
 
   test('get current user profile', async ({ request }) => {
+    // PHP backend exposes /api/v1/users/me (and /api/v1/me); Rust backend
+    // exposes /api/v1/auth/me.
     const res = await tryEndpoints(
       request,
-      ['/api/v1/auth/me', '/api/v1/users/me', '/api/v1/me'],
+      ['/api/v1/users/me', '/api/v1/me', '/api/v1/auth/me'],
       { headers: { Authorization: `Bearer ${token}` } },
     );
     expect(res.status()).toBe(200);
@@ -448,11 +466,10 @@ test.describe('Full Admin Workflow', () => {
 
 test.describe('Theme UI Switching (Browser)', () => {
   test('theme switcher FAB is visible after login', async ({ page }) => {
-    await page.goto('/login', { waitUntil: 'domcontentloaded' });
-    await page.getByLabel(/email/i).first().fill(DEMO_ADMIN.email);
-    await page.locator('input[type="password"]').first().fill(DEMO_ADMIN.password);
-    await page.getByRole('button', { name: /sign in|log in|login/i }).click();
-    await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 30_000 });
+    // Use the shared loginViaUi helper which handles the react-hook-form
+    // "Required" race (rare, but it happens when register() hasn't wired up
+    // before the first click) instead of duplicating fragile inline steps.
+    await loginViaUi(page);
     await page.waitForLoadState('domcontentloaded');
 
     // Locating the theme switcher is best-effort — it may be behind a menu

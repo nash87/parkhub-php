@@ -55,6 +55,24 @@ export async function loginViaUi(page: Page): Promise<void> {
   }
 
   await submit.click();
+
+  // react-hook-form may race and render a "Required" validation alert if
+  // the register() listener didn't attach before the first click. When we
+  // spot it, blur+refill both fields and click again — much cheaper than
+  // letting the 30s URL wait time out and flake the whole test.
+  const requiredAlert = page.getByRole('alert').filter({ hasText: /required/i });
+  if (await requiredAlert.first().isVisible({ timeout: 500 }).catch(() => false)) {
+    await emailField.click();
+    await emailField.fill('');
+    await emailField.fill(DEMO_ADMIN.email);
+    await emailField.press('Tab');
+    await passwordField.click();
+    await passwordField.fill('');
+    await passwordField.fill(DEMO_ADMIN.password);
+    await passwordField.press('Tab');
+    await submit.click();
+  }
+
   await page.waitForURL((url) => !url.pathname.includes('/login'), { timeout: 30_000 });
   // WebKit / mobile-safari commits Set-Cookie noticeably later than Chromium,
   // which races with the caller's subsequent page.goto('/protected-route').

@@ -92,6 +92,18 @@ test.describe('PWA — Offline Resilience & Reconnection', () => {
     // Navigate to a page that fetches data
     await page.goto('/');
     await page.waitForLoadState('domcontentloaded');
+    // Wait for React to hydrate past the "Loading ParkHub" splash. Without
+    // this, the SPA shell body is just the loading string (<50 chars) and
+    // the test races the hydration.
+    try {
+      await page.waitForFunction(
+        () => (document.body?.textContent ?? '').length > 50,
+        null,
+        { timeout: 10_000 },
+      );
+    } catch {
+      // fall through — assertion below will produce the useful failure message
+    }
 
     // Page should load successfully now
     expect(page.url()).not.toContain('offline');
