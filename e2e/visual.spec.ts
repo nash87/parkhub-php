@@ -131,6 +131,19 @@ for (const viewport of VIEWPORTS) {
           await page
             .waitForLoadState('networkidle', { timeout: 10_000 })
             .catch(() => { /* some pages stream long-poll — fall through */ });
+          // Hard-wait past the "Loading ParkHub" splash. Without this the
+          // very first paint can land in the screenshot and cause a bogus
+          // diff against the real UI baseline.
+          await page
+            .waitForFunction(
+              () => !/^\s*P?\s*$/.test(document.body?.textContent ?? '')
+                && !/Loading ParkHub/i.test(document.body?.textContent ?? ''),
+              null,
+              { timeout: 10_000 },
+            )
+            .catch(() => {
+              /* some static pages (e.g. /login) may settle instantly — fall through */
+            });
           await page.waitForTimeout(800);
 
           await expect(page).toHaveScreenshot(
