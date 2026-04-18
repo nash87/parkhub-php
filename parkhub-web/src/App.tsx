@@ -48,6 +48,7 @@ const CreditsPage = lazy(() => import('./views/Credits'), 'CreditsPage', '/credi
 const VehiclesPage = lazy(() => import('./views/Vehicles'), 'VehiclesPage', '/vehicles');
 const AbsencesPage = lazy(() => import('./views/Absences'), 'AbsencesPage', '/absences');
 const ProfilePage = lazy(() => import('./views/Profile'), 'ProfilePage', '/profile');
+const SettingsPage = lazy(() => import('./views/Settings'), 'SettingsPage', '/settings');
 const TeamPage = lazy(() => import('./views/Team'), 'TeamPage', '/team');
 const NotificationsPage = lazy(() => import('./views/Notifications'), 'NotificationsPage', '/notifications');
 const CalendarPage = lazy(() => import('./views/Calendar'), 'CalendarPage', '/calendar');
@@ -237,9 +238,15 @@ function ViewTransitionRoutes() {
 }
 
 function AppRoutes() {
+  const { user } = useAuth();
   useEffect(() => {
+    // Only preload authenticated-area chunks after the user is known to be
+    // authenticated. Doing it eagerly on the landing page wastes bandwidth
+    // on chunks an anonymous visitor never reaches, starving the Welcome
+    // chunk that actually drives LCP.
+    if (!user) return;
     preloadRoutesIdle(['/', '/bookings', '/book', '/profile', '/admin']);
-  }, []);
+  }, [user]);
 
   return <ViewTransitionRoutes />;
 }
@@ -247,6 +254,30 @@ function AppRoutes() {
 function ThemeLoader({ children }: { children: React.ReactNode }) {
   useThemeLoader();
   return <>{children}</>;
+}
+
+/** Mount passive background overlays (install prompt, SW-update banner, demo
+ *  overlay) only after the browser has been idle for a moment. Rendering them
+ *  on the critical path pulls ~30KB of lazy chunks that compete with the
+ *  Welcome chunk for bandwidth and delay LCP. */
+function DeferredOverlays() {
+  const [ready, setReady] = React.useState(false);
+  useEffect(() => {
+    const schedule = (globalThis as any).requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 500));
+    const handle = schedule(() => setReady(true), { timeout: 2000 });
+    return () => {
+      const cancel = (globalThis as any).cancelIdleCallback ?? clearTimeout;
+      cancel(handle);
+    };
+  }, []);
+  if (!ready) return null;
+  return (
+    <>
+      <Suspense fallback={null}><DemoOverlay /></Suspense>
+      <Suspense fallback={null}><InstallPrompt /></Suspense>
+      <Suspense fallback={null}><SWUpdatePrompt /></Suspense>
+    </>
+  );
 }
 
 export function App() {
@@ -259,9 +290,7 @@ export function App() {
         <FeaturesProvider>
         <AuthProvider>
           <AppRoutes />
-          <Suspense fallback={null}><DemoOverlay /></Suspense>
-          <Suspense fallback={null}><InstallPrompt /></Suspense>
-          <Suspense fallback={null}><SWUpdatePrompt /></Suspense>
+          <DeferredOverlays />
           <Toaster
             position="bottom-center"
             toastOptions={{
