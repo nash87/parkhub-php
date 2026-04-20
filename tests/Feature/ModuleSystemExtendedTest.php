@@ -127,10 +127,10 @@ class ModuleSystemExtendedTest extends TestCase
         }
     }
 
-    public function test_module_service_provider_all_returns_correct_count(): void
+    public function test_module_service_provider_all_returns_current_count(): void
     {
         $all = ModuleServiceProvider::all();
-        $this->assertCount(67, $all);
+        $this->assertCount(68, $all);
     }
 
     public function test_modules_endpoint_is_always_public(): void
@@ -149,13 +149,16 @@ class ModuleSystemExtendedTest extends TestCase
             ->assertNotFound();
     }
 
-    public function test_disabled_broadcasting_module_returns_404(): void
+    public function test_disabled_realtime_module_returns_404(): void
     {
-        config(['modules.broadcasting' => false]);
+        config([
+            'modules.realtime' => false,
+            'modules.broadcasting' => false,
+        ]);
         $user = User::factory()->create();
 
         $this->actingAs($user)
-            ->getJson('/api/v1/broadcasting/auth')
+            ->getJson('/api/v1/sse/status')
             ->assertNotFound();
     }
 

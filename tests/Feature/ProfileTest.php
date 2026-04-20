@@ -128,6 +128,23 @@ class ProfileTest extends TestCase
             ->assertJsonPath('data.language', 'de');
     }
 
+    public function test_user_preferences_canonicalize_legacy_push_key_on_read(): void
+    {
+        $user = User::factory()->create([
+            'preferences' => ['theme' => 'dark', 'push_notifications' => false],
+        ]);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/user/preferences');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.theme', 'dark')
+            ->assertJsonPath('data.push', false);
+
+        $this->assertArrayNotHasKey('push_notifications', $response->json('data'));
+    }
+
     public function test_user_can_update_preferences(): void
     {
         $user = User::factory()->create([
@@ -140,12 +157,51 @@ class ProfileTest extends TestCase
                 'theme' => 'dark',
                 'language' => 'de',
                 'notifications_enabled' => false,
+                'push' => false,
             ]);
 
         $response->assertStatus(200)
             ->assertJsonPath('data.theme', 'dark')
             ->assertJsonPath('data.language', 'de')
-            ->assertJsonPath('data.notifications_enabled', false);
+            ->assertJsonPath('data.notifications_enabled', false)
+            ->assertJsonPath('data.push', false);
+    }
+
+    public function test_user_can_update_preferences_with_legacy_push_alias(): void
+    {
+        $user = User::factory()->create([
+            'preferences' => ['theme' => 'light'],
+        ]);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->putJson('/api/v1/user/preferences', [
+                'push_notifications' => false,
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.push', false);
+
+        $this->assertArrayNotHasKey('push_notifications', $response->json('data'));
+        $this->assertSame(false, $user->fresh()->preferences['push']);
+        $this->assertArrayNotHasKey('push_notifications', $user->fresh()->preferences);
+    }
+
+    public function test_user_cannot_send_conflicting_push_alias_values(): void
+    {
+        $user = User::factory()->create([
+            'preferences' => ['theme' => 'light'],
+        ]);
+        $token = $user->createToken('test')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer '.$token)
+            ->putJson('/api/v1/user/preferences', [
+                'push' => true,
+                'push_notifications' => false,
+            ]);
+
+        $response->assertStatus(422);
+        $this->assertSame(['theme' => 'light'], $user->fresh()->preferences);
     }
 
     public function test_preferences_merge_not_replace(): void

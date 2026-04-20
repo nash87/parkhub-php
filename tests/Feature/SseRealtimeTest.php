@@ -63,7 +63,10 @@ class SseRealtimeTest extends TestCase
 
     public function test_realtime_module_can_be_toggled(): void
     {
-        config(['modules.realtime' => true]);
+        config([
+            'modules.realtime' => true,
+            'modules.broadcasting' => false,
+        ]);
         $this->assertTrue(config('modules.realtime'));
         config(['modules.realtime' => false]);
         $this->assertFalse(config('modules.realtime'));
@@ -82,7 +85,10 @@ class SseRealtimeTest extends TestCase
 
     public function test_sse_status_returns_module_info(): void
     {
-        config(['modules.realtime' => true]);
+        config([
+            'modules.realtime' => true,
+            'modules.broadcasting' => false,
+        ]);
         [$user, $token] = $this->makeUserWithToken();
 
         $response = $this->withHeader('Authorization', "Bearer {$token}")
@@ -229,7 +235,10 @@ class SseRealtimeTest extends TestCase
 
     public function test_sse_returns_404_when_module_disabled(): void
     {
-        config(['modules.realtime' => false]);
+        config([
+            'modules.realtime' => false,
+            'modules.broadcasting' => false,
+        ]);
 
         [$user, $token] = $this->makeUserWithToken();
 

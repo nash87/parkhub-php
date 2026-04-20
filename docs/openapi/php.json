@@ -3442,7 +3442,7 @@
           "notifications_enabled": {
             "type": "boolean"
           },
-          "push_notifications": {
+          "push": {
             "type": "boolean"
           },
           "show_plate_in_calendar": {
@@ -10475,11 +10475,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {},
-                  "type": [
-                    "array",
-                    "null"
-                  ]
+                  "type": "string"
                 }
               }
             },
@@ -16988,7 +16984,8 @@
                           ]
                         },
                         "depends_on": {
-                          "type": "string"
+                          "items": {},
+                          "type": "array"
                         },
                         "description": {
                           "type": "string"
@@ -26070,17 +26067,29 @@
                             "demo_mode": {
                               "type": "boolean"
                             },
-                            "push_notifications": {
+                            "email": {
                               "type": "boolean"
+                            },
+                            "push": {
+                              "type": "string"
                             },
                             "realtime": {
                               "type": "boolean"
+                            },
+                            "realtime_transport": {
+                              "const": "sse",
+                              "type": [
+                                "string",
+                                "null"
+                              ]
                             }
                           },
                           "required": [
                             "auth",
                             "realtime",
-                            "push_notifications",
+                            "realtime_transport",
+                            "push",
+                            "email",
                             "demo_mode"
                           ],
                           "type": "object"
@@ -26925,7 +26934,10 @@
                       "type": "string"
                     },
                     "modules": {
-                      "type": "string"
+                      "additionalProperties": {
+                        "type": "boolean"
+                      },
+                      "type": "object"
                     },
                     "php_version": {
                       "type": "string"
@@ -30200,7 +30212,8 @@
                           ]
                         },
                         "depends_on": {
-                          "type": "string"
+                          "items": {},
+                          "type": "array"
                         },
                         "description": {
                           "type": "string"
@@ -31979,20 +31992,27 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "content": {
               "application/json": {
                 "schema": {
                   "properties": {
                     "data": {
                       "properties": {
-                        "message": {
-                          "const": "Subscription stored",
+                        "created_at": {
+                          "type": "string"
+                        },
+                        "endpoint": {
+                          "type": "string"
+                        },
+                        "id": {
                           "type": "string"
                         }
                       },
                       "required": [
-                        "message"
+                        "id",
+                        "endpoint",
+                        "created_at"
                       ],
                       "type": "object"
                     },
@@ -32042,16 +32062,7 @@
                 "schema": {
                   "properties": {
                     "data": {
-                      "properties": {
-                        "message": {
-                          "const": "Unsubscribed",
-                          "type": "string"
-                        }
-                      },
-                      "required": [
-                        "message"
-                      ],
-                      "type": "object"
+                      "type": "null"
                     },
                     "error": {
                       "type": "null"
@@ -32128,7 +32139,7 @@
             },
             "description": ""
           },
-          "503": {
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -33823,6 +33834,83 @@
         ]
       }
     },
+    "/v1/sse": {
+      "get": {
+        "description": "Pushes real-time events to the client via Server-Sent Events.\nThe stream checks a cache-based event queue and lot occupancy\nchanges every polling interval.",
+        "operationId": "sse.stream",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "SSE stream endpoint",
+        "tags": [
+          "Sse"
+        ]
+      }
+    },
+    "/v1/sse/status": {
+      "get": {
+        "operationId": "sse.status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "enabled": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "boolean"
+                        }
+                      ]
+                    },
+                    "module": {
+                      "const": "realtime",
+                      "type": "string"
+                    },
+                    "pending_events": {
+                      "type": "integer"
+                    },
+                    "user_id": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "module",
+                    "enabled",
+                    "user_id",
+                    "pending_events"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "Get current SSE connection status info",
+        "tags": [
+          "Sse"
+        ]
+      }
+    },
     "/v1/swap-requests": {
       "get": {
         "operationId": "bookingSwap.swapRequests",
@@ -35130,11 +35218,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "items": {},
-                  "type": [
-                    "array",
-                    "null"
-                  ]
+                  "type": "string"
                 }
               }
             },

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ParkingLot;
+use App\Services\ModuleRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -139,10 +140,11 @@ class SseController extends Controller
     public function status(Request $request): JsonResponse
     {
         $user = $request->user();
+        $realtime = ModuleRegistry::get('realtime');
 
         return response()->json([
             'module' => 'realtime',
-            'enabled' => config('modules.realtime', true),
+            'enabled' => $realtime['runtime_enabled'] ?? false,
             'user_id' => $user?->id,
             'pending_events' => count(Cache::get("sse_events:{$user?->id}", [])),
         ]);

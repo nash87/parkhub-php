@@ -23,6 +23,17 @@ class HelpersTest extends TestCase
         $this->assertFalse(module_enabled('nonexistent'));
     }
 
+    public function test_module_enabled_resolves_realtime_aliases_through_registry(): void
+    {
+        config([
+            'modules.realtime' => true,
+            'modules.broadcasting' => false,
+        ]);
+
+        $this->assertTrue(module_enabled('realtime'));
+        $this->assertTrue(module_enabled('websocket'));
+    }
+
     public function test_module_routes_does_nothing_when_module_disabled(): void
     {
         config(['modules.test_module' => false]);

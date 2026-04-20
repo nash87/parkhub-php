@@ -9,6 +9,7 @@ use App\Models\Announcement;
 use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\Setting;
+use App\Services\ModuleRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 
@@ -178,8 +179,12 @@ class PublicController extends Controller
      */
     public function discover(): JsonResponse
     {
-        $modules = collect(config('modules', []))
-            ->filter(fn ($enabled) => $enabled)
+        $enabledModules = ModuleRegistry::enabledMap();
+        $realtimeEnabled = $enabledModules['realtime'] ?? false;
+        $pushConfigured = ! empty(config('services.webpush.vapid_public_key'));
+
+        $modules = collect($enabledModules)
+            ->filter()
             ->keys()
             ->values();
 
@@ -192,8 +197,10 @@ class PublicController extends Controller
                 'modules' => $modules,
                 'capabilities' => [
                     'auth' => 'sanctum',
-                    'realtime' => config('broadcasting.default') !== 'log',
-                    'push_notifications' => ! empty(Setting::get('vapid_public_key')),
+                    'realtime' => $realtimeEnabled,
+                    'realtime_transport' => $realtimeEnabled ? 'sse' : null,
+                    'push' => ($enabledModules['push'] ?? false) && $pushConfigured,
+                    'email' => $enabledModules['email'] ?? true,
                     'demo_mode' => (bool) config('parkhub.demo_mode'),
                 ],
                 'endpoints' => [
