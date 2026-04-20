@@ -29,19 +29,22 @@ class UserController extends Controller
 
     public function preferences(Request $request): JsonResponse
     {
-        return response()->json($request->user()->preferences ?? []);
+        return response()->json($this->normalizePreferencesForApi($request->user()->preferences ?? []));
     }
 
     public function updatePreferences(UpdatePreferencesRequest $request): JsonResponse
     {
         $allowed = [
             'language', 'theme', 'notifications_enabled', 'email_notifications',
-            'push_notifications', 'show_plate_in_calendar', 'default_lot_id',
+            'push', 'show_plate_in_calendar', 'default_lot_id',
             'locale', 'timezone',
         ];
 
         $user = $request->user();
-        $prefs = array_merge($user->preferences ?? [], $request->only($allowed));
+        $prefs = array_merge(
+            $this->normalizePreferencesForApi($user->preferences ?? []),
+            $request->only($allowed)
+        );
         $user->update(['preferences' => $prefs]);
 
         return response()->json($prefs);
@@ -213,5 +216,23 @@ class UserController extends Controller
         $user->tokens()->delete();
 
         return $response;
+    }
+
+    /**
+     * Keep the public user preferences contract canonical while tolerating
+     * legacy stored keys from older clients.
+     *
+     * @param  array<string, mixed>  $preferences
+     * @return array<string, mixed>
+     */
+    private function normalizePreferencesForApi(array $preferences): array
+    {
+        if (array_key_exists('push_notifications', $preferences) && ! array_key_exists('push', $preferences)) {
+            $preferences['push'] = $preferences['push_notifications'];
+        }
+
+        unset($preferences['push_notifications']);
+
+        return $preferences;
     }
 }

@@ -22,13 +22,13 @@ class PushControllerTest extends TestCase
             ->assertJsonPath('data.public_key', 'BFakePublicKeyForTestingPurposes123456789');
     }
 
-    public function test_vapid_key_returns_503_when_not_configured(): void
+    public function test_vapid_key_returns_404_when_not_configured(): void
     {
         config(['services.webpush.vapid_public_key' => null]);
 
         $response = $this->getJson('/api/v1/push/vapid-key');
 
-        $response->assertStatus(503)
+        $response->assertStatus(404)
             ->assertJsonPath('error.code', 'NOT_CONFIGURED');
     }
 
@@ -44,8 +44,9 @@ class PushControllerTest extends TestCase
                     'auth' => 'FakeAuthKey',
                 ],
             ])
-            ->assertStatus(200)
-            ->assertJsonPath('data.message', 'Subscription stored');
+            ->assertStatus(201)
+            ->assertJsonPath('data.endpoint', 'https://fcm.googleapis.com/fcm/send/test-endpoint')
+            ->assertJsonStructure(['data' => ['id', 'endpoint', 'created_at']]);
 
         $this->assertDatabaseHas('push_subscriptions', [
             'user_id' => $user->id,
@@ -91,7 +92,7 @@ class PushControllerTest extends TestCase
         $this->actingAs($user)
             ->deleteJson('/api/v1/push/unsubscribe')
             ->assertStatus(200)
-            ->assertJsonPath('data.message', 'Unsubscribed');
+            ->assertJsonPath('data', null);
 
         $this->assertDatabaseMissing('push_subscriptions', [
             'user_id' => $user->id,
@@ -116,10 +117,9 @@ class PushControllerTest extends TestCase
             'keys' => ['p256dh' => 'key1', 'auth' => 'auth1'],
         ];
 
-        $this->actingAs($user)->postJson('/api/v1/push/subscribe', $payload)->assertStatus(200);
-
+        $this->actingAs($user)->postJson('/api/v1/push/subscribe', $payload)->assertStatus(201);
         $payload['keys'] = ['p256dh' => 'key2', 'auth' => 'auth2'];
-        $this->actingAs($user)->postJson('/api/v1/push/subscribe', $payload)->assertStatus(200);
+        $this->actingAs($user)->postJson('/api/v1/push/subscribe', $payload)->assertStatus(201);
 
         // Should have only 1 row
         $count = DB::table('push_subscriptions')

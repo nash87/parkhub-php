@@ -1,6 +1,6 @@
 # API Reference — ParkHub PHP
 
-Full REST API reference for ParkHub PHP (Laravel 12 + Sanctum).
+Full REST API reference for ParkHub PHP (Laravel 13 + Sanctum).
 
 All endpoints are available under the `/api/v1/` prefix.
 A legacy `/api/` prefix is also supported for backwards compatibility.
@@ -40,7 +40,9 @@ A legacy `/api/` prefix is also supported for backwards compatibility.
 
 ## Authentication
 
-ParkHub uses **Laravel Sanctum** opaque Bearer tokens.
+ParkHub uses **Laravel Sanctum** opaque tokens. API clients can send them as a
+Bearer token; the shared browser frontend also persists the active session in
+an httpOnly `parkhub_token` cookie.
 
 After login, include the token in every protected request:
 
@@ -55,39 +57,42 @@ Tokens expire after **7 days**. Refresh with `POST /api/v1/auth/refresh`.
 TOKEN=$(curl -s -X POST https://parking.example.com/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"secret"}' \
-  | jq -r '.tokens.access_token')
+  | jq -r '.data.tokens.access_token')
 ```
 
 ---
 
 ## Response Format
 
-Successful responses return the data directly (no envelope wrapper):
+Most API responses use the standard ParkHub JSON envelope:
 
 ```json
 {
-  "id": "uuid",
-  "name": "Parkplatz A",
-  ...
+  "success": true,
+  "data": { "...": "..." },
+  "error": null,
+  "meta": null
 }
 ```
 
-or an array:
+Collection responses use the same envelope with an array in `data`.
 
-```json
-[ { ... }, { ... } ]
-```
-
-Error responses:
+Error responses also use the shared envelope:
 
 ```json
 {
-  "error": "INVALID_CREDENTIALS",
-  "message": "Invalid username or password"
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "INVALID_CREDENTIALS",
+    "message": "Invalid username or password"
+  },
+  "meta": null
 }
 ```
 
-Laravel validation errors (HTTP 422):
+Some framework-native validation failures may still surface Laravel's default
+422 shape while older controllers are being normalized:
 
 ```json
 {
@@ -783,13 +788,16 @@ curl -s -X PUT https://parking.example.com/api/v1/user/preferences \
     "theme": "dark",
     "notifications_enabled": true,
     "email_notifications": true,
-    "push_notifications": false,
+    "push": false,
     "show_plate_in_calendar": true,
     "default_lot_id": "LOT_UUID",
     "locale": "de-DE",
     "timezone": "Europe/Berlin"
   }'
 ```
+
+`push` is the canonical public preference key. Legacy clients may still send
+`push_notifications`, but responses normalize back to `push`.
 
 ### GET /api/v1/user/stats
 
@@ -895,6 +903,13 @@ Read endpoints are open to any authenticated user. Write endpoints under `/api/v
 
 List every installed module with enriched metadata. The response envelope keeps the legacy flat `modules` map in place so older clients still work.
 
+Public module slugs use the canonical product names. For example:
+
+- `realtime` is the public capability name
+- `broadcasting` and `websocket` are accepted as legacy aliases
+- `push` is the public capability name
+- `push_notifications` and `web_push` stay internal / legacy wiring names
+
 ```bash
 curl -s https://parking.example.com/api/v1/modules \
   -H "Authorization: Bearer $TOKEN"
@@ -925,6 +940,8 @@ Response:
 ```
 
 `runtime_enabled` reflects the effective state after applying any admin override. For rows with `runtime_toggleable = false`, it always equals `enabled`.
+
+Legacy alias lookups on `GET /api/v1/modules/{name}` remain compatible: `/modules/broadcasting` and `/modules/websocket` both resolve to the canonical `realtime` module, while `/modules/push_notifications` and `/modules/web_push` resolve to `push`.
 
 ### GET /api/v1/modules/{name}
 
@@ -959,7 +976,7 @@ Error codes:
 
 Every successful toggle writes an `AuditLog` row with `action = 'module_config_updated'`.
 
-### GET /api/v1/admin/modules/{name}/config
+### GET /api/v1/modules/{name}/config
 
 Return the module's JSON Schema plus the currently-persisted values for each schema property. **Admin-only.**
 
@@ -985,12 +1002,12 @@ Response:
 
 Error codes: `404` for unknown slug, `400` for a module without a declared `config_schema`.
 
-### PATCH /api/v1/admin/modules/{name}/config
+### PATCH /api/v1/modules/{name}/config
 
 Persist new values for the module's config. **Admin-only.** Body is bound to `UpdateModuleConfigRequest`, then validated against the module's JSON Schema via `opis/json-schema` 2.6.0. Failures return `422` with the structured error envelope below.
 
 ```bash
-curl -s -X PATCH https://parking.example.com/api/v1/admin/modules/themes/config \
+curl -s -X PATCH https://parking.example.com/api/v1/modules/themes/config \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"values": {"default_theme": "light"}}'
@@ -1002,14 +1019,18 @@ Validation failure response (`422`):
 
 ```json
 {
-  "error": "CONFIG_VALIDATION_FAILED",
-  "details": [
-    {
-      "path": "/default_theme",
-      "keyword": "enum",
-      "message": "The value must be one of: \"light\", \"dark\", \"auto\"."
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "CONFIG_VALIDATION_FAILED",
+    "message": "Config payload failed validation.",
+    "details": {
+      "values.default_theme": [
+        "The selected values.default_theme is invalid."
+      ]
     }
-  ]
+  },
+  "meta": null
 }
 ```
 

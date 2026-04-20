@@ -63,11 +63,11 @@ return [
     // ── Integration (disabled by default — requires credentials) ───
     'stripe' => env('MODULE_STRIPE', false),
     'oauth' => env('MODULE_OAUTH', false),
-    'web_push' => env('MODULE_WEB_PUSH', false),
+    'web_push' => env('MODULE_WEB_PUSH', env('MODULE_PUSH_NOTIFICATIONS', false)),
     'webhooks' => env('MODULE_WEBHOOKS', false),
-    'push_notifications' => env('MODULE_PUSH_NOTIFICATIONS', false),
-    'broadcasting' => env('MODULE_BROADCASTING', false),
-    'realtime' => env('MODULE_REALTIME', false),
+    'push_notifications' => env('MODULE_PUSH_NOTIFICATIONS', env('MODULE_WEB_PUSH', false)),
+    'broadcasting' => env('MODULE_BROADCASTING', env('MODULE_REALTIME', false)),
+    'realtime' => env('MODULE_REALTIME', env('MODULE_BROADCASTING', false)),
 
     // ── v4.0 Features (enabled by default) ─────────────────────────
     'plugins' => env('MODULE_PLUGINS', true),
@@ -97,6 +97,7 @@ return [
     // ── v4.4 Features ───────────────────────────────────────────────
     'notification_center' => env('MODULE_NOTIFICATION_CENTER', true),
     'mobile' => env('MODULE_MOBILE', true),
+    'social' => env('MODULE_SOCIAL', false),
 
     // ── Enterprise (disabled by default — opt-in) ──────────────────
     'multi_tenant' => env('MODULE_MULTI_TENANT', false),

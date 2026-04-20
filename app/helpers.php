@@ -2,14 +2,24 @@
 
 declare(strict_types=1);
 
+use App\Services\ModuleRegistry;
 use Illuminate\Support\Facades\Route;
 
 if (! function_exists('module_enabled')) {
     /**
-     * Check whether a module is enabled in config/modules.php.
+     * Check whether a module is enabled.
      */
     function module_enabled(string $module): bool
     {
+        if (config()->has("modules.{$module}")) {
+            return (bool) config("modules.{$module}", false);
+        }
+
+        $info = ModuleRegistry::get($module);
+        if ($info !== null) {
+            return (bool) $info['runtime_enabled'];
+        }
+
         return (bool) config("modules.{$module}", false);
     }
 }

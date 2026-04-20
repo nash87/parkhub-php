@@ -6,10 +6,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SubscribePushRequest;
+use App\Models\PushSubscription;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class PushController extends Controller
 {
@@ -22,38 +21,27 @@ class PushController extends Controller
     {
         $user = $request->user();
 
-        // Upsert: replace existing subscription for same endpoint
-        $existing = DB::table('push_subscriptions')
-            ->where('user_id', $user->id)
-            ->where('endpoint', $request->input('endpoint'))
-            ->first();
-
-        if ($existing) {
-            DB::table('push_subscriptions')
-                ->where('id', $existing->id)
-                ->update([
-                    'p256dh' => $request->input('keys.p256dh'),
-                    'auth' => $request->input('keys.auth'),
-                    'updated_at' => now(),
-                ]);
-        } else {
-            DB::table('push_subscriptions')->insert([
-                'id' => Str::uuid()->toString(),
+        $subscription = PushSubscription::query()->updateOrCreate(
+            [
                 'user_id' => $user->id,
                 'endpoint' => $request->input('endpoint'),
+            ],
+            [
                 'p256dh' => $request->input('keys.p256dh'),
                 'auth' => $request->input('keys.auth'),
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
-        }
+            ],
+        );
 
         return response()->json([
             'success' => true,
-            'data' => ['message' => 'Subscription stored'],
+            'data' => [
+                'id' => (string) $subscription->id,
+                'endpoint' => $subscription->endpoint,
+                'created_at' => $subscription->created_at?->toJSON(),
+            ],
             'error' => null,
             'meta' => null,
-        ]);
+        ], 201);
     }
 
     /**
@@ -65,13 +53,13 @@ class PushController extends Controller
     {
         $user = $request->user();
 
-        DB::table('push_subscriptions')
+        PushSubscription::query()
             ->where('user_id', $user->id)
             ->delete();
 
         return response()->json([
             'success' => true,
-            'data' => ['message' => 'Unsubscribed'],
+            'data' => null,
             'error' => null,
             'meta' => null,
         ]);
@@ -92,7 +80,7 @@ class PushController extends Controller
                 'data' => null,
                 'error' => ['code' => 'NOT_CONFIGURED', 'message' => 'Web Push not configured'],
                 'meta' => null,
-            ], 503);
+            ], 404);
         }
 
         return response()->json([

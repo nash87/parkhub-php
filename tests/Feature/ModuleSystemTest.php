@@ -30,19 +30,19 @@ class ModuleSystemTest extends TestCase
         $this->assertArrayHasKey('notifications', $modules);
         $this->assertArrayHasKey('branding', $modules);
         $this->assertArrayHasKey('import', $modules);
-        $this->assertArrayHasKey('qr_codes', $modules);
+        $this->assertArrayHasKey('qr', $modules);
         $this->assertArrayHasKey('favorites', $modules);
-        $this->assertArrayHasKey('swap_requests', $modules);
-        $this->assertArrayHasKey('recurring_bookings', $modules);
+        $this->assertArrayHasKey('swap', $modules);
+        $this->assertArrayHasKey('recurring', $modules);
         $this->assertArrayHasKey('zones', $modules);
         $this->assertArrayHasKey('credits', $modules);
         $this->assertArrayHasKey('metrics', $modules);
-        $this->assertArrayHasKey('broadcasting', $modules);
-        $this->assertArrayHasKey('admin_reports', $modules);
-        $this->assertArrayHasKey('data_export', $modules);
-        $this->assertArrayHasKey('setup_wizard', $modules);
+        $this->assertArrayHasKey('realtime', $modules);
+        $this->assertArrayHasKey('admin-reports', $modules);
+        $this->assertArrayHasKey('export', $modules);
+        $this->assertArrayHasKey('setup-wizard', $modules);
         $this->assertArrayHasKey('gdpr', $modules);
-        $this->assertArrayHasKey('push_notifications', $modules);
+        $this->assertArrayHasKey('push', $modules);
         $this->assertArrayHasKey('stripe', $modules);
     }
 
@@ -207,7 +207,10 @@ class ModuleSystemTest extends TestCase
 
     public function test_disabled_push_notifications_module_returns_404(): void
     {
-        config(['modules.push_notifications' => false]);
+        config([
+            'modules.push_notifications' => false,
+            'modules.web_push' => false,
+        ]);
 
         $response = $this->getJson('/api/v1/push/vapid-key');
 
@@ -287,6 +290,12 @@ class ModuleSystemTest extends TestCase
 
         config(['modules.bookings' => false]);
         $this->assertFalse(module_enabled('bookings'));
+
+        config([
+            'modules.realtime' => true,
+            'modules.broadcasting' => false,
+        ]);
+        $this->assertTrue(module_enabled('websocket'));
     }
 
     public function test_module_enabled_returns_false_for_unknown(): void
@@ -341,11 +350,11 @@ class ModuleSystemTest extends TestCase
             ->assertOk();
     }
 
-    public function test_all_67_modules_in_config(): void
+    public function test_all_68_modules_in_config(): void
     {
         $modules = config('modules');
 
-        $this->assertCount(67, $modules);
+        $this->assertCount(68, $modules);
     }
 
     public function test_disabled_accessible_module_returns_404(): void

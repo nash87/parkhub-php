@@ -1,7 +1,7 @@
 # ParkHub PHP Feature Notes
 
 > **Self-hosted parking management for enterprises, universities, and residential complexes.**
-> Laravel 12 · Apache / shared hosting / Render · Zero cloud · Zero tracking · 100% GDPR compliant.
+> Laravel 13 · Apache / shared hosting / Render · Zero cloud · Zero tracking · 100% GDPR compliant.
 
 [Live Demo](https://parkhub-php-demo.onrender.com) · [API Docs](API.md) · [Installation](INSTALLATION.md) · [GDPR Guide](GDPR.md)
 
@@ -30,7 +30,7 @@ Every compiled-in feature is a first-class **module**. The registry, admin dashb
 
 Seventy modules across eleven categories (Core, Booking, Vehicle, Admin, Payment, Integration, Analytics, Compliance, Notification, Enterprise, Experimental). Each registry row declares its slug, category, description, compile-time availability, runtime-toggleable bit, config keys, UI route, dependency chain, and optional JSON Schema.
 
-Introspection endpoints live under `/api/v1/modules*` — see [API.md § Modules](API.md#modules) for the full contract. The legacy flat `{modules: {name: bool}}` map is preserved in the response envelope so existing callers keep working.
+Introspection endpoints live under `/api/v1/modules*` — see [API.md § Modules](API.md#modules) for the full contract. The legacy flat `{modules: {name: bool}}` map is preserved in the response envelope so existing callers keep working, but public slugs are canonicalized (`realtime`, `push`) rather than leaking legacy transport/config names (`broadcasting`, `websocket`, `push_notifications`, `web_push`).
 
 ### Admin Dashboard — `/admin/modules`
 
@@ -88,10 +88,10 @@ The rows below are the places where the PHP edition diverges from the Rust editi
 |------|-------------|--------------|
 | Module count | **70 modules** (registered in the Laravel registry) | 72 modules |
 | Toggleable modules | 13 safe rows | 15 safe rows |
-| Runtime | Laravel 12 on PHP 8.4 | Single Axum 0.8 binary |
+| Runtime | Laravel 13 on PHP 8.4 | Single Axum 0.8 binary |
 | JSON Schema validator | `opis/json-schema` 2.6.0 | `jsonschema` 0.35 (Rust crate) |
 | Authz layering | Laravel **Policies** (`Gate::policy`) + `admin` middleware — see `app/Policies/*` | axum extractors + `role=admin` guard |
-| Validation error envelope | `{error: 'CONFIG_VALIDATION_FAILED', details: [...]}` (PHP FormRequest-shaped) | `{success: false, error: {code: 'CONFIG_VALIDATION_FAILED', details: [...]}}` |
+| Validation error envelope | Shared `{success, data, error, meta}` envelope; some legacy 422s still use Laravel-native shape outside the module-config path | `{success, data, error, meta}` envelope |
 | Audit store | `AuditLog` Eloquent model, retained via `PurgeAuditLogsJob` (90-day default) | `audit_log` redb table |
 | Deployment targets | Apache / shared hosting / VPS / Docker / Render / K8s (Helm chart) | Single Rust binary, Docker, Helm, Raspberry Pi |
 | Token format | Laravel Sanctum opaque Bearer tokens (7-day TTL) | JWT with family-rotation + optional Redis revocation (24-h TTL) |

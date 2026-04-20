@@ -21,11 +21,13 @@ use App\Providers\ModuleServiceProvider;
  * macros, no cross-file drift. Everything a user or admin sees about
  * modules ships in the binary — nothing calls out to the network.
  *
- * Module slugs follow the PHP config/modules.php convention
- * (snake_case). This keeps `enabled` resolution trivial:
- *   config('modules.'.$name) → bool
- * with a screaming-snake env fallback for slugs that haven't yet been
- * promoted into config/modules.php.
+ * The registry stores its historic PHP/internal slugs (mostly
+ * snake_case) because `config/modules.php` and `settings.key` still
+ * use those names. Public API payloads, however, speak the canonical
+ * product slugs from the Rust edition (mostly kebab-case). The alias
+ * layer in this class converts between the two so both backends expose
+ * the same customer-visible module names without forcing a risky
+ * config/settings migration in the Laravel app.
  *
  * v2 flips `runtime_toggleable = true` on the subset of modules that
  * are safe to hot-toggle at runtime without data-loss or auth bypass
@@ -49,6 +51,87 @@ use App\Providers\ModuleServiceProvider;
  */
 final class ModuleRegistry
 {
+    /**
+     * Canonical product/API slugs → historic PHP/internal slugs.
+     *
+     * Keep this narrowly scoped to proven equivalences. Missing entries
+     * are intentional feature-parity gaps, not "best effort" guesses.
+     *
+     * @var array<string, string>
+     */
+    private const CANONICAL_TO_INTERNAL = [
+        'absence-approval' => 'absence_approval',
+        'recurring' => 'recurring_bookings',
+        'swap' => 'swap_requests',
+        'waitlist-ext' => 'waitlist_ext',
+        'calendar-drag' => 'calendar_drag',
+        'qr' => 'qr_codes',
+        'parking-pass' => 'parking_pass',
+        'dynamic-pricing' => 'dynamic_pricing',
+        'audit-export' => 'audit_export',
+        'data-import' => 'data_import',
+        'export' => 'data_export',
+        'setup-wizard' => 'setup_wizard',
+        'admin-reports' => 'admin_reports',
+        'rate-dashboard' => 'rate_dashboard',
+        'admin-analytics' => 'admin_analytics',
+        'scheduled-reports' => 'scheduled_reports',
+        'webhooks-v2' => 'webhooks_v2',
+        'api-docs' => 'api_docs',
+        'api-versioning' => 'api_versioning',
+        'realtime' => 'realtime',
+        'websocket' => 'realtime',
+        'notification-center' => 'notification_center',
+        'push' => 'push_notifications',
+        'web_push' => 'push_notifications',
+        'email-templates' => 'email_templates',
+        'multi-tenant' => 'multi_tenant',
+        'cost-center' => 'cost_center',
+        'parking-zones' => 'parking_zones',
+        'ev-charging' => 'ev_charging',
+        'operating-hours' => 'operating_hours',
+        'lobby-display' => 'lobby_display',
+        'enhanced-pwa' => 'enhanced_pwa',
+    ];
+
+    /**
+     * Historic PHP/internal slugs → canonical product/API slugs.
+     *
+     * @var array<string, string>
+     */
+    private const INTERNAL_TO_CANONICAL = [
+        'absence_approval' => 'absence-approval',
+        'recurring_bookings' => 'recurring',
+        'swap_requests' => 'swap',
+        'waitlist_ext' => 'waitlist-ext',
+        'calendar_drag' => 'calendar-drag',
+        'qr_codes' => 'qr',
+        'parking_pass' => 'parking-pass',
+        'dynamic_pricing' => 'dynamic-pricing',
+        'audit_export' => 'audit-export',
+        'data_import' => 'data-import',
+        'data_export' => 'export',
+        'setup_wizard' => 'setup-wizard',
+        'admin_reports' => 'admin-reports',
+        'rate_dashboard' => 'rate-dashboard',
+        'admin_analytics' => 'admin-analytics',
+        'scheduled_reports' => 'scheduled-reports',
+        'webhooks_v2' => 'webhooks-v2',
+        'api_docs' => 'api-docs',
+        'api_versioning' => 'api-versioning',
+        'broadcasting' => 'realtime',
+        'notification_center' => 'notification-center',
+        'push_notifications' => 'push',
+        'email_templates' => 'email-templates',
+        'multi_tenant' => 'multi-tenant',
+        'cost_center' => 'cost-center',
+        'parking_zones' => 'parking-zones',
+        'ev_charging' => 'ev-charging',
+        'operating_hours' => 'operating-hours',
+        'lobby_display' => 'lobby-display',
+        'enhanced_pwa' => 'enhanced-pwa',
+    ];
+
     /**
      * Valid ModuleCategory identifiers — kept as a const array so
      * phpstan + tests can assert category coverage cheaply.
@@ -99,6 +182,18 @@ final class ModuleRegistry
         'graphql' => true,
         'api_docs' => true,
         'setup_wizard' => true,
+        'social' => true,
+    ];
+
+    /**
+     * Internal rows that are transport/plumbing details and should stay
+     * out of the public module contract.
+     *
+     * @var array<string, true>
+     */
+    private const HIDDEN_PUBLIC_ROWS = [
+        'broadcasting' => true,
+        'web_push' => true,
     ];
 
     /**
@@ -121,6 +216,7 @@ final class ModuleRegistry
      *     config_keys: list<string>,
      *     ui_route: ?string,
      *     depends_on: list<string>,
+     *     enabled_via?: string,
      *     config_schema?: array<string, mixed>,
      * }>
      */
@@ -177,6 +273,15 @@ final class ModuleRegistry
             'depends_on' => ['bookings'],
         ],
         [
+            'name' => 'guest',
+            'category' => 'Booking',
+            'description' => 'Guest passes — share a time-limited booking with an external visitor.',
+            'config_keys' => [],
+            'ui_route' => null,
+            'depends_on' => ['bookings'],
+            'enabled_via' => 'bookings',
+        ],
+        [
             'name' => 'swap_requests',
             'category' => 'Booking',
             'description' => 'Peer-to-peer booking swaps between users.',
@@ -209,12 +314,21 @@ final class ModuleRegistry
             'depends_on' => ['bookings'],
         ],
         [
+            'name' => 'calendar',
+            'category' => 'Booking',
+            'description' => 'Weekly/monthly calendar view of bookings.',
+            'config_keys' => [],
+            'ui_route' => '/calendar',
+            'depends_on' => [],
+            'enabled_via' => 'bookings',
+        ],
+        [
             'name' => 'calendar_drag',
             'category' => 'Booking',
             'description' => 'Drag-and-drop reschedule in the calendar view.',
             'config_keys' => [],
             'ui_route' => null,
-            'depends_on' => [],
+            'depends_on' => ['calendar'],
         ],
         [
             'name' => 'favorites',
@@ -367,9 +481,17 @@ final class ModuleRegistry
             'depends_on' => [],
         ],
         [
-            'name' => 'announcements',
+            'name' => 'settings',
             'category' => 'Admin',
-            'description' => 'Admin-authored in-app announcements — banners, modals, dashboards.',
+            'description' => 'Key-value runtime settings store for other modules.',
+            'config_keys' => [],
+            'ui_route' => '/admin/settings',
+            'depends_on' => [],
+        ],
+        [
+            'name' => 'announcements',
+            'category' => 'Notification',
+            'description' => 'Admin-published banner announcements.',
             'config_keys' => ['max_announcements', 'default_ttl_days', 'show_on_login'],
             'ui_route' => '/admin/announcements',
             'depends_on' => [],
@@ -393,11 +515,11 @@ final class ModuleRegistry
         ],
         [
             'name' => 'email_templates',
-            'category' => 'Admin',
-            'description' => 'Customisable transactional email templates — sender identity + per-event copy.',
+            'category' => 'Notification',
+            'description' => 'Handlebars templates editable from the admin UI.',
             'config_keys' => ['from_address', 'from_name', 'reply_to'],
             'ui_route' => '/admin/email-templates',
-            'depends_on' => [],
+            'depends_on' => ['email'],
             'config_schema' => [
                 'type' => 'object',
                 'properties' => [
@@ -520,10 +642,11 @@ final class ModuleRegistry
         [
             'name' => 'broadcasting',
             'category' => 'Integration',
-            'description' => 'WebSocket broadcast for real-time occupancy + booking events.',
+            'description' => 'Legacy broadcast/auth transport alias for the canonical realtime capability.',
             'config_keys' => [],
             'ui_route' => null,
             'depends_on' => [],
+            'enabled_via' => 'realtime',
         ],
         [
             'name' => 'realtime',
@@ -585,6 +708,14 @@ final class ModuleRegistry
             'config_keys' => [],
             'ui_route' => null,
             'depends_on' => ['notifications'],
+        ],
+        [
+            'name' => 'email',
+            'category' => 'Notification',
+            'description' => 'SMTP delivery of transactional emails.',
+            'config_keys' => [],
+            'ui_route' => null,
+            'depends_on' => [],
         ],
         [
             'name' => 'push_notifications',
@@ -682,6 +813,14 @@ final class ModuleRegistry
             'depends_on' => [],
         ],
         [
+            'name' => 'translations',
+            'category' => 'Enterprise',
+            'description' => 'Per-tenant string overrides for i18n keys.',
+            'config_keys' => [],
+            'ui_route' => null,
+            'depends_on' => [],
+        ],
+        [
             'name' => 'parking_zones',
             'category' => 'Enterprise',
             'description' => 'Advanced zone management + rules.',
@@ -732,6 +871,14 @@ final class ModuleRegistry
             'depends_on' => [],
         ],
         [
+            'name' => 'social',
+            'category' => 'Experimental',
+            'description' => 'Leaderboards + social sharing.',
+            'config_keys' => [],
+            'ui_route' => null,
+            'depends_on' => [],
+        ],
+        [
             'name' => 'ev_charging',
             'category' => 'Experimental',
             'description' => 'EV-charging slots + charging-session metadata.',
@@ -764,12 +911,37 @@ final class ModuleRegistry
             'depends_on' => [],
         ],
         [
+            'name' => 'team',
+            'category' => 'Experimental',
+            'description' => 'Team-level booking + fair-share policies.',
+            'config_keys' => [],
+            'ui_route' => null,
+            'depends_on' => [],
+        ],
+        [
+            'name' => 'jobs',
+            'category' => 'Experimental',
+            'description' => 'Background job scheduling (cron, intervals).',
+            'config_keys' => [],
+            'ui_route' => null,
+            'depends_on' => [],
+        ],
+        [
+            'name' => 'pwa',
+            'category' => 'Experimental',
+            'description' => 'Progressive Web App manifest + basic offline shell.',
+            'config_keys' => [],
+            'ui_route' => null,
+            'depends_on' => [],
+            'enabled_via' => 'enhanced_pwa',
+        ],
+        [
             'name' => 'enhanced_pwa',
             'category' => 'Experimental',
             'description' => 'Enhanced PWA with booking prefetch and offline data.',
             'config_keys' => [],
             'ui_route' => null,
-            'depends_on' => [],
+            'depends_on' => ['pwa'],
         ],
         [
             'name' => 'mobile',
@@ -806,7 +978,7 @@ final class ModuleRegistry
 
         return array_map(
             static fn (array $meta): array => self::materialize($meta, $version),
-            self::MODULES,
+            self::publicModuleRows(),
         );
     }
 
@@ -830,8 +1002,10 @@ final class ModuleRegistry
      */
     public static function get(string $name): ?array
     {
+        $internalName = self::internalName($name);
+
         foreach (self::MODULES as $meta) {
-            if ($meta['name'] === $name) {
+            if ($meta['name'] === $internalName) {
                 return self::materialize($meta, SystemController::appVersion());
             }
         }
@@ -849,8 +1023,10 @@ final class ModuleRegistry
      */
     public static function configSchema(string $name): ?array
     {
+        $internalName = self::internalName($name);
+
         foreach (self::MODULES as $meta) {
-            if ($meta['name'] !== $name) {
+            if ($meta['name'] !== $internalName) {
                 continue;
             }
 
@@ -868,7 +1044,9 @@ final class ModuleRegistry
      */
     public static function configSettingKey(string $name, string $key): string
     {
-        return "module.{$name}.config.{$key}";
+        $internalName = self::internalName($name);
+
+        return "module.{$internalName}.config.{$key}";
     }
 
     /**
@@ -883,17 +1061,49 @@ final class ModuleRegistry
     {
         $map = [];
 
-        foreach (self::MODULES as $meta) {
-            $map[$meta['name']] = self::resolveEnabled($meta['name']);
+        foreach (self::publicModuleRows() as $meta) {
+            $canonicalName = self::canonicalName($meta['name']);
+            $map[$canonicalName] = self::resolveEnabled($meta['enabled_via'] ?? $meta['name']);
         }
 
         foreach (ModuleServiceProvider::all() as $name => $enabled) {
-            if (! array_key_exists($name, $map)) {
-                $map[$name] = (bool) $enabled;
+            if (isset(self::HIDDEN_PUBLIC_ROWS[(string) $name])) {
+                continue;
+            }
+            $canonicalName = self::canonicalName((string) $name);
+            if (! array_key_exists($canonicalName, $map)) {
+                $map[$canonicalName] = (bool) $enabled;
             }
         }
 
         return $map;
+    }
+
+    /**
+     * @return list<array{
+     *     name: string,
+     *     category: string,
+     *     description: string,
+     *     config_keys: list<string>,
+     *     ui_route: ?string,
+     *     depends_on: list<string>,
+     *     enabled_via?: string,
+     *     config_schema?: array<string, mixed>,
+     * }>
+     */
+    private static function publicModuleRows(): array
+    {
+        $rows = [];
+
+        foreach (self::MODULES as $meta) {
+            if (isset(self::HIDDEN_PUBLIC_ROWS[$meta['name']])) {
+                continue;
+            }
+
+            $rows[] = $meta;
+        }
+
+        return $rows;
     }
 
     /**
@@ -904,6 +1114,7 @@ final class ModuleRegistry
      *     config_keys: list<string>,
      *     ui_route: ?string,
      *     depends_on: list<string>,
+     *     enabled_via?: string,
      *     config_schema?: array<string, mixed>,
      * }  $meta
      * @return array{
@@ -922,14 +1133,14 @@ final class ModuleRegistry
      */
     private static function materialize(array $meta, string $version): array
     {
-        $enabled = self::resolveEnabled($meta['name']);
+        $enabled = self::resolveEnabled($meta['enabled_via'] ?? $meta['name']);
         $toggleable = isset(self::RUNTIME_TOGGLEABLE[$meta['name']]);
         $runtimeEnabled = $toggleable
             ? self::resolveRuntimeOverride($meta['name'], $enabled)
             : $enabled;
 
         return [
-            'name' => $meta['name'],
+            'name' => self::canonicalName($meta['name']),
             'category' => $meta['category'],
             'description' => $meta['description'],
             'enabled' => $enabled,
@@ -937,7 +1148,10 @@ final class ModuleRegistry
             'runtime_enabled' => $runtimeEnabled,
             'config_keys' => $meta['config_keys'],
             'ui_route' => $meta['ui_route'],
-            'depends_on' => $meta['depends_on'],
+            'depends_on' => array_map(
+                static fn (string $dependsOn): string => self::canonicalName($dependsOn),
+                $meta['depends_on'],
+            ),
             'version' => $version,
             'config_schema' => $meta['config_schema'] ?? null,
         ];
@@ -954,8 +1168,13 @@ final class ModuleRegistry
      */
     private static function resolveRuntimeOverride(string $name, bool $fallback): bool
     {
-        /** @var string|int|bool|null $stored */
-        $stored = Setting::get(self::runtimeSettingKey($name));
+        try {
+            /** @var string|int|bool|null $stored */
+            $stored = Setting::get(self::runtimeSettingKey($name));
+        } catch (\Throwable) {
+            return $fallback;
+        }
+
         if ($stored === null) {
             return $fallback;
         }
@@ -970,7 +1189,9 @@ final class ModuleRegistry
      */
     public static function runtimeSettingKey(string $name): string
     {
-        return "module.{$name}.runtime_enabled";
+        $internalName = self::internalName($name);
+
+        return "module.{$internalName}.runtime_enabled";
     }
 
     /**
@@ -980,7 +1201,7 @@ final class ModuleRegistry
      */
     public static function isToggleable(string $name): bool
     {
-        return isset(self::RUNTIME_TOGGLEABLE[$name]);
+        return isset(self::RUNTIME_TOGGLEABLE[self::internalName($name)]);
     }
 
     /**
@@ -990,11 +1211,13 @@ final class ModuleRegistry
      */
     public static function setRuntimeEnabled(string $name, bool $enabled): void
     {
-        if (! self::isToggleable($name)) {
+        $internalName = self::internalName($name);
+
+        if (! self::isToggleable($internalName)) {
             return;
         }
 
-        Setting::set(self::runtimeSettingKey($name), $enabled ? '1' : '0');
+        Setting::set(self::runtimeSettingKey($internalName), $enabled ? '1' : '0');
     }
 
     /**
@@ -1011,12 +1234,24 @@ final class ModuleRegistry
      */
     private static function resolveEnabled(string $name): bool
     {
+        $internalName = self::internalName($name);
+
         /** @var bool|int|string|null $configured */
-        $configured = config('modules.'.$name);
+        $configured = config('modules.'.$internalName);
         if ($configured === null) {
             return true;
         }
 
         return (bool) $configured;
+    }
+
+    private static function internalName(string $name): string
+    {
+        return self::CANONICAL_TO_INTERNAL[$name] ?? $name;
+    }
+
+    private static function canonicalName(string $name): string
+    {
+        return self::INTERNAL_TO_CANONICAL[$name] ?? $name;
     }
 }

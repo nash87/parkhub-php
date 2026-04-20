@@ -102,6 +102,53 @@ class ModuleControllerTest extends TestCase
         }
     }
 
+    public function test_index_uses_canonical_product_slugs_in_public_payloads(): void
+    {
+        $response = $this->getJson('/api/v1/modules');
+        $response->assertOk();
+
+        $modules = $response->json('data.modules');
+        $this->assertIsArray($modules);
+        $this->assertArrayHasKey('absence-approval', $modules);
+        $this->assertArrayHasKey('dynamic-pricing', $modules);
+        $this->assertArrayHasKey('multi-tenant', $modules);
+
+        $this->assertArrayNotHasKey('absence_approval', $modules);
+        $this->assertArrayNotHasKey('dynamic_pricing', $modules);
+        $this->assertArrayNotHasKey('multi_tenant', $modules);
+
+        $moduleNames = array_column($response->json('data.module_info'), 'name');
+        $this->assertContains('absence-approval', $moduleNames);
+        $this->assertContains('guest', $moduleNames);
+        $this->assertContains('calendar', $moduleNames);
+        $this->assertContains('export', $moduleNames);
+        $this->assertContains('settings', $moduleNames);
+        $this->assertContains('translations', $moduleNames);
+        $this->assertContains('team', $moduleNames);
+        $this->assertContains('pwa', $moduleNames);
+        $this->assertContains('realtime', $moduleNames);
+        $this->assertContains('push', $moduleNames);
+        $this->assertContains('email', $moduleNames);
+        $this->assertContains('email-templates', $moduleNames);
+        $this->assertContains('calendar-drag', $moduleNames);
+        $this->assertContains('api-versioning', $moduleNames);
+        $this->assertContains('social', $moduleNames);
+
+        $this->assertArrayHasKey('social', $modules);
+        $this->assertFalse($modules['social']);
+        $this->assertArrayHasKey('api-versioning', $modules);
+
+        $this->assertNotContains('absence_approval', $moduleNames);
+        $this->assertNotContains('data_export', $moduleNames);
+        $this->assertNotContains('broadcasting', $moduleNames);
+        $this->assertNotContains('push_notifications', $moduleNames);
+        $this->assertNotContains('websocket', $moduleNames);
+        $this->assertNotContains('web_push', $moduleNames);
+        $this->assertNotContains('email_templates', $moduleNames);
+        $this->assertNotContains('calendar_drag', $moduleNames);
+        $this->assertNotContains('api_versioning', $moduleNames);
+    }
+
     public function test_show_returns_known_module(): void
     {
         $response = $this->getJson('/api/v1/modules/bookings');
@@ -116,6 +163,102 @@ class ModuleControllerTest extends TestCase
             ->assertJsonPath('data.runtime_toggleable', false);
 
         $this->assertIsBool($response->json('data.enabled'));
+    }
+
+    public function test_show_accepts_canonical_slug_for_legacy_internal_module_name(): void
+    {
+        $response = $this->getJson('/api/v1/modules/multi-tenant');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'multi-tenant')
+            ->assertJsonPath('data.category', 'Enterprise');
+    }
+
+    public function test_show_keeps_legacy_slug_compatible_but_emits_canonical_name(): void
+    {
+        $response = $this->getJson('/api/v1/modules/email_templates');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'email-templates')
+            ->assertJsonPath('data.category', 'Notification');
+    }
+
+    public function test_show_maps_export_legacy_slug_to_canonical_name(): void
+    {
+        $response = $this->getJson('/api/v1/modules/data_export');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'export')
+            ->assertJsonPath('data.category', 'Admin');
+    }
+
+    public function test_show_maps_api_versioning_legacy_slug_to_canonical_name(): void
+    {
+        $response = $this->getJson('/api/v1/modules/api_versioning');
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'api-versioning')
+            ->assertJsonPath('data.category', 'Integration');
+    }
+
+    public function test_show_maps_realtime_and_push_legacy_slugs_to_canonical_names(): void
+    {
+        $this->getJson('/api/v1/modules/broadcasting')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'realtime')
+            ->assertJsonPath('data.category', 'Integration');
+
+        $this->getJson('/api/v1/modules/websocket')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'realtime')
+            ->assertJsonPath('data.category', 'Integration');
+
+        $this->getJson('/api/v1/modules/push_notifications')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'push')
+            ->assertJsonPath('data.category', 'Notification');
+
+        $this->getJson('/api/v1/modules/web_push')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'push')
+            ->assertJsonPath('data.category', 'Notification');
+    }
+
+    public function test_show_exposes_email_and_email_templates_as_notification_modules(): void
+    {
+        $this->getJson('/api/v1/modules/email')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'email')
+            ->assertJsonPath('data.category', 'Notification');
+
+        $this->getJson('/api/v1/modules/email_templates')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'email-templates')
+            ->assertJsonPath('data.category', 'Notification')
+            ->assertJsonPath('data.depends_on.0', 'email');
+    }
+
+    public function test_show_exposes_social_module_with_rust_parity_contract(): void
+    {
+        $this->getJson('/api/v1/modules/social')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'social')
+            ->assertJsonPath('data.category', 'Experimental')
+            ->assertJsonPath('data.enabled', false)
+            ->assertJsonPath('data.runtime_toggleable', true);
+    }
+
+    public function test_show_exposes_calendar_drag_as_depending_on_calendar(): void
+    {
+        $this->getJson('/api/v1/modules/calendar-drag')
+            ->assertOk()
+            ->assertJsonPath('data.name', 'calendar-drag')
+            ->assertJsonPath('data.category', 'Booking')
+            ->assertJsonPath('data.depends_on.0', 'calendar');
     }
 
     public function test_show_returns_404_for_unknown_module(): void
@@ -278,5 +421,116 @@ class ModuleControllerTest extends TestCase
 
         // And unused audit log entries don't leak. (Sanity.)
         $this->assertSame(0, AuditLog::where('target_id', 'bookings')->count());
+    }
+
+    public function test_registry_uses_legacy_setting_keys_behind_canonical_slugs(): void
+    {
+        $this->assertSame(
+            'module.email_templates.config.from_address',
+            ModuleRegistry::configSettingKey('email-templates', 'from_address'),
+        );
+
+        $this->assertSame(
+            'module.calendar_drag.runtime_enabled',
+            ModuleRegistry::runtimeSettingKey('calendar-drag'),
+        );
+
+        config(['modules.calendar_drag' => true]);
+        ModuleRegistry::setRuntimeEnabled('calendar-drag', false);
+
+        $this->assertSame('0', Setting::get('module.calendar_drag.runtime_enabled'));
+
+        $info = ModuleRegistry::get('calendar-drag');
+        $this->assertNotNull($info);
+        $this->assertSame('calendar-drag', $info['name']);
+        $this->assertFalse($info['runtime_enabled']);
+    }
+
+    public function test_registry_exposes_route_backed_modules_missing_from_legacy_php_table(): void
+    {
+        config([
+            'modules.bookings' => true,
+            'modules.data_export' => true,
+            'modules.enhanced_pwa' => true,
+        ]);
+
+        $guest = ModuleRegistry::get('guest');
+        $this->assertNotNull($guest);
+        $this->assertSame('guest', $guest['name']);
+        $this->assertTrue($guest['enabled']);
+
+        $calendar = ModuleRegistry::get('calendar');
+        $this->assertNotNull($calendar);
+        $this->assertSame('/calendar', $calendar['ui_route']);
+        $this->assertTrue($calendar['enabled']);
+        $this->assertSame([], $calendar['depends_on']);
+
+        $calendarDrag = ModuleRegistry::get('calendar-drag');
+        $this->assertNotNull($calendarDrag);
+        $this->assertSame('calendar-drag', $calendarDrag['name']);
+        $this->assertContains('calendar', $calendarDrag['depends_on']);
+
+        $export = ModuleRegistry::get('export');
+        $this->assertNotNull($export);
+        $this->assertSame('export', $export['name']);
+        $this->assertTrue($export['enabled']);
+
+        $pwa = ModuleRegistry::get('pwa');
+        $this->assertNotNull($pwa);
+        $this->assertSame('pwa', $pwa['name']);
+        $this->assertTrue($pwa['enabled']);
+
+        $enhancedPwa = ModuleRegistry::get('enhanced-pwa');
+        $this->assertNotNull($enhancedPwa);
+        $this->assertContains('pwa', $enhancedPwa['depends_on']);
+    }
+
+    public function test_registry_exposes_canonical_realtime_push_and_email_contract(): void
+    {
+        config([
+            'modules.realtime' => true,
+            'modules.push_notifications' => true,
+        ]);
+
+        $realtime = ModuleRegistry::get('realtime');
+        $this->assertNotNull($realtime);
+        $this->assertSame('realtime', $realtime['name']);
+        $this->assertTrue($realtime['enabled']);
+
+        $websocket = ModuleRegistry::get('websocket');
+        $this->assertNotNull($websocket);
+        $this->assertSame('realtime', $websocket['name']);
+        $this->assertTrue($websocket['enabled']);
+
+        $broadcasting = ModuleRegistry::get('broadcasting');
+        $this->assertNotNull($broadcasting);
+        $this->assertSame('realtime', $broadcasting['name']);
+        $this->assertTrue($broadcasting['enabled']);
+
+        $push = ModuleRegistry::get('push');
+        $this->assertNotNull($push);
+        $this->assertSame('push', $push['name']);
+        $this->assertTrue($push['enabled']);
+
+        $email = ModuleRegistry::get('email');
+        $this->assertNotNull($email);
+        $this->assertSame('email', $email['name']);
+        $this->assertTrue($email['enabled']);
+
+        $emailTemplates = ModuleRegistry::get('email-templates');
+        $this->assertNotNull($emailTemplates);
+        $this->assertContains('email', $emailTemplates['depends_on']);
+    }
+
+    public function test_registry_exposes_social_module_as_disabled_runtime_toggleable_contract(): void
+    {
+        config(['modules.social' => false]);
+
+        $social = ModuleRegistry::get('social');
+        $this->assertNotNull($social);
+        $this->assertSame('social', $social['name']);
+        $this->assertSame('Experimental', $social['category']);
+        $this->assertFalse($social['enabled']);
+        $this->assertTrue($social['runtime_toggleable']);
     }
 }
