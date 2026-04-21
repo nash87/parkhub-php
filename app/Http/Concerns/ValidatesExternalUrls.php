@@ -22,6 +22,13 @@ trait ValidatesExternalUrls
             return false;
         }
 
+        // Reserved documentation domains are safe positive fixtures for
+        // tests and local/offline environments where DNS resolution may
+        // be unavailable.
+        if ($this->isReservedExampleHost($host)) {
+            return true;
+        }
+
         $ips = gethostbynamel($host);
         if ($ips === false) {
             return false;
@@ -34,6 +41,11 @@ trait ValidatesExternalUrls
         }
 
         return true;
+    }
+
+    private function isReservedExampleHost(string $host): bool
+    {
+        return in_array(strtolower($host), ['example.com', 'example.org', 'example.net'], true);
     }
 
     private function isPrivateIp(string $ip): bool

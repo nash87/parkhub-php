@@ -3,7 +3,7 @@
 > **Version:** 3.2.0 | **Last updated:** 2026-03-22
 
 Security architecture, controls, OWASP compliance, and responsible disclosure for
-ParkHub PHP (Laravel 12 + React 19).
+ParkHub PHP (Laravel 13 + React 19).
 
 ---
 
@@ -35,7 +35,7 @@ ParkHub PHP (Laravel 12 + React 19).
                     Reverse Proxy (Nginx/Caddy)
                   TLS 1.2+ / HSTS / Security Headers
                               |
-              Laravel 12 Application Layer
+              Laravel 13 Application Layer
   ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐
   │ Rate Limiter  │  │ SecurityHdrs │  │ RequireAdmin MW  │
   │ (per-route)   │  │ (CSP, HSTS)  │  │ (role gate)      │

@@ -1,16 +1,16 @@
 # parkhub-php — Local CI/CD mirror
 #
-# These targets are LOCAL MIRRORS of .github/workflows/*.yml.
-# NEVER let them diverge: if a workflow job changes, update the matching
-# make target in the same commit. The GitHub workflows remain the source
-# of truth; these targets let you reproduce the same gates locally before
-# pushing to Gitea (origin) or GitHub (github remote).
+# These targets mirror the reproducible local subset of .github/workflows/*.yml.
+# NEVER let them drift from the workflow jobs they claim to mirror: if a
+# workflow job changes, update the matching make target in the same commit.
+# The GitHub workflows remain the source of truth; use `make ci` for the fast
+# local core gate and `make act` when you need to execute the actual YAML.
 #
 # Usage:
-#   make ci         # full local CI: lint + static-analysis + tests + drift
+#   make ci         # core local gate: lint + static-analysis + tests + frontend + drift
 #   make lint       # pint --test + phpstan (backend-quality + static-analysis jobs)
-#   make test       # composer ci (Feature tests) — mirrors backend-tests
-#   make drift      # regenerate openapi + fail on diff — mirrors openapi-drift.yml
+#   make test       # full backend PHPUnit suite — mirrors backend-tests
+#   make drift      # bootstrap sqlite + regenerate openapi + fail on diff — mirrors openapi-drift.yml
 #   make act        # run the actual .github/workflows locally via nektos/act
 #   make pre-push   # alias for ci; run before `git push origin/github`
 #
@@ -25,11 +25,11 @@ MAKEFLAGS += --no-print-directory
 help:
 	@echo "parkhub-php local CI mirror (see .github/workflows/*.yml)"
 	@echo ""
-	@echo "  make ci         — lint + static-analysis + test + drift"
+	@echo "  make ci         — lint + static-analysis + test + frontend + drift"
 	@echo "  make lint       — pint --test (backend-quality)"
 	@echo "  make static-analysis — phpstan (static-analysis job)"
-	@echo "  make test       — composer ci (backend-tests Feature suite)"
-	@echo "  make drift      — openapi snapshot drift check"
+	@echo "  make test       — full backend PHPUnit suite (backend-tests)"
+	@echo "  make drift      — sqlite-backed openapi snapshot drift check"
 	@echo "  make frontend   — npm ci + build (frontend job)"
 	@echo "  make act        — run workflows via nektos/act (if installed)"
 	@echo "  make pre-push   — alias for ci; run before git push"
@@ -45,9 +45,10 @@ lint:
 static-analysis:
 	./vendor/bin/phpstan analyse --memory-limit=512M
 
-## Mirrors: backend-tests job (composer ci = config:clear + lint + Feature tests)
+## Mirrors: backend-tests job
 test:
-	composer ci
+	DB_CONNECTION=sqlite DB_DATABASE=':memory:' ./scripts/ci/bootstrap-laravel.sh
+	DB_CONNECTION=sqlite DB_DATABASE=':memory:' composer test
 
 ## Mirrors: frontend job
 frontend:
@@ -58,6 +59,11 @@ frontend:
 
 ## Mirrors: openapi-drift.yml
 drift:
+	cp .env.example .env
+	php artisan key:generate --force
+	mkdir -p database
+	touch database/database.sqlite
+	php artisan migrate --graceful --force
 	composer openapi:dump
 	@if ! git diff --exit-code docs/openapi/php.json; then \
 		echo "ERROR: docs/openapi/php.json drifted — run 'composer openapi:dump' and commit."; \
@@ -65,10 +71,10 @@ drift:
 	fi
 	@echo "OpenAPI snapshot in sync."
 
-## Full local CI — the same gates that must pass on GitHub before merge
-ci: lint static-analysis test drift
+## Core local CI — fast, reproducible subset of the blocking GitHub checks
+ci: lint static-analysis test frontend drift
 	@echo ""
-	@echo "Local CI passed. Safe to push."
+	@echo "Core local gate passed. Run 'make act' for the full workflow YAML."
 
 pre-push: ci
 

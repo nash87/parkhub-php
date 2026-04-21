@@ -11,19 +11,60 @@ concurrency:
 
 permissions:
   contents: write
-  packages: write
-  id-token: write
-  attestations: write
 
 env:
   PHP_VERSION: '8.4'
   NODE_VERSION: '22.12.0'
 
 jobs:
+  validate-tag:
+    name: Validate release ref + version surfaces
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Require v* tag ref
+        run: |
+          if [[ ! "${GITHUB_REF}" =~ ^refs/tags/v ]]; then
+            echo "workflow_dispatch must target a v* tag ref"
+            exit 1
+          fi
+
+      - name: Check release version parity
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import pathlib
+
+          tag = os.environ["GITHUB_REF_NAME"].strip()
+          expected = tag[1:] if tag.startswith("v") else tag
+
+          version_file = pathlib.Path("VERSION").read_text().strip()
+          web_package = json.loads(pathlib.Path("parkhub-web/package.json").read_text())["version"]
+
+          mismatches = []
+          if version_file != expected:
+              mismatches.append(f"VERSION={version_file}")
+          if web_package != expected:
+              mismatches.append(f"parkhub-web/package.json={web_package}")
+
+          if mismatches:
+              raise SystemExit(
+                  "Release version mismatch for tag "
+                  f"{tag}: expected {expected}, got " + ", ".join(mismatches)
+              )
+          PY
+        env:
+          GITHUB_REF_NAME: ${{ github.ref_name }}
+
   test:
     name: Pre-release tests
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    needs: [validate-tag]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -35,85 +76,25 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      - name: Install & test
-        run: |
-          composer install --prefer-dist --no-interaction --no-progress
-          composer test
-
-  docker:
-    name: Build & push Docker image
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    needs: [test]
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
-
-      - name: Login to GHCR
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            parkhub-web/package-lock.json
 
-      - name: Docker metadata
-        id: meta
-        uses: docker/metadata-action@030e881283bb7a6894de51c315a6bfe6a94e05cf # v6
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha,prefix=sha-
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
 
-      - name: Build and push
-        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=release-docker
-          cache-to: type=gha,scope=release-docker,mode=max
-
-      - name: Trivy vulnerability scan
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
-        with:
-          image-ref: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
-          format: sarif
-          output: trivy-results.sarif
-          severity: CRITICAL,HIGH
-        continue-on-error: true
-
-      - name: Upload Trivy results
-        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4
-        with:
-          sarif_file: trivy-results.sarif
-        continue-on-error: true
-
-      - name: Generate SBOM
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
-        with:
-          image-ref: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.version }}
-          format: cyclonedx
-          output: sbom.json
-          scan-type: image
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: sbom
-          path: sbom.json
-          retention-days: 30
+      - name: Run core pre-release gate
+        run: make ci
 
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [docker]
+    needs: [validate-tag, test]
     if: startsWith(github.ref, 'refs/tags/')
 
     steps:

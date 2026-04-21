@@ -14,12 +14,13 @@ class ApiVersionController extends Controller
      */
     public function version(): JsonResponse
     {
-        $version = trim(file_get_contents(base_path('VERSION')));
+        $release = SystemController::appRelease();
 
         return response()->json([
             'success' => true,
             'data' => [
-                'version' => $version,
+                'version' => $release['version'],
+                'build' => $release['build'],
                 'api_prefix' => '/api/v1',
                 'status' => 'stable',
                 'deprecations' => self::deprecations(),

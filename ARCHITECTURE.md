@@ -1,18 +1,20 @@
 # ParkHub PHP -- Architecture
 
 ParkHub is a self-hosted parking management system. This is the **PHP edition**,
-built on Laravel 12 with a React 19 / Astro 6 frontend served as static assets
+built on Laravel 13 with a React 19 / Astro 6 frontend served as static assets
 from Apache.
 
 A feature-equivalent **Rust edition** (Axum + redb) exists in a sibling
 repository. Both backends expose the same `/api/v1/*` REST surface and share the
-identical `parkhub-web` frontend, making them fully interchangeable.
+identical `parkhub-web` frontend, making them fully interchangeable. Cross-runtime
+ownership and release discipline are tracked in `docs/parity-governance.md` and
+`docs/release-checklist.md`.
 
 ## Directory Structure
 
 ```
 parkhub-php/
-├── composer.json               # Laravel 12, Sanctum, web-push
+├── composer.json               # Laravel 13, Sanctum, web-push
 ├── Dockerfile                  # Multi-stage: frontend build -> PHP 8.4 + Apache
 ├── docker-compose.yml          # App + MySQL + worker + scheduler
 ├── render.yaml                 # Render free-tier deployment manifest
@@ -102,7 +104,7 @@ parkhub-php/
 │
 ├── parkhub-web/                # Shared React frontend (identical to Rust repo)
 │   ├── astro.config.mjs        # Static output, React compiler, Tailwind, chunk splitting
-│   ├── package.json            # v1.4.6
+│   ├── package.json            # shared frontend package metadata (currently v4.13.0)
 │   ├── public/                 # PWA manifest, service worker, icons
 │   ├── e2e/                    # 14 Playwright E2E test specs
 │   └── src/                    # React app (see Frontend Architecture)

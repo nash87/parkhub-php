@@ -39,7 +39,7 @@ class HealthController extends Controller
             $cacheStatus = 'error';
         }
 
-        $version = is_file(base_path('VERSION')) ? trim(file_get_contents(base_path('VERSION'))) : '1.0.0-php';
+        $release = SystemController::appRelease();
 
         $allOk = $dbStatus === 'ok' && $cacheStatus === 'ok';
         $status = $allOk ? 200 : 503;
@@ -48,16 +48,18 @@ class HealthController extends Controller
             'status' => $allOk ? 'ok' : 'degraded',
             'database' => $dbStatus,
             'cache' => $cacheStatus,
-            'version' => $version,
+            'version' => $release['version'],
+            'build' => $release['build'],
         ], $status);
     }
 
     public function info()
     {
-        $version = is_file(base_path('VERSION')) ? trim(file_get_contents(base_path('VERSION'))) : '1.0.0-php';
+        $release = SystemController::appRelease();
 
         return response()->json([
-            'version' => $version,
+            'version' => $release['version'],
+            'build' => $release['build'],
             'php_version' => PHP_VERSION,
             'laravel_version' => app()->version(),
             'environment' => config('app.env'),
