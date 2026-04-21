@@ -33,7 +33,7 @@ class SystemController extends Controller
 
     public static function appBuild(): string
     {
-        return env('PARKHUB_BUILD', 'php-laravel');
+        return (string) config('app.build', 'php-laravel');
     }
 
     /**
