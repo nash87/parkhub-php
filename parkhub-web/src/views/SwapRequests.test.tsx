@@ -183,7 +183,9 @@ describe('SwapRequestsPage', () => {
 
   it('handleCreate is no-op when no booking selected', async () => {
     render(<SwapRequestsPage />);
-    await waitFor(() => fireEvent.click(screen.getByText('swap.create')));
+    await waitFor(() => expect(screen.getByText('swap.create')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('swap.create'));
+    await waitFor(() => expect(screen.getByTestId('swap-modal')).toBeInTheDocument());
     // Submit without selecting source/target
     fireEvent.click(screen.getByTestId('submit-swap'));
     // No fetch call to /swap-request
