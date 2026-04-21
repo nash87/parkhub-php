@@ -56,6 +56,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Application Build Label
+    |--------------------------------------------------------------------------
+    |
+    | Lightweight runtime/build identifier surfaced by the public health and
+    | version endpoints. Keep this config-backed so cached config does not
+    | break static analysis or runtime reporting.
+    |
+    */
+
+    'build' => env('PARKHUB_BUILD', 'php-laravel'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application Timezone
     |--------------------------------------------------------------------------
     |
