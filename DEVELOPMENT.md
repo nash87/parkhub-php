@@ -59,24 +59,36 @@ Hooks (summary):
 
 ---
 
-## 3. `make ci` — the local mirror
+## 3. `make ci` — the core local gate
 
-Every job in `.github/workflows/ci.yml` has a matching Make target. **Run
-`make ci` before `git push`** and GitHub will agree with you.
+The Makefile mirrors the **reproducible local subset** of
+`.github/workflows/ci.yml`. Run **`make ci` before `git push`** for fast local
+feedback, then use `make act` when you need to execute the actual workflow
+YAML.
 
 ```bash
-make ci          # lint + static-analysis + test + drift (identical to CI)
+make ci          # lint + static-analysis + test + frontend + drift
 make lint        # pint --test (mirrors backend-quality job)
 make static-analysis  # phpstan (mirrors static-analysis job)
-make test        # composer ci (mirrors backend-tests job)
+make test        # full backend PHPUnit suite (mirrors backend-tests job)
 make drift       # openapi snapshot diff (mirrors openapi-drift.yml)
 make frontend    # npm ci + build (mirrors frontend job)
 make pre-push    # alias for make ci
 ```
 
-See the comment block at the top of `Makefile` — those targets **must not
-diverge** from `.github/workflows/*.yml`. If a workflow job changes, update
-the corresponding make target in the same commit.
+`make ci` intentionally covers the fast local checks: lint, static analysis,
+backend tests, frontend build/tests, and OpenAPI drift. Workflow-only jobs such
+as `workflow-hygiene`, `docker-validate`, `e2e-smoke`, and `integration` still
+run in GitHub Actions / `act`.
+
+See the comment block at the top of `Makefile` — any target that claims to
+mirror a workflow job **must not diverge** from that job. If a workflow job
+changes, update the corresponding make target in the same commit.
+
+Shared feature/API changes also need the cross-runtime docs kept in sync:
+[docs/parity-governance.md](docs/parity-governance.md),
+[docs/openapi-parity.md](docs/openapi-parity.md), and
+[docs/release-checklist.md](docs/release-checklist.md).
 
 ---
 
@@ -144,9 +156,9 @@ primitives ([docs.github.com/en/actions](https://docs.github.com/en/actions)):
   (`~/.cache/ms-playwright`), and GHA-native BuildKit cache for Docker.
 - **Artifact retention** — `actions/upload-artifact@v7` with
   `retention-days: 7` for Playwright reports + server logs.
-- **CodeQL** — `codeql.yml` scans PHP + JS on every PR.
-- **Dependency review** — `dependency-review.yml` blocks PRs that introduce
-  vulnerable deps, using `actions/dependency-review-action`.
+- **CodeQL** — `codeql.yml` currently scans the JS/TS surfaces on every PR.
+- **Dependency review** — PRs run `actions/dependency-review-action`, and the
+  result is now folded into the main `required` gate in `ci.yml`.
 - **Secret scan** — trufflehog (`security.yml`) on every PR; composer audit
   weekly; Trivy FS + image scan on every Dockerfile change.
 - **Artifact attestations** — `docker/build-push-action@v7` chains
@@ -156,7 +168,8 @@ primitives ([docs.github.com/en/actions](https://docs.github.com/en/actions)):
 - **SBOM** — generated per build (Syft via buildx), uploaded alongside the
   provenance attestation.
 - **Branch protection** — `main` requires green `required` job
-  (aggregates: backend-tests, docker-validate, static-analysis, etc.) and 1
+  (aggregates: workflow-hygiene, dependency-review, backend-tests,
+  docker-validate, static-analysis, integration, openapi-drift, etc.) and 1
   review. Set in GitHub Settings → Branches.
 - **Environments** — not wired yet (no external deploy targets on GitHub — we
   deploy from Gitea via Flux). When we do wire them, use GitHub
@@ -164,8 +177,8 @@ primitives ([docs.github.com/en/actions](https://docs.github.com/en/actions)):
   with required reviewers + wait-timers.
 - **Dependency graph** — native, used by Dependabot + dependency-review.
 
-Periodic workflows: `nightly.yml` (extended tests), `mutants.yml` +
-`infection` (mutation testing, weekly), `lighthouse.yml` (perf budget).
+Periodic workflows: `nightly.yml` (extended tests), `infection.yml`
+(mutation testing, weekly), `lighthouse.yml` (perf budget).
 
 ---
 
@@ -175,8 +188,9 @@ Periodic workflows: `nightly.yml` (extended tests), `mutants.yml` +
 schema change must land in both repos in the same PR window.
 
 - Snapshot: `docs/openapi/php.json`
-- Drift gate: `make drift` (= `composer openapi:dump` + `git diff --exit-code`)
-- Workflow: `.github/workflows/openapi-drift.yml`
+- Drift gate: `make drift` (= bootstrap SQLite + `composer openapi:dump` + `git diff --exit-code`)
+- Workflow: `.github/workflows/openapi-drift.yml` and the main `ci.yml`
+  `openapi-drift` job
 - Contract guide: [`docs/openapi-parity.md`](docs/openapi-parity.md)
 
 If CI fails on `openapi-drift`, run `composer openapi:dump` and commit the

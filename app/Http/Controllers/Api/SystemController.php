@@ -12,10 +12,7 @@ class SystemController extends Controller
 {
     public function version(Request $request)
     {
-        return response()->json([
-            'version' => self::appVersion(),
-            'build' => 'php-laravel',
-        ]);
+        return response()->json(self::appRelease());
     }
 
     /**
@@ -32,6 +29,24 @@ class SystemController extends Controller
         }
 
         return $version;
+    }
+
+    public static function appBuild(): string
+    {
+        return env('PARKHUB_BUILD', 'php-laravel');
+    }
+
+    /**
+     * Canonical version/build payload for health + version endpoints.
+     *
+     * @return array{version: string, build: string}
+     */
+    public static function appRelease(): array
+    {
+        return [
+            'version' => self::appVersion(),
+            'build' => self::appBuild(),
+        ];
     }
 
     public function maintenance(Request $request)

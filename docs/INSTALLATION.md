@@ -482,11 +482,11 @@ cd parkhub-php
 bash deploy-shared-hosting.sh
 ```
 
-This creates `parkhub-shared-hosting.zip` containing a production-ready build.
+This creates `parkhub-php-shared-hosting.zip` containing a production-ready build.
 
 ### Step 2 — Upload
 
-1. Upload and extract `parkhub-shared-hosting.zip` to your hosting directory (e.g. `public_html/parking/`)
+1. Upload and extract `parkhub-php-shared-hosting.zip` to your hosting directory (e.g. `public_html/parking/`)
 2. Set the web root to the `public/` subdirectory (or copy `public/` contents to the root)
 3. Create a MySQL database via cPanel and note the credentials
 
@@ -548,12 +548,13 @@ fly secrets set DB_PASSWORD="your-secure-password"
 fly volumes create parkhub_data --size 1
 ```
 
-Update `fly.toml`:
+`fly.toml` already targets the published container image on port `10000`.
+If you keep SQLite, only ensure the volume mount stays on `/data`:
 
 ```toml
 [mounts]
   source = "parkhub_data"
-  destination = "/var/www/html/database"
+  destination = "/data"
 ```
 
 ```bash

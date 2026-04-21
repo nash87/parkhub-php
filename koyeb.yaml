@@ -11,24 +11,23 @@
 #      - PARKHUB_ADMIN_PASSWORD: initial admin password
 #   5. Deploy: koyeb app deploy --file koyeb.yaml
 #
-# Database options:
-#   - SQLite (free, ephemeral): set DB_CONNECTION=sqlite, no DB_HOST needed
-#   - Koyeb managed MySQL (paid): set DB_* vars to Koyeb DB connection details
-#   - PlanetScale (free tier): set DB_CONNECTION=mysql + PlanetScale credentials
-#   - Neon.tech (free PostgreSQL): set DB_CONNECTION=pgsql + Neon credentials
+# Notes:
+#   - Uses the published GHCR image so runtime behavior matches GitHub release artifacts.
+#   - SQLite under /data is ephemeral on Koyeb's free tier unless you attach persistent storage.
+#   - For managed MySQL/PostgreSQL, set DB_* vars in the Koyeb dashboard and adjust DB_CONNECTION.
 
 name: parkhub-php
 
 services:
   - name: web
     type: web
-    git:
-      repository: github.com/nash87/parkhub-php
-      branch: main
-      build_command: "composer install --no-dev --optimize-autoloader && npm ci && npm run build"
-      run_command: "bash docker-entrypoint.sh apache2-foreground"
+    docker:
+      image: ghcr.io/nash87/parkhub-php:latest
+      command: /usr/local/bin/docker-entrypoint.sh
+      args:
+        - apache2-foreground
     ports:
-      - port: 80
+      - port: 10000
         protocol: http
     env:
       - key: APP_NAME
@@ -43,11 +42,13 @@ services:
         value: ""
       - key: APP_URL
         value: "https://parkhub-php-<your-org>.koyeb.app"
+      - key: PORT
+        value: "10000"
       # Database — use SQLite for free tier (ephemeral) or configure MySQL/PostgreSQL
       - key: DB_CONNECTION
         value: "sqlite"
       - key: DB_DATABASE
-        value: "/var/www/html/storage/database.sqlite"
+        value: "/data/database.sqlite"
       - key: SESSION_DRIVER
         value: "file"
       - key: CACHE_STORE
@@ -60,7 +61,7 @@ services:
       - key: PARKHUB_ADMIN_PASSWORD
         value: ""
     health_checks:
-      - port: 80
+      - port: 10000
         protocol: http
         path: /api/v1/health/live
         interval: 10
@@ -76,4 +77,4 @@ services:
       max: 1
     routes:
       - path: /
-        port: 80
+        port: 10000

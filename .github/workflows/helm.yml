@@ -33,13 +33,17 @@ jobs:
         with:
           version: 'v3.16.4'
       - name: helm lint
-        run: helm lint helm/parkhub
+        run: helm lint helm/parkhub --set config.appKey="$CI_APP_KEY"
       - name: helm template (default values)
         run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" > /tmp/rendered-default.yaml
       - name: helm template (grafana opt-in)
         run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set grafana.dashboardsEnabled=true > /tmp/rendered-grafana.yaml
       - name: helm template (pdb + topology enabled)
         run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set pdb.enabled=true > /tmp/rendered-ha.yaml
+      - name: helm template (ServiceMonitor enabled)
+        run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set monitoring.serviceMonitor.enabled=true > /tmp/rendered-servicemonitor.yaml
+      - name: helm template (PrometheusRule enabled)
+        run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set monitoring.prometheusRule.enabled=true > /tmp/rendered-prometheusrule.yaml
       - name: Validate rendered YAML
         run: |
           for f in /tmp/rendered-*.yaml; do

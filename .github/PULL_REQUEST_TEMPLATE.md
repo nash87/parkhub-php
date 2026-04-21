@@ -30,3 +30,5 @@
 - [ ] CHANGELOG.md entry added
 - [ ] Database migration added if schema changes are required
 - [ ] New API endpoints documented in docs/API.md
+- [ ] Shared feature/API changes reviewed against `docs/parity-governance.md`
+- [ ] `docs/openapi-parity.md` updated or explicitly confirmed unchanged

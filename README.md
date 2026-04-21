@@ -9,7 +9,7 @@
   <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v4.13.0-brightgreen.svg?style=flat-square" alt="v4.13.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="MIT License"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg?style=flat-square&logo=php&logoColor=white" alt="PHP 8.4"></a>
-  <a href="https://laravel.com/"><img src="https://img.shields.io/badge/Laravel-12-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 12"></a>
+  <a href="https://laravel.com/"><img src="https://img.shields.io/badge/Laravel-13-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 13"></a>
   <a href="https://astro.build/"><img src="https://img.shields.io/badge/Astro-6-BC52EE.svg?style=flat-square&logo=astro&logoColor=white" alt="Astro 6"></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB.svg?style=flat-square&logo=react&logoColor=black" alt="React 19"></a>
   <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4.svg?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4"></a>
@@ -23,7 +23,7 @@
 <p align="center">
   <strong>Ihre Daten. Ihr Server. Ihre Kontrolle.</strong><br>
   The on-premise parking management runtime for the canonical ParkHub product -- optimized for shared hosting, VPS, Docker, and Kubernetes.<br>
-  Built with Laravel 12, Astro 6, React 19, and Tailwind CSS 4. Zero cloud. Zero tracking. 100% GDPR compliant by design.
+  Built with Laravel 13, Astro 6, React 19, and Tailwind CSS 4. Zero cloud. Zero tracking. 100% GDPR compliant by design.
 </p>
 
 <p align="center">
@@ -58,6 +58,8 @@
 ParkHub is one product with multiple runtimes. This PHP edition shares the same core product model as the Rust edition, while keeping a PHP-first deployment story: Laravel, shared hosting compatibility, and conventional web stack flexibility.
 
 Not every advanced module is equally hardened or equally enabled by default across runtimes. Treat the shared booking, admin, compliance, and theme surfaces as the core product line; treat advanced integrations, pass/check-in surfaces, and enterprise modules as optional and runtime-sensitive.
+
+Cross-runtime ownership and release discipline live in [docs/parity-governance.md](docs/parity-governance.md) and [docs/release-checklist.md](docs/release-checklist.md).
 
 ---
 
@@ -244,7 +246,7 @@ See [docs/FEATURES.md § Modular UX Platform](docs/FEATURES.md#modular-ux-platfo
                     +---------------+-----------------+
                                     | httpOnly Cookie + Bearer (Sanctum)
                     +---------------v-----------------+
-                    |     Laravel 12 + PHP 8.4         |
+                    |     Laravel 13 + PHP 8.4         |
                     |   /api/v1/*  - /api/metrics      |
                     |   /health/*  - Web Push (VAPID)  |
                     +---------------------------------+
@@ -290,7 +292,7 @@ See [docs/INSTALLATION.md](docs/INSTALLATION.md) for step-by-step guides for eac
 
 ## Testing
 
-**1,320 feature tests + 434 unit tests** across the Laravel backend, plus Vitest frontend and 29 Playwright E2E specs. CI runs on every push via GitHub Actions. Lighthouse CI enforces accessibility >= 95, performance >= 90.
+**1,320 feature tests + 434 unit tests** across the Laravel backend, plus Vitest frontend and 29 Playwright E2E specs. CI runs on every push via GitHub Actions. Lighthouse CI currently enforces accessibility >= 95 and performance >= 75.
 
 ```bash
 composer test                       # PHPUnit backend (feature + unit)
@@ -300,10 +302,10 @@ npx playwright test                 # E2E
 
 Supplementary safety nets (all CI-enforced):
 
-- **`infection-php`** -- mutation testing (nightly, `.github/workflows/mutants.yml`)
+- **`infection-php`** -- mutation testing (nightly, `.github/workflows/infection.yml`)
 - **`schemathesis`** -- OpenAPI contract fuzzing against `docs/openapi/php.json` (nightly)
-- **Lighthouse CI** -- a11y ≥ 95, perf ≥ 90, SEO ≥ 95 gates
-- **CodeQL** -- automated PHP + JS code scanning on every PR
+- **Lighthouse CI** -- a11y ≥ 95, perf ≥ 75, SEO ≥ 90 gates
+- **CodeQL** -- automated JS/TS code scanning on every PR
 - **Trivy** -- container image vulnerability scanning
 - **Dependabot** -- automated dependency updates with auto-merge for patch/minor
 - **SBOM + cosign** -- every release image attested with Syft SBOM and cosign signature
@@ -378,13 +380,13 @@ Contributor quickstart:
 
 ```bash
 pre-commit install          # install local git hooks (config in .pre-commit-config.yaml)
-composer ci                 # mandatory pre-push gate — mirrors .github/workflows/*.yml
+composer ci                 # fast backend gate — lint + feature tests
 # or:
-make ci                     # same gate via make
+make ci                     # broader local gate: lint + static-analysis + test + frontend + drift
 make act                    # optional: run the actual workflows locally via nektos/act (.actrc preconfigured)
 ```
 
-Mutation testing (Infection) runs weekly via `.github/workflows/mutants.yml` (`infection.json5` gates survivors). OpenAPI parity with the [Rust edition](https://github.com/nash87/parkhub-rust) is enforced via [docs/openapi-parity.md](docs/openapi-parity.md) + `scripts/dump-openapi.sh` / `scripts/diff-openapi.sh`.
+Mutation testing (Infection) runs weekly via `.github/workflows/infection.yml` (`infection.json5` gates survivors). OpenAPI parity with the [Rust edition](https://github.com/nash87/parkhub-rust) is enforced via [docs/openapi-parity.md](docs/openapi-parity.md) + `scripts/dump-openapi.sh` / `scripts/diff-openapi.sh`.
 
 Bug reports and feature requests: [GitHub Issues](https://github.com/nash87/parkhub-php/issues)
 
