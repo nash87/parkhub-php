@@ -4,12 +4,26 @@ import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 import reactCompiler from 'babel-plugin-react-compiler';
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 const buildHash = (() => {
   try {
     return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
   } catch {
     return Date.now().toString(36);
+  }
+})();
+
+const appVersion = (() => {
+  try {
+    return readFileSync(new URL('../VERSION', import.meta.url), 'utf8').trim();
+  } catch {
+    try {
+      const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
+      return pkg.version || 'dev';
+    } catch {
+      return 'dev';
+    }
   }
 })();
 
@@ -37,6 +51,7 @@ export default defineConfig({
     plugins: [tailwindcss()],
     define: {
       'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || ''),
+      'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),
     },
     build: {
       rollupOptions: {
@@ -54,7 +69,7 @@ export default defineConfig({
       },
     },
   },
-  fonts: process.env.CI || process.env.DOCKER ? undefined : [
+  fonts: process.env.CI || process.env.DOCKER ? [] : [
     {
       name: 'Outfit',
       cssVariable: '--font-outfit',

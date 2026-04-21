@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        if (config('parkhub.demo_mode') || env('DEMO_MODE') === 'true') {
+        if (config('parkhub.demo_mode')) {
             $this->call(ProductionSimulationSeeder::class);
 
             return;

@@ -693,3 +693,39 @@ body {
     animation-duration: 0s;
   }
 }
+
+:root {
+  --density-row-gap: 0.75rem;
+  --density-card-padding: 1.25rem;
+  --density-nav-item-py: 0.5rem;
+  --density-text-scale: 1;
+}
+
+[data-density="compact"] {
+  --density-row-gap: 0.5rem;
+  --density-card-padding: 0.875rem;
+  --density-nav-item-py: 0.375rem;
+  --density-text-scale: 0.95;
+}
+
+[data-density="cozy"] {
+  --density-row-gap: 0.75rem;
+  --density-card-padding: 1.25rem;
+  --density-nav-item-py: 0.5rem;
+  --density-text-scale: 1;
+}
+
+[data-density="comfortable"] {
+  --density-row-gap: 1rem;
+  --density-card-padding: 1.75rem;
+  --density-nav-item-py: 0.625rem;
+  --density-text-scale: 1.05;
+}
+
+.density-card {
+  padding: var(--density-card-padding);
+}
+
+.density-rows > * + * {
+  margin-top: var(--density-row-gap);
+}

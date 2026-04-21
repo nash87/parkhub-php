@@ -1,8 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-
-// ── Mocks ──
+import { render, screen, within } from '@testing-library/react';
 
 vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
@@ -12,7 +10,7 @@ vi.mock('react-router-dom', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => {
+    t: (key: string, fallback?: string) => {
       const map: Record<string, string> = {
         'admin.title': 'Administration',
         'admin.subtitle': 'Manage your ParkHub instance',
@@ -26,15 +24,21 @@ vi.mock('react-i18next', () => ({
         'admin.rateLimits': 'Rate Limits',
         'admin.tenants': 'Tenants',
       };
-      return map[key] || key;
+      return map[key] ?? fallback ?? key;
     },
   }),
 }));
 
 vi.mock('framer-motion', () => ({
   motion: {
-    div: React.forwardRef(({ children, ...props }: any, ref: any) => (
+    div: React.forwardRef(({ children, transition, layoutId, ...props }: any, ref: any) => (
       <div ref={ref} {...props}>{children}</div>
+    )),
+    aside: React.forwardRef(({ children, transition, layoutId, ...props }: any, ref: any) => (
+      <aside ref={ref} {...props}>{children}</aside>
+    )),
+    span: React.forwardRef(({ children, transition, layoutId, ...props }: any, ref: any) => (
+      <span ref={ref} {...props}>{children}</span>
     )),
   },
 }));
@@ -64,51 +68,61 @@ vi.mock('@phosphor-icons/react', () => ({
   LockKey: (props: any) => <span data-testid="icon-lock-key" {...props} />,
   MapTrifold: (props: any) => <span data-testid="icon-map-trifold" {...props} />,
   ArrowsClockwise: (props: any) => <span data-testid="icon-arrows-clockwise" {...props} />,
+  List: (props: any) => <span data-testid="icon-list" {...props} />,
+  X: (props: any) => <span data-testid="icon-x" {...props} />,
+  ArrowSquareOut: (props: any) => <span data-testid="icon-arrow-square-out" {...props} />,
 }));
 
 import { AdminPage } from './Admin';
 
 describe('AdminPage', () => {
-  it('renders Admin heading', () => {
+  it('renders the desktop admin heading copy', () => {
     render(<AdminPage />);
-    expect(screen.getByText('Administration')).toBeInTheDocument();
-  });
-
-  it('renders the subtitle', () => {
-    render(<AdminPage />);
+    expect(screen.getAllByText('Administration')).not.toHaveLength(0);
     expect(screen.getByText('Manage your ParkHub instance')).toBeInTheDocument();
   });
 
-  it('renders all tab navigation links', () => {
+  it('renders grouped desktop navigation sections instead of a flat scrolling tab row', () => {
     render(<AdminPage />);
-    expect(screen.getByText('Overview')).toBeInTheDocument();
-    expect(screen.getByText('Settings')).toBeInTheDocument();
-    expect(screen.getByText('Users')).toBeInTheDocument();
-    expect(screen.getByText('Parking Lots')).toBeInTheDocument();
-    expect(screen.getByText('Announcements')).toBeInTheDocument();
-    expect(screen.getByText('Reports')).toBeInTheDocument();
-    expect(screen.getByText('Translations')).toBeInTheDocument();
-    expect(screen.getByText('Analytics')).toBeInTheDocument();
-    expect(screen.getByText('Rate Limits')).toBeInTheDocument();
-    expect(screen.getByText('Tenants')).toBeInTheDocument();
+    const nav = screen.getByLabelText('Admin navigation');
+
+    expect(within(nav).getAllByText('Overview')).not.toHaveLength(0);
+    expect(within(nav).getByText('Operations')).toBeInTheDocument();
+    expect(within(nav).getByText('People & Access')).toBeInTheDocument();
+    expect(within(nav).getByText('Compliance & Data')).toBeInTheDocument();
+    expect(within(nav).getByText('Billing & Reports')).toBeInTheDocument();
+    expect(within(nav).getByText('Platform')).toBeInTheDocument();
   });
 
-  it('renders tab links with correct paths', () => {
+  it('keeps the key admin links with the correct paths', () => {
     render(<AdminPage />);
-    expect(screen.getByText('Overview').closest('a')).toHaveAttribute('href', '/admin');
-    expect(screen.getByText('Settings').closest('a')).toHaveAttribute('href', '/admin/settings');
-    expect(screen.getByText('Users').closest('a')).toHaveAttribute('href', '/admin/users');
-    expect(screen.getByText('Parking Lots').closest('a')).toHaveAttribute('href', '/admin/lots');
-    expect(screen.getByText('Announcements').closest('a')).toHaveAttribute('href', '/admin/announcements');
-    expect(screen.getByText('Reports').closest('a')).toHaveAttribute('href', '/admin/reports');
-    expect(screen.getByText('Translations').closest('a')).toHaveAttribute('href', '/admin/translations');
-    expect(screen.getByText('Analytics').closest('a')).toHaveAttribute('href', '/admin/analytics');
-    expect(screen.getByText('Rate Limits').closest('a')).toHaveAttribute('href', '/admin/rate-limits');
-    expect(screen.getByText('Tenants').closest('a')).toHaveAttribute('href', '/admin/tenants');
+    const nav = screen.getByLabelText('Admin navigation');
+
+    expect(within(nav).getAllByText('Overview').at(-1)?.closest('a')).toHaveAttribute('href', '/admin');
+    expect(within(nav).getByText('Settings').closest('a')).toHaveAttribute('href', '/admin/settings');
+    expect(within(nav).getByText('Users').closest('a')).toHaveAttribute('href', '/admin/users');
+    expect(within(nav).getByText('Parking Lots').closest('a')).toHaveAttribute('href', '/admin/lots');
+    expect(within(nav).getByText('Rate Limits').closest('a')).toHaveAttribute('href', '/admin/rate-limits');
+    expect(within(nav).getByText('Tenants').closest('a')).toHaveAttribute('href', '/admin/tenants');
+  });
+
+  it('renders the mobile drawer trigger with the current section label', () => {
+    render(<AdminPage />);
+
+    expect(screen.getByLabelText('Open admin navigation')).toBeInTheDocument();
+    expect(screen.getAllByText('Administration')[0]).toBeInTheDocument();
   });
 
   it('renders the outlet for child routes', () => {
     render(<AdminPage />);
     expect(screen.getByTestId('outlet')).toBeInTheDocument();
+  });
+
+  it('shows the external GraphQL playground link in platform navigation', () => {
+    render(<AdminPage />);
+
+    const graphqlLinks = screen.getAllByRole('link').filter(link => link.getAttribute('href') === '/api/v1/graphql/playground');
+    expect(graphqlLinks).not.toHaveLength(0);
+    expect(within(graphqlLinks[0]).getByText('GraphQL Playground')).toBeInTheDocument();
   });
 });
