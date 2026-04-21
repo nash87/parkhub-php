@@ -26,6 +26,7 @@ import { useDensity } from '../hooks/useDensity';
 const RailSidebar = lazy(() => import('./nav/RailSidebar').then(m => ({ default: m.RailSidebar })));
 const FloatingDock = lazy(() => import('./nav/FloatingDock').then(m => ({ default: m.FloatingDock })));
 const TopTabs = lazy(() => import('./nav/TopTabs').then(m => ({ default: m.TopTabs })));
+const SidebarV3 = lazy(() => import('./nav/SidebarV3').then(m => ({ default: m.SidebarV3 })));
 import { APP_VERSION } from '../lib/appVersion';
 
 export type NavItem = {
@@ -420,6 +421,12 @@ export function Layout() {
       {useTopTabs && (
         <Suspense fallback={<div className="hidden lg:block h-14" aria-hidden="true" />}>
           <TopTabs unreadCount={unreadCount} onLogout={handleLogout} isAdmin={isAdmin} />
+        </Suspense>
+      )}
+
+      {navLayout === 'focus' && (
+        <Suspense fallback={<div className="hidden lg:block w-[280px]" aria-hidden="true" />}>
+          <SidebarV3 />
         </Suspense>
       )}
 
