@@ -28,6 +28,21 @@ class SystemPublicTest extends TestCase
             ->assertJsonPath('status', 'ok');
     }
 
+    public function test_top_level_health_aliases_exist(): void
+    {
+        $this->getJson('/api/health/live')
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'ok');
+
+        $this->getJson('/api/health/ready')
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'ok');
+
+        $this->getJson('/api/health/detailed')
+            ->assertStatus(200)
+            ->assertJsonStructure(['data' => ['version', 'build', 'php_version', 'laravel_version']]);
+    }
+
     public function test_system_version(): void
     {
         $this->getJson('/api/v1/system/version')

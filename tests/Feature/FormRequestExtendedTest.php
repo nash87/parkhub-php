@@ -40,14 +40,14 @@ class FormRequestExtendedTest extends TestCase
 
     // ── RegisterRequest ─────────────────────────────────────────────────
 
-    public function test_register_requires_username(): void
+    public function test_register_allows_missing_username(): void
     {
         $this->postJson('/api/v1/auth/register', [
             'email' => 'test@example.com',
             'password' => 'ValidPass1',
             'password_confirmation' => 'ValidPass1',
             'name' => 'Test',
-        ])->assertStatus(422);
+        ])->assertStatus(201);
     }
 
     public function test_register_requires_email(): void

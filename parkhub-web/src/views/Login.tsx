@@ -10,8 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { FormField, FormInput } from '../components/ui/FormField';
 import { OAuthButtons } from '../components/OAuthButtons';
 import { SSOButtons } from '../components/SSOButtons';
-// @ts-ignore — Vite resolves JSON imports at build time
-import { version as APP_VERSION } from '../../package.json';
+import { APP_VERSION } from '../lib/appVersion';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'Required'),
@@ -135,7 +134,7 @@ export function LoginPage() {
           <h1 className="text-2xl font-bold text-surface-900 dark:text-white mb-1" style={{ letterSpacing: '-0.02em' }}>
             {t('auth.login')}
           </h1>
-          <p className="text-surface-500 dark:text-surface-400 text-sm mb-8">
+          <p className="text-surface-600 dark:text-surface-300 text-sm mb-8">
             {t('auth.loginSubtitle')}
           </p>
 
@@ -150,7 +149,7 @@ export function LoginPage() {
             type="button"
             id="demo-autofill"
             onClick={autofillDemo}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 text-sm text-primary-700 dark:text-primary-300 mb-6 w-full text-left cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-950/50 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary-50 dark:bg-primary-950/30 border border-primary-200 dark:border-primary-800 text-sm text-primary-800 dark:text-primary-300 mb-6 w-full text-left cursor-pointer hover:bg-primary-100 dark:hover:bg-primary-950/50 transition-colors"
           >
             <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0" />
             {t('auth.demoHint')}
@@ -173,7 +172,7 @@ export function LoginPage() {
                 <label htmlFor="password" className="block text-sm font-medium text-surface-700 dark:text-surface-300">
                   {t('auth.password')}
                 </label>
-                <Link to="/forgot-password" className="text-xs text-primary-600 dark:text-primary-400 hover:underline">
+                <Link to="/forgot-password" className="text-xs text-primary-700 dark:text-primary-400 hover:underline">
                   {t('auth.forgotPassword')}
                 </Link>
               </div>

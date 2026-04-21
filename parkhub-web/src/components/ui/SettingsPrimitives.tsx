@@ -8,10 +8,7 @@
  *  - SSeg      — segmented control (2-4 options), pill-style
  *  - SToggle   — iOS-style switch
  *  - ThemeSwatches — color-swatch theme picker
- *  - NavLayoutGrid — 2x2 grid of nav-style previews (stub targets
- *                    until nav-variants.jsx ports land in T-1842;
- *                    selection persists but only "classic" renders
- *                    today so the component degrades gracefully.)
+ *  - NavLayoutGrid — 2x2 grid of nav-style previews
  *
  * These are deliberately generic; Settings.tsx composes them.
  */
@@ -37,7 +34,7 @@ export function SCard({
   return (
     <section
       id={id}
-      className="card p-5 mb-4 border border-surface-200 dark:border-surface-800"
+      className="card density-card mb-4 border border-surface-200 dark:border-surface-800"
     >
       {(title || actions) && (
         <header className="flex items-center justify-between mb-3">
@@ -232,14 +229,14 @@ export function ThemeSwatches({
   );
 }
 
-// ─── Nav layout picker (stub — full variants port tracked as T-1842) ───
+// ─── Nav layout picker ───────────────────────────────────────────────────
 
 export type NavLayout = 'classic' | 'rail' | 'top' | 'dock';
 
 export const NAV_LAYOUTS: { value: NavLayout; label: string; description: string }[] = [
-  { value: 'classic', label: 'Classic sidebar', description: 'Left rail with labels (current)' },
-  { value: 'rail', label: 'Icon rail', description: 'Icons only, drawer on hover' },
-  { value: 'top', label: 'Top tabs', description: 'Horizontal navigation' },
+  { value: 'classic', label: 'Classic sidebar', description: 'Left rail with labels' },
+  { value: 'rail', label: 'Icon rail', description: 'Icons only, side-popping tooltip' },
+  { value: 'top', label: 'Top tabs', description: 'Horizontal navigation + overflow' },
   { value: 'dock', label: 'Floating dock', description: 'macOS-style bottom dock' },
 ];
 
@@ -259,37 +256,100 @@ export function NavLayoutGrid({
     >
       {NAV_LAYOUTS.map((l) => {
         const active = l.value === value;
-        // Only "classic" renders today; until T-1842 lands the others are
-        // preview-only. Disable non-classic to avoid broken UX.
-        const selectable = l.value === 'classic';
         return (
           <button
             key={l.value}
             type="button"
             role="radio"
             aria-checked={active}
-            onClick={() => selectable && onChange(l.value)}
-            disabled={!selectable}
-            className={`relative flex flex-col items-start gap-1 p-4 rounded-xl border-2 text-left transition-colors ${
+            onClick={() => onChange(l.value)}
+            className={`relative flex flex-col items-start gap-1 p-4 rounded-xl border-2 text-left transition-colors cursor-pointer ${
               active
                 ? 'border-primary-500 bg-primary-500/5'
                 : 'border-surface-200 dark:border-surface-800 hover:border-surface-300 dark:hover:border-surface-700'
-            } ${!selectable ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            }`}
           >
-            <span className="text-sm font-semibold text-surface-900 dark:text-white">
+            <NavLayoutPreview layout={l.value} active={active} />
+            <span className="text-sm font-semibold text-surface-900 dark:text-white mt-2">
               {l.label}
             </span>
             <span className="text-[11px] text-surface-500 dark:text-surface-400 leading-snug">
               {l.description}
             </span>
-            {!selectable && (
-              <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-surface-200 dark:bg-surface-700 text-surface-500 dark:text-surface-400 uppercase tracking-wider">
-                Soon
-              </span>
-            )}
           </button>
         );
       })}
     </div>
   );
+}
+
+function NavLayoutPreview({ layout, active }: { layout: NavLayout; active: boolean }) {
+  const primary = active
+    ? 'bg-primary-500'
+    : 'bg-surface-300 dark:bg-surface-600';
+  const secondary = 'bg-surface-200 dark:bg-surface-700';
+  const frame = 'rounded bg-surface-100 dark:bg-surface-800 border border-surface-200 dark:border-surface-700';
+
+  switch (layout) {
+    case 'classic':
+      return (
+        <div className={`relative flex w-full h-20 p-1 gap-1 ${frame}`}>
+          <div className="w-1/4 flex flex-col gap-0.5 p-0.5">
+            <span className={`block h-1 w-full rounded-sm ${primary}`} />
+            <span className={`block h-1 w-3/4 rounded-sm ${secondary}`} />
+            <span className={`block h-1 w-3/4 rounded-sm ${secondary}`} />
+            <span className={`block h-1 w-3/4 rounded-sm ${secondary}`} />
+          </div>
+          <div className="flex-1 flex flex-col gap-0.5 p-0.5">
+            <span className={`block h-2 w-3/4 rounded-sm ${secondary}`} />
+            <span className={`block h-4 w-full rounded-sm ${secondary}`} />
+          </div>
+        </div>
+      );
+    case 'rail':
+      return (
+        <div className={`relative flex w-full h-20 p-1 gap-1 ${frame}`}>
+          <div className="w-2 flex flex-col items-center gap-0.5 py-0.5">
+            <span className={`block w-1.5 h-1.5 rounded-sm ${primary}`} />
+            <span className={`block w-1.5 h-1.5 rounded-sm ${secondary}`} />
+            <span className={`block w-1.5 h-1.5 rounded-sm ${secondary}`} />
+          </div>
+          <div className="flex-1 flex flex-col gap-0.5 p-0.5">
+            <span className={`block h-2 w-3/4 rounded-sm ${secondary}`} />
+            <span className={`block h-4 w-full rounded-sm ${secondary}`} />
+          </div>
+        </div>
+      );
+    case 'top':
+      return (
+        <div className={`relative flex flex-col w-full h-20 p-1 gap-1 ${frame}`}>
+          <div className="flex items-center gap-0.5 h-2">
+            <span className={`block h-1 w-4 rounded-sm ${primary}`} />
+            <span className={`block h-1 w-3 rounded-sm ${secondary}`} />
+            <span className={`block h-1 w-3 rounded-sm ${secondary}`} />
+            <span className={`block h-1 w-3 rounded-sm ${secondary}`} />
+          </div>
+          <div className="flex-1 flex flex-col gap-0.5 p-0.5">
+            <span className={`block h-2 w-3/4 rounded-sm ${secondary}`} />
+            <span className={`block h-4 w-full rounded-sm ${secondary}`} />
+          </div>
+        </div>
+      );
+    case 'dock':
+    default:
+      return (
+        <div className={`relative flex flex-col w-full h-20 p-1 ${frame}`}>
+          <div className="flex-1 flex flex-col gap-0.5 p-0.5">
+            <span className={`block h-2 w-3/4 rounded-sm ${secondary}`} />
+            <span className={`block h-4 w-full rounded-sm ${secondary}`} />
+          </div>
+          <div className="flex items-center justify-center gap-0.5 pb-0.5">
+            <span className={`block w-2 h-2 rounded-full ${primary}`} />
+            <span className={`block w-2 h-2 rounded-full ${secondary}`} />
+            <span className={`block w-2 h-2 rounded-full ${secondary}`} />
+            <span className={`block w-2 h-2 rounded-full ${secondary}`} />
+          </div>
+        </div>
+      );
+  }
 }

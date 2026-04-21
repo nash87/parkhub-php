@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -14,22 +14,28 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import { CommandPalette } from './CommandPalette';
 import { NotificationCenter } from './NotificationCenter';
 import { ShortcutsHelp } from './ShortcutsHelp';
-import { Assistant } from './Assistant';
+const Assistant = lazy(() => import('./Assistant').then(m => ({ default: m.Assistant })));
 import { ThemeSwitcher, ThemeSwitcherFab } from './ThemeSwitcher';
 import { Breadcrumb } from './ui/Breadcrumb';
 import { NotificationBadge } from './ui/NotificationBadge';
 import { languages } from '../i18n/index';
 import { getInMemoryToken } from '../api/client';
 import { preloadRoute } from '../lib/routePreload';
+import { useNavLayout } from '../hooks/useNavLayout';
+import { useDensity } from '../hooks/useDensity';
+const RailSidebar = lazy(() => import('./nav/RailSidebar').then(m => ({ default: m.RailSidebar })));
+const FloatingDock = lazy(() => import('./nav/FloatingDock').then(m => ({ default: m.FloatingDock })));
+const TopTabs = lazy(() => import('./nav/TopTabs').then(m => ({ default: m.TopTabs })));
+import { APP_VERSION } from '../lib/appVersion';
 
-type NavItem = {
+export type NavItem = {
   to: string;
   icon: React.ElementType;
   key: string;
   end?: boolean;
 };
 
-type NavSection = {
+export type NavSection = {
   id: 'core' | 'fleet' | 'settings';
   labelKey: string;
   defaultOpen: boolean;
@@ -37,9 +43,7 @@ type NavSection = {
   items: readonly NavItem[];
 };
 
-// 3-section layout. Core is always visible. Fleet defaults open. Settings defaults closed.
-// Routes, icons, and per-item i18n keys are preserved from the previous flat list.
-const NAV_SECTIONS: readonly NavSection[] = [
+export const NAV_SECTIONS: readonly NavSection[] = [
   {
     id: 'core',
     labelKey: 'nav.sections.core',
@@ -91,7 +95,6 @@ const SECTION_STORAGE_SUFFIX = '_open';
 const sectionStorageKey = (id: NavSection['id']) =>
   `${SECTION_STORAGE_PREFIX}${id}${SECTION_STORAGE_SUFFIX}`;
 
-// Section spring matches the rest of the UI (stiffness 300, damping 30).
 const SECTION_SPRING = { type: 'spring', stiffness: 300, damping: 30 } as const;
 
 function readInitialSectionState(): Record<NavSection['id'], boolean> {
@@ -365,8 +368,6 @@ export function Layout() {
   });
   usePageTitle();
 
-  // Global "open command palette" event so pages (e.g. empty states) can
-  // request the palette without drilling props or lifting state.
   useEffect(() => {
     function openFromEvent() {
       setCommandPaletteOpen(true);
@@ -380,7 +381,7 @@ export function Layout() {
     if (!token) return;
     fetch('/api/v1/notifications/unread-count', {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'X-Requested-With': 'XMLHttpRequest',
       },
       credentials: 'include',
@@ -400,12 +401,32 @@ export function Layout() {
     [user?.role],
   );
 
+  const [navLayout] = useNavLayout();
+  useDensity();
+  const useTopTabs = navLayout === 'top';
+  const useDock = navLayout === 'dock';
+  const outerLayout = useTopTabs ? 'flex flex-col' : 'flex';
+
   return (
-    <div className="min-h-dvh bg-surface-50 dark:bg-surface-950 flex">
+    <div className={`min-h-dvh bg-surface-50 dark:bg-surface-950 ${outerLayout}`}>
       <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary-600 focus:text-white focus:rounded-lg">{t('nav.skipToContent')}</a>
 
-      {/* Sidebar — desktop — glass morphism */}
-      <aside className="hidden lg:flex flex-col w-64 bg-white/70 dark:bg-surface-900/70 backdrop-blur-2xl border-r border-surface-200/40 dark:border-surface-800/40 p-4 sticky top-0 h-dvh" aria-label="Main navigation">
+      {navLayout === 'rail' && (
+        <Suspense fallback={<div className="hidden lg:block w-[72px]" aria-hidden="true" />}>
+          <RailSidebar unreadCount={unreadCount} onLogout={handleLogout} isAdmin={isAdmin} />
+        </Suspense>
+      )}
+
+      {useTopTabs && (
+        <Suspense fallback={<div className="hidden lg:block h-14" aria-hidden="true" />}>
+          <TopTabs unreadCount={unreadCount} onLogout={handleLogout} isAdmin={isAdmin} />
+        </Suspense>
+      )}
+
+      <aside
+        className={`${navLayout === 'classic' ? 'hidden lg:flex' : 'hidden'} flex-col w-64 bg-white/70 dark:bg-surface-900/70 backdrop-blur-2xl border-r border-surface-200/40 dark:border-surface-800/40 p-4 sticky top-0 h-dvh`}
+        aria-label="Main navigation"
+      >
         <div className="flex items-center gap-3 px-3 mb-8">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
             <CarSimple weight="fill" className="w-5 h-5 text-white" />
@@ -554,14 +575,24 @@ export function Layout() {
           <div className="lg:hidden"><Breadcrumb /></div>
           <Outlet />
         </main>
-        <footer className="py-3 text-center text-xs text-surface-400 dark:text-surface-600 border-t border-surface-200/40 dark:border-surface-800/40">
-          ParkHub v4.9.0
+        <footer className={`py-3 text-center text-xs text-surface-400 dark:text-surface-600 border-t border-surface-200/40 dark:border-surface-800/40 ${useDock ? 'pb-24' : ''}`}>
+          ParkHub v{APP_VERSION}
         </footer>
       </div>
 
+      {useDock && (
+        <Suspense fallback={null}>
+          <FloatingDock unreadCount={unreadCount} isAdmin={isAdmin} />
+        </Suspense>
+      )}
+
       <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} />
       <ShortcutsHelp open={shortcutsHelpOpen} onClose={() => setShortcutsHelpOpen(false)} />
-      <Assistant open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+      {assistantOpen && (
+        <Suspense fallback={null}>
+          <Assistant open={assistantOpen} onClose={() => setAssistantOpen(false)} />
+        </Suspense>
+      )}
       <ThemeSwitcherFab onClick={() => setThemeSwitcherOpen(true)} />
       <ThemeSwitcher open={themeSwitcherOpen} onClose={() => setThemeSwitcherOpen(false)} />
     </div>

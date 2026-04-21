@@ -38,6 +38,14 @@ class HealthInfoTest extends TestCase
         $this->getJson('/api/v1/health/info')->assertStatus(200);
     }
 
+    public function test_health_detailed_alias_matches_info_contract(): void
+    {
+        $response = $this->getJson('/api/v1/health/detailed');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure(['data' => ['version', 'build', 'php_version', 'laravel_version', 'environment', 'modules']]);
+    }
+
     public function test_health_info_uses_canonical_module_slugs(): void
     {
         config([

@@ -12,7 +12,7 @@
  * as T-1842 along with the nav-variants integration.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { User, Building, Bell, Car, Keyboard, Shield, Coins, ChartLine, FileText, ArrowRight } from '@phosphor-icons/react';
@@ -23,35 +23,17 @@ import {
   SToggle,
   ThemeSwatches,
   NavLayoutGrid,
-  type NavLayout,
   type ThemeSwatch,
 } from '../components/ui/SettingsPrimitives';
 import { useTheme, type DesignThemeId } from '../context/ThemeContext';
+import { useNavLayout } from '../hooks/useNavLayout';
+import { useDensity } from '../hooks/useDensity';
 
 type Scope = 'user' | 'workspace';
 
-// Persist the user's nav-layout choice so it survives reloads. Only
-// "classic" actually renders today (see SettingsPrimitives NavLayoutGrid);
-// the others accept the selection for when T-1842 lands the four variants.
-const NAV_LAYOUT_KEY = 'parkhub.nav.layout';
-const DENSITY_KEY = 'parkhub.ui.density';
-
-function readStored<T extends string>(key: string, fallback: T): T {
-  try {
-    const v = window.localStorage.getItem(key);
-    return (v as T) ?? fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeStored(key: string, value: string): void {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    /* quota / private mode — accept silently */
-  }
-}
+// Both nav-layout and density persistence live in dedicated hooks
+// (useNavLayout, useDensity) so every consumer shares a single source of
+// truth with cross-tab + same-tab change events.
 
 /**
  * Theme swatches exposed in the picker. Each `value` matches one of the
@@ -70,10 +52,8 @@ export function SettingsPage() {
   const { designTheme, setDesignTheme, setTheme, resolved, designThemes } = useTheme();
 
   const [scope, setScope] = useState<Scope>('user');
-  const [navLayout, setNavLayoutState] = useState<NavLayout>(() => readStored<NavLayout>(NAV_LAYOUT_KEY, 'classic'));
-  const [density, setDensityState] = useState<'compact' | 'cozy' | 'comfortable'>(() =>
-    readStored<'compact' | 'cozy' | 'comfortable'>(DENSITY_KEY, 'cozy'),
-  );
+  const [navLayout, setNavLayoutState] = useNavLayout();
+  const [density, setDensityState] = useDensity();
 
   const themeSwatches = useMemo<ThemeSwatch[]>(
     () =>
@@ -84,9 +64,6 @@ export function SettingsPage() {
       })),
     [designThemes],
   );
-
-  useEffect(() => writeStored(NAV_LAYOUT_KEY, navLayout), [navLayout]);
-  useEffect(() => writeStored(DENSITY_KEY, density), [density]);
 
   const userSections = [
     { id: 'profile', label: t('settings.profile', 'Profile'), icon: User, to: '/profile' as const },
@@ -205,7 +182,7 @@ export function SettingsPage() {
 
         <SRow
           title={t('settings.navLayout', 'Navigation layout')}
-          description={t('settings.navLayoutDesc', 'Classic sidebar is current. Other variants arrive in an upcoming release.')}
+          description={t('settings.navLayoutDesc', 'Switch instantly — your choice persists across reloads and syncs to open tabs.')}
         >
           <NavLayoutGrid value={navLayout} onChange={setNavLayoutState} />
         </SRow>

@@ -2034,11 +2034,13 @@
           "username": {
             "maxLength": 50,
             "minLength": 3,
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
-          "username",
           "email",
           "password",
           "name",
@@ -7950,6 +7952,118 @@
         },
         "tags": [
           "Public"
+        ]
+      }
+    },
+    "/health/detailed": {
+      "get": {
+        "operationId": "health.info_0",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "build": {
+                      "type": "string"
+                    },
+                    "debug": {
+                      "type": "string"
+                    },
+                    "environment": {
+                      "type": "string"
+                    },
+                    "laravel_version": {
+                      "type": "string"
+                    },
+                    "modules": {
+                      "additionalProperties": {
+                        "type": "boolean"
+                      },
+                      "type": "object"
+                    },
+                    "php_version": {
+                      "type": "string"
+                    },
+                    "uptime": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "build",
+                    "php_version",
+                    "laravel_version",
+                    "environment",
+                    "debug",
+                    "modules",
+                    "uptime"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/live": {
+      "get": {
+        "operationId": "health.live_0",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status": {
+                      "const": "ok",
+                      "type": "string"
+                    },
+                    "uptime": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "uptime"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "health.ready_0",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
         ]
       }
     },
@@ -26915,15 +27029,18 @@
         ]
       }
     },
-    "/v1/health/info": {
+    "/v1/health/detailed": {
       "get": {
-        "operationId": "health.info",
+        "operationId": "health.info_0",
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
                   "properties": {
+                    "build": {
+                      "type": "string"
+                    },
                     "debug": {
                       "type": "string"
                     },
@@ -26946,21 +27063,71 @@
                       "type": "string"
                     },
                     "version": {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "enum": [
-                            "1.0.0-php"
-                          ],
-                          "type": "string"
-                        }
-                      ]
+                      "type": "string"
                     }
                   },
                   "required": [
                     "version",
+                    "build",
+                    "php_version",
+                    "laravel_version",
+                    "environment",
+                    "debug",
+                    "modules",
+                    "uptime"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/v1/health/info": {
+      "get": {
+        "operationId": "health.info_0",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "build": {
+                      "type": "string"
+                    },
+                    "debug": {
+                      "type": "string"
+                    },
+                    "environment": {
+                      "type": "string"
+                    },
+                    "laravel_version": {
+                      "type": "string"
+                    },
+                    "modules": {
+                      "additionalProperties": {
+                        "type": "boolean"
+                      },
+                      "type": "object"
+                    },
+                    "php_version": {
+                      "type": "string"
+                    },
+                    "uptime": {
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "version",
+                    "build",
                     "php_version",
                     "laravel_version",
                     "environment",
@@ -26982,7 +27149,7 @@
     },
     "/v1/health/live": {
       "get": {
-        "operationId": "health.live",
+        "operationId": "health.live_0",
         "responses": {
           "200": {
             "content": {
@@ -27015,7 +27182,7 @@
     },
     "/v1/health/ready": {
       "get": {
-        "operationId": "health.ready",
+        "operationId": "health.ready_0",
         "responses": {
           "200": {
             "content": {
@@ -34026,7 +34193,6 @@
                 "schema": {
                   "properties": {
                     "build": {
-                      "const": "php-laravel",
                       "type": "string"
                     },
                     "version": {
@@ -49388,6 +49554,9 @@
                           "const": "/api/v1",
                           "type": "string"
                         },
+                        "build": {
+                          "type": "string"
+                        },
                         "deprecations": {
                           "additionalItems": false,
                           "maxItems": 1,
@@ -49455,6 +49624,7 @@
                       },
                       "required": [
                         "version",
+                        "build",
                         "api_prefix",
                         "status",
                         "deprecations",

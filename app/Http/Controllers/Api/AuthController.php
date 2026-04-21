@@ -156,8 +156,10 @@ class AuthController extends Controller
             ], 403);
         }
 
+        $username = $this->resolveRegistrationUsername($request);
+
         $user = User::create([
-            'username' => $request->username,
+            'username' => $username,
             'email' => $request->email,
             'password' => Hash::make($request->password),
             'name' => $request->name,
@@ -189,6 +191,43 @@ class AuthController extends Controller
                 'expires_at' => now()->addDays(7)->toISOString(),
             ],
         ], 201)->withCookie($this->authCookie($token->plainTextToken));
+    }
+
+    private function resolveRegistrationUsername(RegisterRequest $request): string
+    {
+        $provided = trim((string) $request->input('username', ''));
+        if ($provided !== '') {
+            return $provided;
+        }
+
+        $base = $this->normalizeGeneratedUsernameBase(Str::before((string) $request->email, '@'));
+        if ($base === '') {
+            $base = $this->normalizeGeneratedUsernameBase((string) $request->name);
+        }
+        if ($base === '') {
+            $base = 'user';
+        }
+        if (strlen($base) < 3) {
+            $base = str_pad($base, 3, '_');
+        }
+
+        $candidate = substr($base, 0, 50);
+        $suffix = 2;
+
+        while (User::where('username', $candidate)->exists()) {
+            $counter = '_'.$suffix;
+            $candidate = substr($base, 0, 50 - strlen($counter)).$counter;
+            $suffix++;
+        }
+
+        return $candidate;
+    }
+
+    private function normalizeGeneratedUsernameBase(string $value): string
+    {
+        $normalized = preg_replace('/[^a-z0-9]+/i', '_', Str::lower($value)) ?? '';
+
+        return trim($normalized, '_');
     }
 
     public function refresh(Request $request): JsonResponse

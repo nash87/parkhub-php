@@ -386,7 +386,7 @@ make ci                     # broader local gate: lint + static-analysis + test 
 make act                    # optional: run the actual workflows locally via nektos/act (.actrc preconfigured)
 ```
 
-Mutation testing (Infection) runs weekly via `.github/workflows/infection.yml` (`infection.json5` gates survivors). OpenAPI parity with the [Rust edition](https://github.com/nash87/parkhub-rust) is enforced via [docs/openapi-parity.md](docs/openapi-parity.md) + `scripts/dump-openapi.sh` / `scripts/diff-openapi.sh`.
+Mutation testing (Infection) runs weekly via `.github/workflows/infection.yml` (`infection.json5` gates survivors). OpenAPI parity with the [Rust edition](https://github.com/nash87/parkhub-rust) is tracked via [docs/openapi-parity.md](docs/openapi-parity.md) + `scripts/dump-openapi.sh` / `scripts/diff-openapi.sh`; current CI still hard-gates only self-snapshot drift.
 
 Bug reports and feature requests: [GitHub Issues](https://github.com/nash87/parkhub-php/issues)
 

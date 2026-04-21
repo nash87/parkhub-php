@@ -139,6 +139,7 @@ vi.mock('./views/Credits', () => ({ CreditsPage: stub('credits') }));
 vi.mock('./views/Vehicles', () => ({ VehiclesPage: stub('vehicles') }));
 vi.mock('./views/Absences', () => ({ AbsencesPage: stub('absences') }));
 vi.mock('./views/Profile', () => ({ ProfilePage: stub('profile') }));
+vi.mock('./views/Settings', () => ({ SettingsPage: stub('settings') }));
 vi.mock('./views/Team', () => ({ TeamPage: stub('team') }));
 vi.mock('./views/Notifications', () => ({ NotificationsPage: stub('notifications') }));
 vi.mock('./views/Calendar', () => ({ CalendarPage: stub('calendar') }));
@@ -388,6 +389,20 @@ describe('App', () => {
     await waitFor(() => {
       expect(screen.getByTestId('page-lobby')).toBeInTheDocument();
     });
+  });
+
+  it('renders the user settings route instead of the admin settings page', async () => {
+    mockUser.current = { id: '1', name: 'Test', role: 'user', email: 'test@test.com' };
+    mockUser.loading = false;
+
+    window.history.pushState({}, '', '/settings');
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('page-settings')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByTestId('page-admin-settings')).not.toBeInTheDocument();
   });
 
   it('calls theme API on mount', async () => {

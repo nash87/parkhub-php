@@ -26,6 +26,47 @@ class AuthTest extends TestCase
         $this->assertDatabaseHas('users', ['username' => 'testuser']);
     }
 
+    public function test_user_can_register_without_username(): void
+    {
+        $response = $this->postJson('/api/v1/auth/register', [
+            'email' => 'generated@example.com',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+            'name' => 'Generated User',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.user.username', 'generated');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'generated@example.com',
+            'username' => 'generated',
+        ]);
+    }
+
+    public function test_register_without_username_generates_unique_suffix_when_needed(): void
+    {
+        User::factory()->create([
+            'username' => 'existing_user',
+            'email' => 'first@example.com',
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/register', [
+            'email' => 'existing.user@example.com',
+            'password' => 'Password123',
+            'password_confirmation' => 'Password123',
+            'name' => 'Existing User',
+        ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.user.username', 'existing_user_2');
+
+        $this->assertDatabaseHas('users', [
+            'email' => 'existing.user@example.com',
+            'username' => 'existing_user_2',
+        ]);
+    }
+
     public function test_user_can_login(): void
     {
         $user = User::factory()->create([

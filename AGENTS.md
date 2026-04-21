@@ -34,7 +34,7 @@ composer ci         # mandatory pre-push gate (Pint + PHPStan level 4 + PHPUnit 
 make ci             # broader local gate: lint + static-analysis + test + frontend + drift
 make act            # optional: run the actual workflow files locally via nektos/act (.actrc preconfigured)
 ```
-Install pre-commit hooks once per clone: `pre-commit install` (config in `.pre-commit-config.yaml`). See [DEVELOPMENT.md](DEVELOPMENT.md) for the full loop. Mutation testing (Infection) runs weekly via `.github/workflows/infection.yml` (`infection.json5` gates survivors). OpenAPI parity with the Rust edition is enforced via [docs/openapi-parity.md](docs/openapi-parity.md) + `scripts/dump-openapi.sh` / `scripts/diff-openapi.sh`.
+Install pre-commit hooks once per clone: `pre-commit install` (config in `.pre-commit-config.yaml`). See [DEVELOPMENT.md](DEVELOPMENT.md) for the full loop. Mutation testing (Infection) runs weekly via `.github/workflows/infection.yml` (`infection.json5` gates survivors). OpenAPI parity with the Rust edition is tracked via [docs/openapi-parity.md](docs/openapi-parity.md) + `scripts/dump-openapi.sh` / `scripts/diff-openapi.sh`; current CI still hard-gates only self-snapshot drift.
 
 ## Dual-Remote Convention
 Two remotes are always configured on this repo:
