@@ -450,9 +450,11 @@ export function Layout() {
 
       {/* Focus — dark opinionated rail with live Pass + floor heatmap */}
       {navLayout === 'focus' && (
-        <Suspense fallback={<div className="hidden lg:block w-[280px]" aria-hidden="true" />}>
-          <SidebarV3 />
-        </Suspense>
+        <div className="hidden lg:block">
+          <Suspense fallback={<div className="w-[280px]" aria-hidden="true" />}>
+            <SidebarV3 />
+          </Suspense>
+        </div>
       )}
 
       {/* Classic sidebar — wide glass-morphism column. Hidden when the user
