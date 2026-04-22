@@ -1,3 +1,15 @@
+/**
+ * Floating dock — macOS-style horizontal pill pinned to bottom-center.
+ * Ported from claude.ai/design v4 nav-variants bundle.
+ *
+ * UX notes:
+ *  - Curated to the 8 most-used nav items (core + 2 favourites); everything
+ *    else lives behind a "More" overflow that pops open a compact grid.
+ *  - Pointer-proximity magnification matches the macOS dock feel: icons
+ *    under the cursor scale up subtly, neighbors a bit, rest stay flat.
+ *  - On mobile the dock replaces the hamburger menu entirely — feels more
+ *    native than a drawer.
+ */
 import { useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from 'framer-motion';
@@ -13,6 +25,8 @@ interface FloatingDockProps {
   isAdmin: boolean;
 }
 
+// 8 most-used items for the main dock. Everything else goes under "More".
+// Keys match the NavItem key field so i18n lookups stay consistent.
 const PINNED_KEYS = [
   'dashboard', 'bookings', 'bookSpot', 'vehicles', 'calendar',
   'favorites', 'map', 'notifications',
@@ -25,6 +39,8 @@ export function FloatingDock({ unreadCount, isAdmin }: FloatingDockProps) {
   const [overflowOpen, setOverflowOpen] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
 
+  // Flatten NAV_SECTIONS into a single item list, partition into pinned
+  // vs overflow. Admin route goes into overflow as "settings".
   const allItems: NavItem[] = NAV_SECTIONS.flatMap(s => s.items);
   const pinned = PINNED_KEYS
     .map(k => allItems.find(i => i.key === k))
@@ -148,8 +164,18 @@ interface DockIconProps {
   label: string;
 }
 
+/**
+ * Single dock icon with pointer-proximity magnification. Uses framer-motion
+ * useTransform to map the distance from cursor to a scale (1.0 - 1.4) via
+ * a spring for the macOS dock feel.
+ */
 function DockIcon({ item, active, badge, mouseX, label }: DockIconProps) {
   const ref = useRef<HTMLAnchorElement>(null);
+  // Resting distance kept past the magnification ceiling so the scale
+  // ramp (0..50..120) bottoms out at 1.0 whenever the cursor isn't on
+  // the dock. A naive `return 0` would map the null/idle state to the
+  // MAXIMUM scale — every icon permanently zoomed, which is exactly
+  // the opposite of the desired "springs up as you approach" feel.
   const REST_DISTANCE = 1_000;
   const distance = useTransform(mouseX, (mx) => {
     if (mx === null || !ref.current) return REST_DISTANCE;

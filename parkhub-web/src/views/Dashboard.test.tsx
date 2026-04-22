@@ -7,6 +7,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 const mockGetBookings = vi.fn();
 const mockGetUserStats = vi.fn();
 const mockGetCo2Summary = vi.fn();
+const mockUseNavLayout = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
@@ -24,6 +25,10 @@ vi.mock('../context/AuthContext', () => ({
       credits_monthly_quota: 10,
     },
   }),
+}));
+
+vi.mock('../hooks/useNavLayout', () => ({
+  useNavLayout: () => mockUseNavLayout(),
 }));
 
 vi.mock('../api/client', () => ({
@@ -193,6 +198,8 @@ describe('DashboardPage', () => {
     mockGetBookings.mockClear();
     mockGetUserStats.mockClear();
     mockGetCo2Summary.mockClear();
+    mockUseNavLayout.mockReset();
+    mockUseNavLayout.mockReturnValue(['classic', vi.fn()]);
     // Default: CO2 endpoint returns a fresh summary. Individual tests
     // can override.
     mockGetCo2Summary.mockResolvedValue({
@@ -222,6 +229,56 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
     expect(screen.getByTestId('dashboard-skeleton')).toBeInTheDocument();
+  });
+
+  it('renders the Marble surface when dock layout is selected', async () => {
+    mockUseNavLayout.mockReturnValue(['dock', vi.fn()]);
+    mockGetBookings.mockResolvedValue({
+      success: true,
+      data: [{
+        id: 'b-1',
+        lot_id: 'lot-1',
+        lot_name: 'HQ West',
+        slot_number: 'A-12',
+        vehicle_plate: 'HB-PH 1',
+        status: 'active',
+        start_time: new Date(Date.now() - 30 * 60_000).toISOString(),
+        end_time: new Date(Date.now() + 90 * 60_000).toISOString(),
+      }],
+    });
+    mockGetUserStats.mockResolvedValue({ success: true, data: { total_bookings: 12, bookings_this_month: 4 } });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => expect(screen.getByTestId('marble-surface')).toBeInTheDocument());
+    expect(screen.getByText(/Today at a glance/i)).toBeInTheDocument();
+    expect(screen.getByText(/Fast chargers available/i)).toBeInTheDocument();
+    expect(screen.getByText(/Operational stream/i)).toBeInTheDocument();
+  });
+
+  it('renders the Void surface when focus layout is selected', async () => {
+    mockUseNavLayout.mockReturnValue(['focus', vi.fn()]);
+    mockGetBookings.mockResolvedValue({
+      success: true,
+      data: [{
+        id: 'b-2',
+        lot_id: 'lot-2',
+        lot_name: 'Garage North',
+        slot_number: 'B-03',
+        vehicle_plate: 'HB-PH 2',
+        status: 'active',
+        start_time: new Date(Date.now() - 15 * 60_000).toISOString(),
+        end_time: new Date(Date.now() + 60 * 60_000).toISOString(),
+      }],
+    });
+    mockGetUserStats.mockResolvedValue({ success: true, data: { total_bookings: 18, bookings_this_month: 7 } });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => expect(screen.getByTestId('void-surface')).toBeInTheDocument());
+    expect(screen.getByText(/Editorial operations/i)).toBeInTheDocument();
+    expect(screen.getByText(/Occupancy board/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Operational stream/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders greeting with user name after loading', async () => {

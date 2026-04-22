@@ -1,3 +1,16 @@
+/**
+ * Rail layout — 72px icon-only sidebar. Ported from the claude.ai/design
+ * v4 nav-variants bundle. Shares NAV_SECTIONS with the classic layout so
+ * every new route added in Layout.tsx appears here automatically.
+ *
+ * UX notes:
+ *  - Hovering an icon reveals a side-popping label — no drawer, stays
+ *    lightweight. Matches Linear/GitHub Desktop rail patterns.
+ *  - Section dividers replace the uppercase labels used by Classic
+ *    (no room for text in a rail).
+ *  - Active-state is a glowing left accent bar that animates between
+ *    items via framer-motion's layoutId (matches the Classic indicator).
+ */
 import { useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,7 +39,7 @@ export function RailSidebar({ unreadCount, onLogout, isAdmin }: RailSidebarProps
   const location = useLocation();
 
   const renderItem = (item: NavItem) => {
-    const active = isActivePath(location.pathname, item.to);
+    const isActive = isActivePath(location.pathname, item.to);
     return (
       <RailIconButton
         key={item.key}
@@ -34,7 +47,7 @@ export function RailSidebar({ unreadCount, onLogout, isAdmin }: RailSidebarProps
         icon={item.icon}
         label={t(`nav.${item.key}`)}
         badge={item.key === 'notifications' ? unreadCount : 0}
-        active={active}
+        active={isActive}
         end={item.end}
       />
     );
@@ -45,6 +58,7 @@ export function RailSidebar({ unreadCount, onLogout, isAdmin }: RailSidebarProps
       aria-label="Main navigation"
       className="hidden lg:flex flex-col items-center w-[72px] bg-white/70 dark:bg-surface-900/70 backdrop-blur-2xl border-r border-surface-200/40 dark:border-surface-800/40 py-4 sticky top-0 h-dvh"
     >
+      {/* Brand mark */}
       <div
         className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/20 mb-4"
         title="ParkHub"
@@ -52,6 +66,7 @@ export function RailSidebar({ unreadCount, onLogout, isAdmin }: RailSidebarProps
         <CarSimple weight="fill" className="w-5 h-5 text-white" />
       </div>
 
+      {/* Nav — sections separated by thin dividers since labels won't fit */}
       <nav className="flex-1 flex flex-col items-center gap-0.5 w-full overflow-y-auto px-2">
         {NAV_SECTIONS.map((section, index) => (
           <div key={section.id} className="flex flex-col items-center gap-0.5 w-full">
@@ -81,6 +96,7 @@ export function RailSidebar({ unreadCount, onLogout, isAdmin }: RailSidebarProps
         )}
       </nav>
 
+      {/* Footer cluster */}
       <div className="flex flex-col items-center gap-1 w-full pt-2 border-t border-surface-200/60 dark:border-surface-800/60">
         <button
           onClick={() => setTheme(resolved === 'dark' ? 'light' : 'dark')}
@@ -95,7 +111,10 @@ export function RailSidebar({ unreadCount, onLogout, isAdmin }: RailSidebarProps
           <NotificationCenter />
         </div>
 
-        <div className="relative" title={user?.name || user?.username}>
+        <div
+          className="relative"
+          title={user?.name || user?.username}
+        >
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary-200 to-primary-100 dark:from-primary-800 dark:to-primary-900 flex items-center justify-center ring-2 ring-primary-500/20 dark:ring-primary-400/20">
             <span className="text-sm font-bold text-primary-700 dark:text-primary-300">
               {(user?.name || user?.username || 'U').charAt(0).toUpperCase()}
@@ -126,6 +145,12 @@ interface RailIconButtonProps {
   end?: boolean;
 }
 
+/**
+ * Single rail cell — NavLink + side-popping label tooltip. Uses a
+ * ref-positioned absolute label that animates in on pointer-enter /
+ * focus so keyboard users get the same discovery affordance as mouse
+ * users.
+ */
 function RailIconButton({ to, icon: Icon, label, badge = 0, active = false, end }: RailIconButtonProps) {
   const ref = useRef<HTMLAnchorElement>(null);
   const [hover, setHover] = useState(false);

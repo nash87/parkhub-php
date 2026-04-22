@@ -1,3 +1,17 @@
+/**
+ * Top tabs — horizontal navigation strip across the top of the viewport.
+ * Ported from the claude.ai/design v4 nav-variants bundle. Same footprint
+ * as the mobile header but wider and used on desktop.
+ *
+ * UX notes:
+ *  - Too many items for a single row, so we curate 6 "core + favourites"
+ *    and push everything else behind a More dropdown.
+ *  - Animated underline indicator mirrors the Classic sidebar's side
+ *    accent bar — framer-motion layoutId keeps motion continuous.
+ *  - On viewport < lg, the top-tabs layout still uses the mobile drawer
+ *    (same as Classic) so this component only has to reason about
+ *    desktop sizing.
+ */
 import { useRef, useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -41,6 +55,7 @@ export function TopTabs({ unreadCount, onLogout, isAdmin }: TopTabsProps) {
       aria-label="Main navigation"
       className="hidden lg:flex items-center gap-2 h-14 px-6 sticky top-0 z-30 bg-white/75 dark:bg-surface-900/75 backdrop-blur-2xl border-b border-surface-200/40 dark:border-surface-800/40"
     >
+      {/* Brand */}
       <NavLink to="/" className="flex items-center gap-2 mr-4">
         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-sm">
           <CarSimple weight="fill" className="w-4 h-4 text-white" />
@@ -52,7 +67,7 @@ export function TopTabs({ unreadCount, onLogout, isAdmin }: TopTabsProps) {
 
       <nav className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto">
         {primary.map(item => {
-          const active = isActivePath(location.pathname, item.to);
+          const isActive = isActivePath(location.pathname, item.to);
           return (
             <NavLink
               key={item.key}
@@ -60,14 +75,14 @@ export function TopTabs({ unreadCount, onLogout, isAdmin }: TopTabsProps) {
               end={item.end}
               onMouseEnter={() => preloadRoute(item.to)}
               onFocus={() => preloadRoute(item.to)}
-              aria-current={active ? 'page' : undefined}
+              aria-current={isActive ? 'page' : undefined}
               className={`relative flex items-center gap-1.5 px-3 h-full text-sm font-medium transition-colors whitespace-nowrap ${
-                active
+                isActive
                   ? 'text-primary-700 dark:text-primary-300'
                   : 'text-surface-600 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white'
               }`}
             >
-              {active && (
+              {isActive && (
                 <motion.span
                   layoutId="top-tab-indicator"
                   aria-hidden="true"

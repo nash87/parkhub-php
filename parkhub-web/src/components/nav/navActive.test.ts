@@ -7,6 +7,8 @@ describe('isActivePath', () => {
   });
 
   it('does not match sibling paths that share a prefix', () => {
+    // Regression for Codex P2 #349: `/book` should not be active when
+    // the user is on `/bookings`.
     expect(isActivePath('/bookings', '/book')).toBe(false);
   });
 

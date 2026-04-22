@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 
+// Shared density preference — applied as a `data-density` attribute on
+// <html> so every component can opt into tighter/looser spacing via CSS
+// (see styles/global.css density section). Changing the attribute reflows
+// the whole app without a remount.
 export type Density = 'compact' | 'cozy' | 'comfortable';
 
 export const DENSITY_KEY = 'parkhub.ui.density';
@@ -25,6 +29,7 @@ function write(value: Density): void {
   }
 }
 
+/** Apply the attribute to <html> as soon as the hook is consumed. */
 function applyToRoot(value: Density) {
   if (typeof document !== 'undefined') {
     document.documentElement.setAttribute('data-density', value);

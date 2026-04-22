@@ -1,18 +1,28 @@
 /**
  * SidebarV3 — ParkHub-native opinionated navigation shell.
  *
- * Ported from the Rust frontend so the PHP web app supports the same
- * "focus" navigation layout: permanently dark chrome, a live-pass card,
- * floor occupancy bars, and a tighter operator-oriented nav rhythm.
+ * Ported from `/tmp/parkhub-design-2/design/sidebar-v3.jsx` (claude.ai
+ * design v4 series). Dark surface always — even on light-mode pages —
+ * because the sidebar is its own visual thing, not tinted page chrome.
+ *
+ * Signature moves:
+ *   - Top band: brand + notification bell + user chip
+ *   - Live Pass card: the current active booking with ticker + QR / +1h
+ *   - Floor heatmap: stack of occupancy bars synthesised from slot_number
+ *     prefixes ("L1-17" → floor "L1"), swapped out for a lot picker on
+ *     demand
+ *   - "Up next" footer: the soonest future booking
+ *
+ * Data contract with `api.ts`:
+ *   - Booking.slot_number may encode "floor-slot" as "L1-17", "L1·17",
+ *     "L1/17", "B2-03" — we split on non-alphanumeric. If there's no
+ *     separator we fall back to treating the whole string as the slot
+ *     label with no floor info.
+ *   - api.getLotSlots(lotId) is only called for the active booking's lot
+ *     to keep the payload cheap. If it fails or returns empty the floor
+ *     heatmap is hidden (we degrade to the free/total big number only).
  */
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowsClockwise,
@@ -37,10 +47,7 @@ import { api, type Booking, type ParkingLot, type ParkingSlot } from '../../api/
 import { useAuth } from '../../context/AuthContext';
 import { isActivePath } from './navActive';
 
-type IconComponent = ComponentType<{
-  size?: number;
-  weight?: 'regular' | 'bold' | 'fill' | 'duotone' | 'thin' | 'light';
-}>;
+type IconComponent = React.ComponentType<{ size?: number; weight?: 'regular' | 'bold' | 'fill' | 'duotone' | 'thin' | 'light' }>;
 
 interface NumberedItem {
   num: string;
@@ -77,6 +84,10 @@ const ADMIN_NAV: FlatItem[] = [
   { Icon: ChartLine, label: 'Analytics', to: '/admin/analytics' },
 ];
 
+// ----------------------------------------------------------------------
+// Derivation helpers
+// ----------------------------------------------------------------------
+
 function parseSlotFloor(slotNumber: string): { floor: string; number: string } | null {
   if (!slotNumber) return null;
   const parts = slotNumber.split(/[^A-Za-z0-9]+/).filter(Boolean);
@@ -90,9 +101,13 @@ interface FloorSummary {
   youLabel?: string;
 }
 
+/**
+ * Bucket slots by floor prefix, compute occupancy from non-available
+ * status. We sort floors in the conventional basement-first ordering
+ * ("B2" < "B1" < "L1" < "L2"…) which matches the design mock.
+ */
 function summariseFloors(slots: ParkingSlot[], mySlotNumber?: string): FloorSummary[] {
   const buckets = new Map<string, { total: number; taken: number }>();
-
   for (const slot of slots) {
     const parsed = parseSlotFloor(slot.slot_number);
     if (!parsed) continue;
@@ -107,22 +122,23 @@ function summariseFloors(slots: ParkingSlot[], mySlotNumber?: string): FloorSumm
   const mySlot = mySlotNumber ? parseSlotFloor(mySlotNumber) : null;
 
   const floors: FloorSummary[] = Array.from(buckets.entries())
-    .filter(([, bucket]) => bucket.total > 0)
-    .map(([label, bucket]) => ({
+    .filter(([, b]) => b.total > 0)
+    .map(([label, b]) => ({
       label,
-      occupancy: bucket.taken / bucket.total,
+      occupancy: b.taken / b.total,
       youLabel: mySlot?.floor === label ? mySlotNumber : undefined,
     }));
 
   floors.sort((a, b) => {
     const aBasement = a.label.toUpperCase().startsWith('B');
     const bBasement = b.label.toUpperCase().startsWith('B');
+    // Basements first, deeper to shallower; then ground/above, lower to higher.
     if (aBasement && !bBasement) return -1;
     if (!aBasement && bBasement) return 1;
-    const aNum = parseInt(a.label.replace(/\D/g, ''), 10) || 0;
-    const bNum = parseInt(b.label.replace(/\D/g, ''), 10) || 0;
-    if (aBasement && bBasement) return bNum - aNum;
-    return aNum - bNum;
+    const an = parseInt(a.label.replace(/\D/g, ''), 10) || 0;
+    const bn = parseInt(b.label.replace(/\D/g, ''), 10) || 0;
+    if (aBasement && bBasement) return bn - an; // B2 before B1
+    return an - bn;
   });
 
   return floors.slice(0, 8);
@@ -131,8 +147,8 @@ function summariseFloors(slots: ParkingSlot[], mySlotNumber?: string): FloorSumm
 function formatHoursMinutes(msUntil: number): { h: number; m: number } {
   const clamped = Math.max(0, msUntil);
   return {
-    h: Math.floor(clamped / 3_600_000),
-    m: Math.floor((clamped % 3_600_000) / 60_000),
+    h: Math.floor(clamped / 3600000),
+    m: Math.floor((clamped % 3600000) / 60000),
   };
 }
 
@@ -142,7 +158,8 @@ function formatUpNext(booking: Booking): string {
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  const diffDays = Math.round((startDay.getTime() - today.getTime()) / 86_400_000);
+  const dayMs = 86_400_000;
+  const diffDays = Math.round((startDay.getTime() - today.getTime()) / dayMs);
   const hhmm = `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`;
   if (diffDays === 0) return `Today · ${hhmm}`;
   if (diffDays === 1) return `Tomorrow · ${hhmm}`;
@@ -151,6 +168,10 @@ function formatUpNext(booking: Booking): string {
   }
   return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · ${hhmm}`;
 }
+
+// ----------------------------------------------------------------------
+// Component
+// ----------------------------------------------------------------------
 
 export function SidebarV3() {
   const location = useLocation();
@@ -165,11 +186,14 @@ export function SidebarV3() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [nowTick, setNowTick] = useState(() => Date.now());
 
+  // Ticker so the "time until checkout" progress redraws every 30s.
   useEffect(() => {
-    const timer = window.setInterval(() => setNowTick(Date.now()), 30_000);
-    return () => window.clearInterval(timer);
+    const t = window.setInterval(() => setNowTick(Date.now()), 30_000);
+    return () => window.clearInterval(t);
   }, []);
 
+  // Fetch bookings + lots in parallel. Bookings feed both the Live Pass
+  // and the "Up next" footer; lots feed the switcher.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -182,7 +206,6 @@ export function SidebarV3() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-
     return () => {
       cancelled = true;
     };
@@ -190,38 +213,38 @@ export function SidebarV3() {
 
   const activeBooking = useMemo<Booking | undefined>(() => {
     const now = Date.now();
-    return bookings.find((booking) => {
-      if (booking.status !== 'active' && booking.status !== 'confirmed') return false;
-      const start = new Date(booking.start_time).getTime();
-      const end = new Date(booking.end_time).getTime();
+    return bookings.find(b => {
+      if (b.status !== 'active' && b.status !== 'confirmed') return false;
+      const start = new Date(b.start_time).getTime();
+      const end = new Date(b.end_time).getTime();
       return Number.isFinite(start) && Number.isFinite(end) && start <= now && now <= end;
     });
   }, [bookings]);
 
   const upNext = useMemo<Booking | undefined>(() => {
     const now = Date.now();
-    const future = bookings.filter((booking) => {
-      if (booking.status === 'cancelled' || booking.status === 'completed') return false;
-      const start = new Date(booking.start_time).getTime();
+    const future = bookings.filter(b => {
+      if (b.status === 'cancelled' || b.status === 'completed') return false;
+      const start = new Date(b.start_time).getTime();
       return Number.isFinite(start) && start > now;
     });
     future.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
     return future[0];
   }, [bookings]);
 
+  // Fetch slots only for the currently occupied lot. Kept in a separate
+  // effect so it re-runs when the user's active booking changes.
   useEffect(() => {
     if (!activeBooking?.lot_id) {
       setActiveSlots([]);
       return;
     }
-
     let cancelled = false;
-    api.getLotSlots(activeBooking.lot_id).then((res) => {
+    api.getLotSlots(activeBooking.lot_id).then(res => {
       if (cancelled) return;
       if (res.success && res.data) setActiveSlots(res.data);
       else setActiveSlots([]);
     });
-
     return () => {
       cancelled = true;
     };
@@ -229,7 +252,7 @@ export function SidebarV3() {
 
   const activeLot = useMemo<ParkingLot | undefined>(() => {
     if (!activeBooking) return undefined;
-    return lots.find((lot) => lot.id === activeBooking.lot_id);
+    return lots.find(l => l.id === activeBooking.lot_id);
   }, [lots, activeBooking]);
 
   const floors = useMemo(
@@ -283,6 +306,7 @@ export function SidebarV3() {
       }}
       aria-label="Main navigation"
     >
+      {/* Local tokens — scoped via .sv3-root so the sidebar stays dark on light pages. */}
       <style>{`
         .sv3-root .sv3-hover:hover { background: oklch(0.22 0.018 260); }
         .sv3-root .sv3-num {
@@ -298,6 +322,7 @@ export function SidebarV3() {
         }
       `}</style>
 
+      {/* TOP: Brand + bell + user chip */}
       <div className="flex items-center justify-between" style={{ padding: '16px 18px 12px' }}>
         <Link to="/" className="flex items-center gap-2.5" aria-label="Dashboard">
           <div
@@ -323,6 +348,7 @@ export function SidebarV3() {
           <button
             type="button"
             onClick={() => {
+              // Dispatches the same event pages use to open the notification centre.
               window.dispatchEvent(new CustomEvent('parkhub:open-notifications'));
             }}
             title="Notifications"
@@ -345,7 +371,7 @@ export function SidebarV3() {
           </button>
           <button
             type="button"
-            onClick={() => setUserMenuOpen((open) => !open)}
+            onClick={() => setUserMenuOpen(o => !o)}
             title={user?.name || 'Account'}
             aria-haspopup="menu"
             aria-expanded={userMenuOpen}
@@ -382,6 +408,7 @@ export function SidebarV3() {
         />
       )}
 
+      {/* LIVE PASS CARD (or empty-state CTA) */}
       <div style={{ padding: '4px 14px 14px' }}>
         {activeBooking && slotDisplay ? (
           <div
@@ -449,7 +476,10 @@ export function SidebarV3() {
               )}
               {slotDisplay.number}
             </div>
-            <div className="relative" style={{ fontSize: 11.5, color: 'oklch(0.70 0.01 260)', marginBottom: 12 }}>
+            <div
+              className="relative"
+              style={{ fontSize: 11.5, color: 'oklch(0.70 0.01 260)', marginBottom: 12 }}
+            >
               {activeBooking.vehicle_plate || 'No vehicle assigned'}
               {activeLot?.name ? ` · ${activeLot.name}` : ''}
             </div>
@@ -462,7 +492,10 @@ export function SidebarV3() {
                 >
                   {checkoutLabel}
                 </span>
-                <span className="sv3-num font-bold" style={{ fontSize: 12, color: 'oklch(0.92 0.005 260)' }}>
+                <span
+                  className="sv3-num font-bold"
+                  style={{ fontSize: 12, color: 'oklch(0.92 0.005 260)' }}
+                >
                   {hUntil}h {String(mUntil).padStart(2, '0')}m
                 </span>
               </div>
@@ -525,6 +558,7 @@ export function SidebarV3() {
         )}
       </div>
 
+      {/* SEARCH */}
       <div style={{ padding: '0 14px 10px' }}>
         <button
           type="button"
@@ -557,11 +591,12 @@ export function SidebarV3() {
         </button>
       </div>
 
+      {/* SCROLLABLE NAV */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ padding: '0 6px' }}>
         <div style={{ padding: '6px 8px 4px' }}>
           <SectionHeading label="Personal" />
           <div className="flex flex-col" style={{ gap: 1 }}>
-            {PRIMARY_NAV.map((item) => (
+            {PRIMARY_NAV.map(item => (
               <NumberedNavItem
                 key={item.to}
                 item={item}
@@ -571,6 +606,7 @@ export function SidebarV3() {
           </div>
         </div>
 
+        {/* Current lot — signature move */}
         <div style={{ padding: '14px 8px 4px' }}>
           <SectionHeading
             label="Current lot"
@@ -578,7 +614,7 @@ export function SidebarV3() {
               lots.length > 1 ? (
                 <button
                   type="button"
-                  onClick={() => setLotSwitcherOpen((open) => !open)}
+                  onClick={() => setLotSwitcherOpen(o => !o)}
                   className="uppercase font-semibold"
                   style={{
                     fontSize: 10,
@@ -601,7 +637,7 @@ export function SidebarV3() {
                 background: 'oklch(0.20 0.018 260)',
               }}
             >
-              {lots.map((lot) => {
+              {lots.map(lot => {
                 const isActive = lot.id === activeLot?.id;
                 return (
                   <button
@@ -635,10 +671,16 @@ export function SidebarV3() {
                       {lot.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="font-semibold truncate" style={{ fontSize: 12.5 }}>
+                      <div
+                        className="font-semibold truncate"
+                        style={{ fontSize: 12.5 }}
+                      >
                         {lot.name}
                       </div>
-                      <div className="sv3-num" style={{ fontSize: 10.5, color: 'oklch(0.60 0.015 260)' }}>
+                      <div
+                        className="sv3-num"
+                        style={{ fontSize: 10.5, color: 'oklch(0.60 0.015 260)' }}
+                      >
                         {lot.available_slots} / {lot.total_slots} free
                       </div>
                     </div>
@@ -658,6 +700,7 @@ export function SidebarV3() {
             </div>
           ) : activeLot ? (
             <LotFloorMap
+              lotName={activeLot.name}
               freeSlots={activeLot.available_slots}
               totalSlots={activeLot.total_slots}
               freePct={freePct}
@@ -667,10 +710,11 @@ export function SidebarV3() {
           ) : null}
         </div>
 
+        {/* Workspace */}
         <div style={{ padding: '14px 8px 4px' }}>
           <SectionHeading label="Workspace" />
           <div className="flex flex-col" style={{ gap: 1 }}>
-            {WORKSPACE_NAV.map((item) => (
+            {WORKSPACE_NAV.map(item => (
               <FlatNavItem
                 key={item.to}
                 item={item}
@@ -680,11 +724,12 @@ export function SidebarV3() {
           </div>
         </div>
 
+        {/* Admin */}
         {isAdmin && (
           <div style={{ padding: '14px 8px 8px' }}>
             <SectionHeading label="Admin" tag="restricted" />
             <div className="flex flex-col" style={{ gap: 1 }}>
-              {ADMIN_NAV.map((item) => (
+              {ADMIN_NAV.map(item => (
                 <FlatNavItem
                   key={item.to}
                   item={item}
@@ -696,10 +741,15 @@ export function SidebarV3() {
         )}
       </div>
 
+      {/* FOOTER: Up next */}
       <WhatsNextCard upNext={upNext} />
     </aside>
   );
 }
+
+// ----------------------------------------------------------------------
+// Sub-components
+// ----------------------------------------------------------------------
 
 function SectionHeading({
   label,
@@ -746,7 +796,6 @@ function SectionHeading({
 
 function NumberedNavItem({ item, active }: { item: NumberedItem; active: boolean }) {
   const [hover, setHover] = useState(false);
-
   return (
     <Link
       to={item.to}
@@ -760,8 +809,8 @@ function NumberedNavItem({ item, active }: { item: NumberedItem; active: boolean
         background: active
           ? 'oklch(0.25 0.02 260)'
           : hover
-            ? 'oklch(0.21 0.018 260)'
-            : 'transparent',
+          ? 'oklch(0.21 0.018 260)'
+          : 'transparent',
         color: active ? '#fff' : 'oklch(0.85 0.01 260)',
         transition: 'background 120ms, color 120ms',
       }}
@@ -824,7 +873,6 @@ function NumberedNavItem({ item, active }: { item: NumberedItem; active: boolean
 
 function FlatNavItem({ item, active }: { item: FlatItem; active: boolean }) {
   const [hover, setHover] = useState(false);
-
   return (
     <Link
       to={item.to}
@@ -838,8 +886,8 @@ function FlatNavItem({ item, active }: { item: FlatItem; active: boolean }) {
         background: active
           ? 'oklch(0.25 0.02 260)'
           : hover
-            ? 'oklch(0.21 0.018 260)'
-            : 'transparent',
+          ? 'oklch(0.21 0.018 260)'
+          : 'transparent',
         color: active ? '#fff' : 'oklch(0.75 0.01 260)',
         transition: 'background 120ms',
       }}
@@ -875,6 +923,7 @@ function LotFloorMap({
   floors,
   onOpenMap,
 }: {
+  lotName: string;
   freeSlots: number;
   totalSlots: number;
   freePct: number;
@@ -901,7 +950,9 @@ function LotFloorMap({
         <div>
           <div className="sv3-display" style={{ fontSize: 20, lineHeight: 1 }}>
             {freeSlots}
-            <span style={{ fontSize: 12, color: 'oklch(0.55 0.015 260)', fontWeight: 500, marginLeft: 4 }}>
+            <span
+              style={{ fontSize: 12, color: 'oklch(0.55 0.015 260)', fontWeight: 500, marginLeft: 4 }}
+            >
               / {totalSlots}
             </span>
           </div>
@@ -933,20 +984,19 @@ function LotFloorMap({
 
       {floors.length > 0 ? (
         <div className="flex flex-col" style={{ gap: 2 }}>
-          {floors.map((floor, index) => {
+          {floors.map((floor, i) => {
             const color =
               floor.occupancy > 0.85
                 ? 'oklch(0.58 0.16 25)'
                 : floor.occupancy > 0.6
-                  ? 'oklch(0.70 0.14 75)'
-                  : 'oklch(0.58 0.14 150)';
+                ? 'oklch(0.70 0.14 75)'
+                : 'oklch(0.58 0.14 150)';
             const isMe = !!floor.youLabel;
-
             return (
               <button
                 key={floor.label}
                 type="button"
-                onMouseEnter={() => setHoverIndex(index)}
+                onMouseEnter={() => setHoverIndex(i)}
                 onMouseLeave={() => setHoverIndex(null)}
                 onClick={onOpenMap}
                 style={{
@@ -956,7 +1006,7 @@ function LotFloorMap({
                   gap: 8,
                   padding: '4px 2px',
                   borderRadius: 4,
-                  background: hoverIndex === index ? 'oklch(0.24 0.02 260)' : 'transparent',
+                  background: hoverIndex === i ? 'oklch(0.24 0.02 260)' : 'transparent',
                   textAlign: 'left',
                 }}
               >
@@ -1086,7 +1136,6 @@ function EmptyPassCard() {
 
 function WhatsNextCard({ upNext }: { upNext: Booking | undefined }) {
   const subtitle = upNext ? formatUpNext(upNext) : 'Nothing scheduled';
-
   return (
     <div
       style={{
@@ -1187,13 +1236,13 @@ function UserMenu({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    function handler(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) onClose();
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
     }
-
-    const timeoutId = window.setTimeout(() => document.addEventListener('mousedown', handler), 0);
+    // Defer one tick so the click that opened the menu doesn't immediately close it.
+    const id = window.setTimeout(() => document.addEventListener('mousedown', handler), 0);
     return () => {
-      window.clearTimeout(timeoutId);
+      window.clearTimeout(id);
       document.removeEventListener('mousedown', handler);
     };
   }, [onClose]);
@@ -1227,7 +1276,10 @@ function UserMenu({
         <div className="font-bold truncate" style={{ fontSize: 13 }}>
           {userName}
         </div>
-        <div className="truncate" style={{ fontSize: 10.5, color: 'oklch(0.62 0.015 260)', marginTop: 2 }}>
+        <div
+          className="truncate"
+          style={{ fontSize: 10.5, color: 'oklch(0.62 0.015 260)', marginTop: 2 }}
+        >
           {userEmail ? `${userEmail} · ${roleLabel}` : roleLabel}
         </div>
       </div>

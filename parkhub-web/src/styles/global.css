@@ -694,6 +694,15 @@ body {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════════
+   Density — user-pickable spacing scale. Applied via [data-density=…] on <html>
+   by the useDensity() hook (src/hooks/useDensity.ts). Changing the attribute
+   reflows the whole app via CSS custom properties — no component re-mount.
+
+   Scales map to the shared Tailwind spacing scale so custom CSS doesn't fight
+   existing utility classes.
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
 :root {
   --density-row-gap: 0.75rem;
   --density-card-padding: 1.25rem;

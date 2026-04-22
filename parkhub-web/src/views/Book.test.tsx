@@ -12,6 +12,7 @@ const mockGetVehicles = vi.fn();
 const mockCreateBooking = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
+const mockUseNavLayout = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
@@ -29,6 +30,10 @@ vi.mock('../api/client', () => ({
     getOperatingHours: vi.fn().mockResolvedValue({ hours: [] }),
     getBookingRecommendations: (...args: any[]) => mockGetBookingRecommendations(...args),
   },
+}));
+
+vi.mock('../hooks/useNavLayout', () => ({
+  useNavLayout: () => mockUseNavLayout(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -52,6 +57,20 @@ vi.mock('react-i18next', () => ({
         'book.vehicle': 'Vehicle',
         'book.noVehicle': 'No vehicle',
         'book.continue': 'Continue',
+        'book.detailsTitle': 'Booking details',
+        'book.selectionTitle': 'Pick your parking space',
+        'book.summaryTitle': 'Booking summary',
+        'book.summaryHint': 'Review the live estimate before you continue',
+        'book.selectedLot': 'Selected lot',
+        'book.selectedSlot': 'Selected slot',
+        'book.rate': 'Rate',
+        'book.zone': 'Zone',
+        'book.available': 'Available',
+        'book.occupied': 'Occupied',
+        'book.accessible': 'Accessible',
+        'book.electric': 'Electric',
+        'book.readyTitle': 'Ready to confirm',
+        'book.readyHint': 'Review your booking details before submitting',
         'book.lot': 'Lot',
         'book.slot': 'Slot',
         'book.from': 'From',
@@ -151,6 +170,8 @@ describe('BookPage', () => {
     mockGetDynamicPrice.mockClear();
     mockToastSuccess.mockClear();
     mockToastError.mockClear();
+    mockUseNavLayout.mockReset();
+    mockUseNavLayout.mockReturnValue(['dock', vi.fn()]);
     mockGetDynamicPrice.mockResolvedValue({ success: false, data: null });
   });
 
@@ -180,6 +201,19 @@ describe('BookPage', () => {
     expect(screen.getByText('Garage Beta')).toBeInTheDocument();
     // Both lots have addresses displayed
     expect(screen.getAllByText('123 Main St')).toHaveLength(2);
+  });
+
+  it('renders the focus planning shell when focus layout is selected', async () => {
+    mockUseNavLayout.mockReturnValue(['focus', vi.fn()]);
+    mockGetLots.mockResolvedValue({ success: true, data: [makeLot()] });
+    mockGetVehicles.mockResolvedValue({ success: true, data: [] });
+
+    render(<BookPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Booking studio')).toBeInTheDocument();
+    });
+    expect(screen.getByText('3-step reservation flow')).toBeInTheDocument();
   });
 
   it('shows empty state when no open lots', async () => {
@@ -281,21 +315,67 @@ describe('BookPage', () => {
     await user.click(screen.getByText('Garage Alpha'));
 
     await waitFor(() => {
-      expect(screen.getByText('1h')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '1h' })).toBeInTheDocument();
     });
 
     // All four duration buttons should be visible
-    expect(screen.getByText('1h')).toBeInTheDocument();
-    expect(screen.getByText('2h')).toBeInTheDocument();
-    expect(screen.getByText('4h')).toBeInTheDocument();
-    expect(screen.getByText('8h')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1h' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2h' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '4h' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '8h' })).toBeInTheDocument();
 
     // Click 4h duration
-    await user.click(screen.getByText('4h'));
+    await user.click(screen.getByRole('button', { name: '4h' }));
 
     // 4h button should now have the selected style (bg-teal-600)
-    const btn4h = screen.getByText('4h').closest('button');
-    expect(btn4h?.className).toContain('bg-teal-600');
+    const btn4h = screen.getByRole('button', { name: '4h' });
+    expect(btn4h.className).toContain('bg-teal-600');
+  });
+
+  it('shows a v4-style planning shell in step 2 with grouped slots and summary details', async () => {
+    const user = userEvent.setup();
+    const lot = makeLot();
+    const slots = [
+      makeSlot({ id: 'a1', slot_number: 'A1', status: 'available' }),
+      makeSlot({ id: 'a2', slot_number: 'A2', status: 'occupied' }),
+      makeSlot({ id: 'b1', slot_number: 'B1', status: 'available', slot_type: 'electric' }),
+    ];
+
+    mockGetLots.mockResolvedValue({ success: true, data: [lot] });
+    mockGetVehicles.mockResolvedValue({ success: true, data: [makeVehicle()] });
+    mockGetLotSlots.mockResolvedValue({ success: true, data: slots });
+    mockGetDynamicPrice.mockResolvedValue({
+      success: true,
+      data: {
+        dynamic_pricing_active: true,
+        current_price: 4.5,
+        base_price: 2.5,
+        applied_multiplier: 1.8,
+        occupancy_percent: 76,
+        tier: 'surge',
+        currency: '€',
+      },
+    });
+
+    render(<BookPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Garage Alpha')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Garage Alpha'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Booking details')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Pick your parking space')).toBeInTheDocument();
+    expect(screen.getByText('Booking summary')).toBeInTheDocument();
+    expect(screen.getByText('Zone A')).toBeInTheDocument();
+    expect(screen.getByText('Zone B')).toBeInTheDocument();
+    expect(screen.getByText('Selected lot')).toBeInTheDocument();
+    expect(screen.getAllByText('Rate').length).toBeGreaterThan(0);
+    expect(screen.getByText('Review the live estimate before you continue')).toBeInTheDocument();
   });
 
   it('back button returns from step 2 to step 1', async () => {
@@ -327,7 +407,7 @@ describe('BookPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Garage Alpha')).toBeInTheDocument();
     });
-    expect(screen.getByText('Choose a parking lot')).toBeInTheDocument();
+    expect(screen.getAllByText('Choose a parking lot').length).toBeGreaterThan(0);
   });
 
   it('continue button is disabled until a slot is selected', async () => {
@@ -381,9 +461,9 @@ describe('BookPage', () => {
 
     // Step 2: select slot and continue
     await waitFor(() => {
-      expect(screen.getByText('A1')).toBeInTheDocument();
+      expect(screen.getAllByText('A1').length).toBeGreaterThan(0);
     });
-    await user.click(screen.getByText('A1'));
+    await user.click(screen.getAllByText('A1')[0]);
     await user.click(screen.getByText('Continue'));
 
     // Step 3: confirm
@@ -392,8 +472,8 @@ describe('BookPage', () => {
     });
 
     // Should show summary
-    expect(screen.getByText('Garage Alpha')).toBeInTheDocument();
-    expect(screen.getByText('A1')).toBeInTheDocument();
+    expect(screen.getAllByText('Garage Alpha').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('A1').length).toBeGreaterThan(0);
 
     await user.click(screen.getByText('Confirm Booking'));
 
@@ -540,6 +620,41 @@ describe('BookPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Select a slot')).toBeInTheDocument();
     });
+  });
+
+  it('shows a stronger confirmation card before submitting the booking', async () => {
+    const user = userEvent.setup();
+    const lot = makeLot();
+    const slot = makeSlot({ slot_number: 'B4' });
+    const vehicle = makeVehicle();
+
+    mockGetLots.mockResolvedValue({ success: true, data: [lot] });
+    mockGetVehicles.mockResolvedValue({ success: true, data: [vehicle] });
+    mockGetLotSlots.mockResolvedValue({ success: true, data: [slot] });
+
+    render(<BookPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Garage Alpha')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Garage Alpha'));
+
+    await waitFor(() => {
+      expect(screen.getByText('B4')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('B4'));
+    await user.click(screen.getByText('Continue'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Ready to confirm')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Review your booking details before submitting')).toBeInTheDocument();
+    expect(screen.getAllByText('Garage Alpha').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('B4').length).toBeGreaterThan(0);
+    expect(screen.getByText('Confirm Booking')).toBeInTheDocument();
   });
 
   it('displays recommendation badges when recommendations available', async () => {
@@ -698,8 +813,8 @@ describe('BookPage', () => {
     render(<BookPage />);
     await waitFor(() => expect(screen.getByText('Garage Alpha')).toBeInTheDocument());
     await user.click(screen.getByText('Garage Alpha'));
-    await waitFor(() => expect(screen.getByText('A1')).toBeInTheDocument());
-    await user.click(screen.getByText('A1'));
+    await waitFor(() => expect(screen.getAllByText('A1').length).toBeGreaterThan(0));
+    await user.click(screen.getAllByText('A1')[0]);
     await user.click(screen.getByText('Continue'));
     await waitFor(() => expect(screen.getByText('Confirm Booking')).toBeInTheDocument());
     // Should show vehicle info
@@ -718,10 +833,10 @@ describe('BookPage', () => {
     render(<BookPage />);
     await waitFor(() => expect(screen.getByText('Garage Alpha')).toBeInTheDocument());
     await user.click(screen.getByText('Garage Alpha'));
-    await waitFor(() => expect(screen.getByText('A1')).toBeInTheDocument());
-    await user.click(screen.getByText('A1'));
+    await waitFor(() => expect(screen.getAllByText('A1').length).toBeGreaterThan(0));
+    await user.click(screen.getAllByText('A1')[0]);
     await user.click(screen.getByText('Continue'));
-    await waitFor(() => expect(screen.getByText('€10.00')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('€10.00').length).toBeGreaterThan(0));
   });
 
   it('shows dynamic pricing when available with surge tier', async () => {
@@ -744,7 +859,7 @@ describe('BookPage', () => {
     render(<BookPage />);
     await waitFor(() => expect(screen.getByText('Garage Alpha')).toBeInTheDocument());
     await user.click(screen.getByText('Garage Alpha'));
-    await waitFor(() => expect(screen.getByText(/4.50/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(/4.50/).length).toBeGreaterThan(0));
   });
 
   it('shows dynamic pricing with discount tier', async () => {
@@ -767,7 +882,7 @@ describe('BookPage', () => {
     render(<BookPage />);
     await waitFor(() => expect(screen.getByText('Garage Alpha')).toBeInTheDocument());
     await user.click(screen.getByText('Garage Alpha'));
-    await waitFor(() => expect(screen.getByText(/1.50/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(/1.50/).length).toBeGreaterThan(0));
   });
 
   it('shows dynamic pricing with normal tier (no badge)', async () => {
@@ -790,7 +905,7 @@ describe('BookPage', () => {
     render(<BookPage />);
     await waitFor(() => expect(screen.getByText('Garage Alpha')).toBeInTheDocument());
     await user.click(screen.getByText('Garage Alpha'));
-    await waitFor(() => expect(screen.getByText(/2.50/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(/2.50/).length).toBeGreaterThan(0));
   });
 
   it('isLotOpenNow: lot is 24h shows openNow', async () => {
@@ -869,7 +984,7 @@ describe('BookPage', () => {
     render(<BookPage />);
     await waitFor(() => expect(screen.getByText('Garage Alpha')).toBeInTheDocument());
     await user.click(screen.getByText('Garage Alpha'));
-    await waitFor(() => expect(screen.getByText('A1')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('A1').length).toBeGreaterThan(0));
     // Select dropdown shows the vehicle
     const select = screen.getByRole('combobox') as HTMLSelectElement;
     expect(select).toBeInTheDocument();
@@ -906,7 +1021,7 @@ describe('BookPage', () => {
     render(<BookPage />);
     await waitFor(() => expect(screen.getByText(/HQ - Slot 42/)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/HQ - Slot 42/).closest('button')!);
-    expect(screen.getByText('Choose a parking lot')).toBeInTheDocument();
+    expect(screen.getAllByText('Choose a parking lot').length).toBeGreaterThan(0);
   });
 
   it('recommendations fetch failure handles gracefully', async () => {
@@ -968,7 +1083,7 @@ describe('BookPage', () => {
     render(<BookPage />);
     await waitFor(() => expect(screen.getByText('Garage Alpha')).toBeInTheDocument());
     await user.click(screen.getByText('Garage Alpha'));
-    await waitFor(() => expect(screen.getByText('A1')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('A1').length).toBeGreaterThan(0));
 
     const select = screen.getByRole('combobox') as HTMLSelectElement;
     await user.selectOptions(select, 'v-2');

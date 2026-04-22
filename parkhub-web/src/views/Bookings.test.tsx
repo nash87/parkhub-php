@@ -23,6 +23,7 @@ Object.defineProperty(window, 'matchMedia', {
 const mockGetBookings = vi.fn();
 const mockGetVehicles = vi.fn();
 const mockCancelBooking = vi.fn();
+const mockUseNavLayout = vi.fn();
 
 vi.mock('../api/client', () => ({
   api: {
@@ -30,6 +31,10 @@ vi.mock('../api/client', () => ({
     getVehicles: (...args: any[]) => mockGetVehicles(...args),
     cancelBooking: (...args: any[]) => mockCancelBooking(...args),
   },
+}));
+
+vi.mock('../hooks/useNavLayout', () => ({
+  useNavLayout: () => mockUseNavLayout(),
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -55,7 +60,11 @@ vi.mock('react-i18next', () => ({
         'bookings.cancelBtn': 'Cancel',
         'bookings.cancelled': 'Booking cancelled',
         'bookings.cancelFailed': 'Cancel failed',
+        'bookings.summaryBadgeFocus': 'Live ledger',
+        'bookings.focusSubtitle': 'Operations cadence',
+        'bookings.summaryVehicles': `${opts?.count ?? 0} vehicles on file`,
         'bookings.statusActive': 'Active',
+        'bookings.statusConfirmed': 'Confirmed',
         'bookings.statusCompleted': 'Completed',
         'bookings.statusCancelled': 'Cancelled',
         'bookings.endsIn': `Ends ${opts?.time || ''}`,
@@ -83,6 +92,9 @@ vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef(({ children, initial, animate, exit, transition, whileHover, whileTap, variants, ...props }: any, ref: any) => (
       <div ref={ref} {...props}>{children}</div>
+    )),
+    section: React.forwardRef(({ children, initial, animate, exit, transition, whileHover, whileTap, variants, ...props }: any, ref: any) => (
+      <section ref={ref} {...props}>{children}</section>
     )),
     p: React.forwardRef(({ children, initial, animate, exit, transition, ...props }: any, ref: any) => (
       <p ref={ref} {...props}>{children}</p>
@@ -164,6 +176,8 @@ describe('BookingsPage', () => {
     mockGetBookings.mockClear();
     mockGetVehicles.mockClear();
     mockCancelBooking.mockClear();
+    mockUseNavLayout.mockReset();
+    mockUseNavLayout.mockReturnValue(['dock', vi.fn()]);
   });
 
   afterEach(() => {
@@ -266,7 +280,7 @@ describe('BookingsPage', () => {
       expect(screen.getByText('Lot Alpha')).toBeInTheDocument();
     });
 
-    const cancelBtn = screen.getByRole('button', { name: /Cancel/ });
+    const cancelBtn = screen.getByRole('button', { name: /Cancel Lot Alpha/ });
     await user.click(cancelBtn);
 
     await waitFor(() => {
@@ -299,24 +313,57 @@ describe('BookingsPage', () => {
     render(<BookingsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Filter')).toBeInTheDocument();
+      expect(screen.getByTestId('bookings-summary-band')).toBeInTheDocument();
     });
     expect(screen.getByPlaceholderText('Search lot...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'All' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Active' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Confirmed' })).toBeInTheDocument();
   });
 
-  it('status filter dropdown has 5 options', async () => {
+  it('renders the darker focus ops surface when focus layout is selected', async () => {
+    mockUseNavLayout.mockReturnValue(['focus', vi.fn()]);
     mockGetBookings.mockResolvedValue({ success: true, data: [] });
     mockGetVehicles.mockResolvedValue({ success: true, data: [] });
 
     render(<BookingsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Filter')).toBeInTheDocument();
+      expect(screen.getByText('Live ledger')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Operations cadence')).toBeInTheDocument();
+  });
+
+  it('renders dense row headings for populated sections', async () => {
+    const booking = makeBooking({ lot_name: 'Heading Lot' });
+    mockGetBookings.mockResolvedValue({ success: true, data: [booking] });
+    mockGetVehicles.mockResolvedValue({ success: true, data: [] });
+
+    render(<BookingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Heading Lot')).toBeInTheDocument();
     });
 
-    const select = screen.getByDisplayValue('All');
-    expect(select).toBeInTheDocument();
-    expect(select.querySelectorAll('option')).toHaveLength(5);
+    expect(screen.getByText('Lot / Slot')).toBeInTheDocument();
+    expect(screen.getAllByText('Vehicle').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Date & time').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Actions').length).toBeGreaterThan(0);
+  });
+
+  it('status filter chips expose the five booking states', async () => {
+    mockGetBookings.mockResolvedValue({ success: true, data: [] });
+    mockGetVehicles.mockResolvedValue({ success: true, data: [] });
+
+    render(<BookingsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('bookings-summary-band')).toBeInTheDocument();
+    });
+
+    const filterButtons = ['All', 'Active', 'Confirmed', 'Cancelled', 'Completed']
+      .map((label) => screen.getByRole('button', { name: label }));
+    expect(filterButtons).toHaveLength(5);
   });
 
   it('shows vehicle plate on booking card', async () => {
@@ -338,9 +385,9 @@ describe('BookingsPage', () => {
     render(<BookingsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Book Now')).toBeInTheDocument();
+      expect(screen.getAllByRole('link', { name: 'Book Now' }).length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('Book Now').closest('a')).toHaveAttribute('href', '/book');
+    expect(screen.getAllByRole('link', { name: 'Book Now' }).at(-1)).toHaveAttribute('href', '/book');
   });
 
   it('handles booking_created websocket event with toast', async () => {
@@ -410,8 +457,7 @@ describe('BookingsPage', () => {
     mockGetVehicles.mockResolvedValue({ success: true, data: [] });
     render(<BookingsPage />);
     await waitFor(() => expect(screen.getByText('Active Lot')).toBeInTheDocument());
-    const statusSel = screen.getByLabelText('Filter');
-    await user.selectOptions(statusSel, 'cancelled');
+    await user.click(screen.getByRole('button', { name: 'Cancelled' }));
     await waitFor(() => {
       expect(screen.queryByText('Active Lot')).not.toBeInTheDocument();
     });
@@ -428,5 +474,38 @@ describe('BookingsPage', () => {
     mockGetVehicles.mockResolvedValue({ success: true, data: [] });
     render(<BookingsPage />);
     await waitFor(() => expect(screen.getByText('Future Lot')).toBeInTheDocument());
+  });
+
+  it('applies optimistic cancel status before the API resolves', async () => {
+    const user = userEvent.setup();
+    const booking = makeBooking({ id: 'b-opt', lot_name: 'Optimistic Lot', status: 'active' });
+    mockGetBookings.mockResolvedValue({ success: true, data: [booking] });
+    mockGetVehicles.mockResolvedValue({ success: true, data: [] });
+    mockCancelBooking.mockReturnValue(new Promise(() => {}));
+
+    render(<BookingsPage />);
+
+    await waitFor(() => expect(screen.getByText('Optimistic Lot')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Cancel Optimistic Lot/ }));
+
+    expect(mockCancelBooking).toHaveBeenCalledWith('b-opt');
+    await waitFor(() => {
+      expect(screen.getByText('Cancelled')).toBeInTheDocument();
+    });
+  });
+
+  it('opens the parking pass modal from a booking action', async () => {
+    const user = userEvent.setup();
+    const booking = makeBooking({ id: 'b-pass', lot_name: 'Pass Lot', status: 'active' });
+    mockGetBookings.mockResolvedValue({ success: true, data: [booking] });
+    mockGetVehicles.mockResolvedValue({ success: true, data: [] });
+
+    render(<BookingsPage />);
+
+    await waitFor(() => expect(screen.getByText('Pass Lot')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /Show Pass Pass Lot/ }));
+
+    expect(screen.getByTestId('parking-pass-modal')).toBeInTheDocument();
+    expect(screen.getByTestId('parking-pass-modal')).toHaveTextContent('Pass Lot');
   });
 });

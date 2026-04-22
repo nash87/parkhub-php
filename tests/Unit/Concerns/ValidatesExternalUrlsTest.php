@@ -51,4 +51,11 @@ class ValidatesExternalUrlsTest extends TestCase
     {
         $this->assertFalse($this->isExternalUrl('http://this-host-definitely-does-not-exist.invalid'));
     }
+
+    public function test_allows_reserved_example_hosts_without_dns(): void
+    {
+        $this->assertTrue($this->isExternalUrl('https://example.com/webhook'));
+        $this->assertTrue($this->isExternalUrl('https://hooks.example.net/incoming'));
+        $this->assertTrue($this->isExternalUrl('https://ops.example.org/parkhub'));
+    }
 }

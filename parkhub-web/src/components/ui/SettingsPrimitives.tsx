@@ -8,7 +8,10 @@
  *  - SSeg      — segmented control (2-4 options), pill-style
  *  - SToggle   — iOS-style switch
  *  - ThemeSwatches — color-swatch theme picker
- *  - NavLayoutGrid — 2x2 grid of nav-style previews
+ *  - NavLayoutGrid — 2x2 grid of nav-style previews (stub targets
+ *                    until nav-variants.jsx ports land in T-1842;
+ *                    selection persists but only "classic" renders
+ *                    today so the component degrades gracefully.)
  *
  * These are deliberately generic; Settings.tsx composes them.
  */
@@ -34,6 +37,10 @@ export function SCard({
   return (
     <section
       id={id}
+      // `density-card` consumes var(--density-card-padding) so the
+      // Appearance → Density segmented control actually reflows this
+      // card's inner spacing (compact/cozy/comfortable). See
+      // styles/global.css density block + hooks/useDensity.
       className="card density-card mb-4 border border-surface-200 dark:border-surface-800"
     >
       {(title || actions) && (
@@ -229,7 +236,7 @@ export function ThemeSwatches({
   );
 }
 
-// ─── Nav layout picker ───────────────────────────────────────────────────
+// ─── Nav layout picker — all four variants now live (see components/nav/) ───
 
 export type NavLayout = 'classic' | 'rail' | 'top' | 'dock' | 'focus';
 
@@ -284,6 +291,11 @@ export function NavLayoutGrid({
   );
 }
 
+/**
+ * Tiny schematic thumbnail so users can see at a glance what each
+ * layout looks like before committing. Pure CSS — no screenshots to keep
+ * in sync, and the preview tracks the active accent colour.
+ */
 function NavLayoutPreview({ layout, active }: { layout: NavLayout; active: boolean }) {
   const primary = active
     ? 'bg-primary-500'
@@ -337,20 +349,19 @@ function NavLayoutPreview({ layout, active }: { layout: NavLayout; active: boole
         </div>
       );
     case 'focus':
+      // Dark opinionated rail with a "live pass" card hint + 3 occupancy bars.
       return (
         <div
           className={`relative flex w-full h-20 p-1 gap-1 rounded ${active ? 'border-primary-500 border' : 'border border-surface-300 dark:border-surface-700'}`}
           style={{ background: 'oklch(0.17 0.02 260)' }}
         >
           <div className="w-2/5 flex flex-col gap-0.5 p-0.5">
+            {/* simulated live-pass card */}
             <span
               className="block h-3 w-full rounded-sm"
-              style={{
-                background: active
-                  ? 'color-mix(in oklch, var(--color-primary-500) 40%, oklch(0.22 0.02 260))'
-                  : 'oklch(0.22 0.02 260)',
-              }}
+              style={{ background: active ? 'color-mix(in oklch, var(--color-primary-500) 40%, oklch(0.22 0.02 260))' : 'oklch(0.22 0.02 260)' }}
             />
+            {/* occupancy bars */}
             <span className="block h-0.5 w-3/4 rounded-full" style={{ background: 'oklch(0.58 0.16 25)' }} />
             <span className="block h-0.5 w-2/3 rounded-full" style={{ background: 'oklch(0.70 0.14 75)' }} />
             <span className="block h-0.5 w-1/2 rounded-full" style={{ background: 'oklch(0.58 0.14 150)' }} />
