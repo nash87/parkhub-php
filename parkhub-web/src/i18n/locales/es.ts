@@ -74,6 +74,7 @@ export default {
       profile: 'Perfil',
       settings: 'Ajustes',
       admin: 'Admin',
+      more: 'Más',
       lightMode: 'Modo claro',
       darkMode: 'Modo oscuro',
       logout: 'Cerrar sesión',

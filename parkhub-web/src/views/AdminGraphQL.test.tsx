@@ -46,6 +46,10 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({ designTheme: 'marble' }),
+}));
+
 vi.mock('@phosphor-icons/react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@phosphor-icons/react')>();
   const icon = (props: any) => <span {...props} />;
