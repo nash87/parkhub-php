@@ -3,8 +3,11 @@ import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
+const mockUseTheme = vi.fn();
+
 vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ user: { id: 'u1', role: 'admin' } }) }));
 vi.mock('../api/client', () => ({ getInMemoryToken: vi.fn(() => 'tok') }));
+vi.mock('../context/ThemeContext', () => ({ useTheme: () => mockUseTheme() }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string, o?: any) => o?.name ? `Share ${o.name}` : o?.code ? `Code: ${o.code}` : k }) }));
 vi.mock('framer-motion', () => ({
   motion: { div: React.forwardRef(({ children, ...p }: any, r: any) => <div ref={r} {...p}>{children}</div>) },
@@ -32,6 +35,8 @@ const slots = [
 describe('GuestPassPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
     globalThis.fetch = vi.fn((url: string, opts?: any) => {
       if (opts?.method === 'DELETE') return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
       if (opts?.method === 'POST') return Promise.resolve({ json: () => Promise.resolve({ success: true, data: { id: 'gnew', lot_id: 'l1', lot_name: 'Lot A', slot_id: 's1', slot_number: '5', guest_name: 'New Guest', guest_email: null, guest_code: 'XYZ789', start_time: '2026-04-12T08:00:00Z', end_time: '2026-04-12T17:00:00Z', status: 'active', created_at: '2026-04-12' } }) } as Response);
@@ -48,14 +53,27 @@ describe('GuestPassPage', () => {
 
   it('renders guest bookings', async () => {
     render(<GuestPassPage />);
-    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
+      expect(screen.getByTestId('guest-pass-shell')).toHaveAttribute('data-surface', 'marble');
+    });
     expect(screen.getByText('Bob')).toBeInTheDocument();
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+
+    render(<GuestPassPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('guest-pass-shell')).toHaveAttribute('data-surface', 'void');
+    });
   });
 
   it('shows guest codes', async () => {
     render(<GuestPassPage />);
     await waitFor(() => {
-      expect(screen.getByText('ABC123')).toBeInTheDocument();
+      expect(screen.getAllByText('ABC123').length).toBeGreaterThan(0);
       expect(screen.getByText('DEF456')).toBeInTheDocument();
     });
   });
@@ -126,7 +144,7 @@ describe('GuestPassPage', () => {
     Object.defineProperty(navigator, 'share', { value: vi.fn().mockResolvedValue(undefined), writable: true, configurable: true });
     render(<GuestPassPage />);
     // Share an existing booking
-    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('Alice').length).toBeGreaterThan(0));
     const shareBtns = screen.getAllByTitle('guestBooking.share');
     fireEvent.click(shareBtns[0]);
     await waitFor(() => expect(navigator.share).toHaveBeenCalled());
@@ -256,7 +274,7 @@ describe('GuestPassPage', () => {
       return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
     }) as any;
     render(<GuestPassPage />);
-    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText('Alice').length).toBeGreaterThan(0));
     const cancelBtn = screen.getByTestId('cancel-g1');
     fireEvent.click(cancelBtn);
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('common.error'));

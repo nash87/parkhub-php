@@ -55,6 +55,11 @@ vi.mock('../context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1', role: 'admin' } }),
 }));
 
+const mockUseTheme = vi.fn();
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
+}));
+
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
 vi.mock('react-hot-toast', () => ({
@@ -72,6 +77,8 @@ const sampleLots = [{ id: 'lot-1', name: 'Main Lot' }];
 
 describe('EVChargingPage', () => {
   beforeEach(() => {
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
     global.fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/chargers/sessions')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
@@ -91,6 +98,13 @@ describe('EVChargingPage', () => {
   it('renders EV charging page title', async () => {
     render(<EVChargingPage />);
     await waitFor(() => expect(screen.getByText('EV Charging')).toBeTruthy());
+    expect(screen.getByTestId('ev-charging-shell')).toHaveAttribute('data-surface', 'marble');
+  });
+
+  it('switches to the void shell when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    render(<EVChargingPage />);
+    await waitFor(() => expect(screen.getByTestId('ev-charging-shell')).toHaveAttribute('data-surface', 'void'));
   });
 
   it('displays chargers after loading', async () => {
@@ -119,6 +133,8 @@ describe('EVChargingPage', () => {
 
 describe('AdminChargersPage', () => {
   beforeEach(() => {
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
     global.fetch = vi.fn(() =>
       Promise.resolve({ json: () => Promise.resolve({ success: true, data: { total_chargers: 8, available: 5, in_use: 2, offline: 1, total_sessions: 120, total_kwh: 1500.5 } }) } as Response)
     );
@@ -129,9 +145,16 @@ describe('AdminChargersPage', () => {
   it('renders admin stats', async () => {
     render(<AdminChargersPage />);
     await waitFor(() => {
-      expect(screen.getByText('8')).toBeTruthy();
+      expect(screen.getAllByText('8').length).toBeGreaterThan(0);
       expect(screen.getByText('1501 kWh')).toBeTruthy();
     });
+    expect(screen.getByTestId('admin-chargers-shell')).toHaveAttribute('data-surface-tone', 'marble');
+  });
+
+  it('switches admin stats shell to void when the theme is void', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    render(<AdminChargersPage />);
+    await waitFor(() => expect(screen.getByTestId('admin-chargers-shell')).toHaveAttribute('data-surface-tone', 'void'));
   });
 
   it('shows help text on admin page', async () => {

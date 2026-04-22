@@ -43,6 +43,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({
+    designTheme: 'marble',
+  }),
+}));
+
 vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef(({ children, variants, initial, animate, exit, transition, whileHover, whileTap, ...props }: any, ref: any) => (
@@ -62,6 +68,7 @@ vi.mock('@phosphor-icons/react', () => ({
   Star: (props: any) => <span data-testid="icon-star" {...props} />,
   X: (props: any) => <span data-testid="icon-x" {...props} />,
   SpinnerGap: (props: any) => <span data-testid="icon-spinner" {...props} />,
+  Lightning: (props: any) => <span data-testid="icon-lightning" {...props} />,
 }));
 
 vi.mock('../components/Skeleton', () => ({
@@ -122,7 +129,7 @@ describe('VehiclesPage', () => {
     render(<VehiclesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('M-AB 1234')).toBeInTheDocument();
+      expect(screen.getAllByText('M-AB 1234').length).toBeGreaterThan(0);
     });
     expect(screen.getByText('M-CD 5678')).toBeInTheDocument();
     expect(screen.getByText('BMW 320i')).toBeInTheDocument();
@@ -136,7 +143,7 @@ describe('VehiclesPage', () => {
     render(<VehiclesPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Meine Fahrzeuge')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { level: 1, name: 'Meine Fahrzeuge' })).toBeInTheDocument();
     });
     expect(screen.getByText('Fahrzeuge verwalten')).toBeInTheDocument();
   });

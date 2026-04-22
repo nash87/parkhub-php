@@ -28,6 +28,12 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({
+    designTheme: 'marble',
+  }),
+}));
+
 vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef(({ children, variants, initial, animate, exit, transition, ...props }: any, ref: any) => (
@@ -39,6 +45,8 @@ vi.mock('framer-motion', () => ({
 vi.mock('@phosphor-icons/react', () => ({
   MapPin: (props: any) => <span data-testid="icon-map-pin" {...props} />,
   NavigationArrow: (props: any) => <span data-testid="icon-nav-arrow" {...props} />,
+  Lightning: (props: any) => <span data-testid="icon-lightning" {...props} />,
+  Wheelchair: (props: any) => <span data-testid="icon-wheelchair" {...props} />,
 }));
 
 vi.mock('../constants/animations', () => ({
@@ -198,10 +206,10 @@ describe('MapViewPage', () => {
     render(<MapViewPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Central Parking')).toBeInTheDocument();
+      expect(screen.getAllByText('Central Parking').length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('123 Main St')).toBeInTheDocument();
-    expect(screen.getByText('Book Now')).toBeInTheDocument();
+    expect(screen.getAllByText('123 Main St').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Book Now').length).toBeGreaterThan(0);
   });
 
   it('handles API failure gracefully', async () => {

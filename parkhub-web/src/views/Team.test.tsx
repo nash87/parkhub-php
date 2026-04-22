@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 // ── Mocks ──
 
@@ -27,6 +28,12 @@ vi.mock('react-i18next', () => ({
       };
       return map[key] || fallback || key;
     },
+  }),
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({
+    designTheme: 'marble',
   }),
 }));
 
@@ -75,7 +82,7 @@ describe('TeamPage', () => {
     render(<TeamPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Team')).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Team' })).toBeInTheDocument();
     });
     expect(screen.getByText('Abwesenheiten im Team')).toBeInTheDocument();
   });
@@ -85,8 +92,10 @@ describe('TeamPage', () => {
     render(<TeamPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Heute keine Abwesenheiten')).toBeInTheDocument();
+      expect(screen.getByText('Noch keine Teamdaten vorhanden')).toBeInTheDocument();
     });
+    await userEvent.click(screen.getByRole('button', { name: 'Abwesenheiten' }));
+    expect(screen.getByText('Heute keine Abwesenheiten')).toBeInTheDocument();
     expect(screen.getByText('Keine anstehenden Abwesenheiten')).toBeInTheDocument();
   });
 
@@ -95,9 +104,11 @@ describe('TeamPage', () => {
     render(<TeamPage />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Heute abwesend/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Abwesenheiten' })).toBeInTheDocument();
     });
-    expect(screen.getByText(/Kommende Abwesenheiten/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Abwesenheiten' }));
+    expect(screen.getByText('Kommende Abwesenheiten (0)')).toBeInTheDocument();
+    expect(screen.getByText('Heute abwesend (0)')).toBeInTheDocument();
   });
 
   it('shows team members with absences today', async () => {
@@ -115,6 +126,7 @@ describe('TeamPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Alice')).toBeInTheDocument();
     });
+    await userEvent.click(screen.getByRole('button', { name: 'Abwesenheiten' }));
     expect(screen.getByText('Bob')).toBeInTheDocument();
     expect(screen.getByText('Homeoffice')).toBeInTheDocument();
     expect(screen.getByText('Urlaub')).toBeInTheDocument();
@@ -134,6 +146,8 @@ describe('TeamPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Charlie')).toBeInTheDocument();
     });
+    await userEvent.click(screen.getByRole('button', { name: 'Abwesenheiten' }));
+    expect(screen.getByText('Kommende Abwesenheiten (1)')).toBeInTheDocument();
   });
 
   it('sorts upcoming absences by start_date', async () => {
@@ -151,5 +165,7 @@ describe('TeamPage', () => {
       expect(screen.getByText('Dave')).toBeInTheDocument();
       expect(screen.getByText('Eve')).toBeInTheDocument();
     });
+    await userEvent.click(screen.getByRole('button', { name: 'Abwesenheiten' }));
+    expect(screen.getByText('Kommende Abwesenheiten (2)')).toBeInTheDocument();
   });
 });

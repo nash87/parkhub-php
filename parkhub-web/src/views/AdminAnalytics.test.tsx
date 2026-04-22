@@ -2,12 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 
+const mockUseTheme = vi.fn();
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en', changeLanguage: vi.fn() } }),
 }));
 
 vi.mock('../api/client', () => ({
   getInMemoryToken: () => 'test-token',
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('@phosphor-icons/react', () => ({
@@ -51,6 +57,8 @@ const mockData = {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  mockUseTheme.mockReset();
+  mockUseTheme.mockReturnValue({ designTheme: 'marble' });
 });
 
 describe('AdminAnalyticsPage', () => {
@@ -60,6 +68,20 @@ describe('AdminAnalyticsPage', () => {
     });
     render(<AdminAnalyticsPage />);
     expect(screen.getByText('Analytics')).toBeTruthy();
+    expect(screen.getByTestId('admin-analytics')).toHaveAttribute('data-surface', 'marble');
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    global.fetch = vi.fn().mockResolvedValue({
+      json: () => Promise.resolve(mockData),
+    });
+
+    render(<AdminAnalyticsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('admin-analytics')).toHaveAttribute('data-surface', 'void');
+    });
   });
 
   it('shows loading skeletons initially', () => {

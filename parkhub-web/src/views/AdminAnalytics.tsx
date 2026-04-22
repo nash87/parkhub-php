@@ -2,6 +2,7 @@ import { Fragment, useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChartBar, TrendUp, Users, Clock, CurrencyDollar, Export, CalendarBlank } from '@phosphor-icons/react';
 import { getInMemoryToken } from '../api/client';
+import { useTheme } from '../context/ThemeContext';
 
 interface DailyDataPoint { date: string; value: number; }
 interface HourBin { hour: number; count: number; }
@@ -94,6 +95,7 @@ function HeatmapChart({ peak_hours }: { peak_hours: HourBin[] }) {
 
 export function AdminAnalyticsPage() {
   useTranslation(); // initialized for future i18n
+  const { designTheme } = useTheme();
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState<DateRange>('30');
@@ -142,17 +144,76 @@ export function AdminAnalyticsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const isVoid = designTheme === 'void';
+  const surfaceVariant = isVoid ? 'void' : 'marble';
+
   return (
-    <div className="space-y-6" data-testid="admin-analytics">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-2">
-            <ChartBar weight="fill" className="w-6 h-6 text-primary-500" />
-            Analytics
-          </h1>
-          <p className="text-sm text-surface-500 dark:text-surface-400">Comprehensive parking analytics and trends</p>
+    <div className="space-y-6" data-testid="admin-analytics" data-surface={surfaceVariant}>
+      <section className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+        isVoid
+          ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
+          : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
+      }`}>
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+              isVoid
+                ? 'bg-cyan-500/10 text-cyan-100'
+                : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
+            }`}>
+              <ChartBar weight="fill" className="h-3.5 w-3.5" />
+              {isVoid ? 'Void analytics deck' : 'Marble analytics deck'}
+            </div>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <h1 className="flex items-center gap-2 text-3xl font-black tracking-[-0.04em]">
+                  <ChartBar weight="duotone" className="h-7 w-7 text-primary-500" />
+                  Analytics
+                </h1>
+                <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
+                  Comprehensive parking analytics and trends
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={exportCsv}
+                  className={`flex items-center gap-1.5 rounded-2xl px-3 py-2 text-sm transition-colors ${
+                    isVoid
+                      ? 'bg-white/5 text-white/75 hover:bg-white/10'
+                      : 'bg-white/80 text-surface-600 hover:bg-white dark:bg-white/10 dark:text-white/75 dark:hover:bg-white/15'
+                  }`}
+                >
+                  <Export weight="bold" className="w-4 h-4" />
+                  CSV
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-3">
+              <HeroMetric label="Range" value={range === '365' ? '1 year' : `${range} days`} meta="Explorable analytics window" isVoid={isVoid} accent />
+              <HeroMetric label="Daily points" value={String(data?.daily_bookings.length ?? 0)} meta="Bookings + revenue trend lines" isVoid={isVoid} />
+              <HeroMetric label="Top lots" value={String(data?.top_lots.length ?? 0)} meta="Utilization leaderboard" isVoid={isVoid} />
+            </div>
+          </div>
+
+          <div className={`rounded-[24px] border p-5 ${
+            isVoid
+              ? 'border-white/10 bg-white/[0.04]'
+              : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
+          }`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+              Observatory
+            </p>
+            <div className="mt-4 space-y-3">
+              <PanelMetric label="Fetch state" value={loading ? 'Loading' : data ? 'Live' : 'Fallback'} helper="Admin analytics overview endpoint" isVoid={isVoid} />
+              <PanelMetric label="Revenue points" value={String(data?.daily_revenue.length ?? 0)} helper="Used for CSV export and trend chart" isVoid={isVoid} />
+              <PanelMetric label="User growth" value={String(data?.user_growth.length ?? 0)} helper="Twelve-month adoption pulse" isVoid={isVoid} />
+            </div>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+      </section>
+
+      <div className="flex items-center justify-end flex-wrap gap-2">
           {(['7', '30', '90', '365'] as DateRange[]).map(r => (
             <button
               key={r}
@@ -166,14 +227,6 @@ export function AdminAnalyticsPage() {
               {r === '365' ? '1y' : `${r}d`}
             </button>
           ))}
-          <button
-            onClick={exportCsv}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-surface-100 dark:bg-surface-800 text-surface-600 dark:text-surface-400 hover:bg-surface-200 dark:hover:bg-surface-700 rounded-lg transition-colors"
-          >
-            <Export weight="bold" className="w-4 h-4" />
-            CSV
-          </button>
-        </div>
       </div>
 
       {loading ? (
@@ -259,6 +312,70 @@ export function AdminAnalyticsPage() {
       ) : (
         <div className="text-center py-12 text-surface-500">Failed to load analytics data</div>
       )}
+    </div>
+  );
+}
+
+function HeroMetric({
+  label,
+  value,
+  meta,
+  isVoid,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  meta: string;
+  isVoid: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div className={`rounded-[22px] border px-4 py-4 ${
+      accent
+        ? isVoid
+          ? 'border-cyan-500/30 bg-cyan-500/10'
+          : 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-900/60'
+        : isVoid
+          ? 'border-white/10 bg-white/[0.04]'
+          : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
+    }`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+        accent
+          ? isVoid
+            ? 'text-cyan-100'
+            : 'text-emerald-700 dark:text-emerald-300'
+          : isVoid
+            ? 'text-white/45'
+            : 'text-surface-500 dark:text-white/45'
+      }`}>
+        {label}
+      </p>
+      <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">{value}</p>
+      <p className="mt-2 text-xs text-surface-500 dark:text-surface-400">{meta}</p>
+    </div>
+  );
+}
+
+function PanelMetric({
+  label,
+  value,
+  helper,
+  isVoid,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  isVoid: boolean;
+}) {
+  return (
+    <div className={`rounded-[20px] border px-4 py-4 ${
+      isVoid
+        ? 'border-white/10 bg-white/[0.03]'
+        : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.03]'
+    }`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>{label}</p>
+      <p className="mt-2 text-lg font-semibold">{value}</p>
+      <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">{helper}</p>
     </div>
   );
 }

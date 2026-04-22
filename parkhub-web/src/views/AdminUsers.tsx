@@ -11,11 +11,13 @@ import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { DataTable } from '../components/ui/DataTable';
+import { useTheme } from '../context/ThemeContext';
 
 const columnHelper = createColumnHelper<User>();
 
 export function AdminUsersPage() {
   const { t } = useTranslation();
+  const { designTheme } = useTheme();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -37,6 +39,12 @@ export function AdminUsersPage() {
   const [bulkRole, setBulkRole] = useState('user');
   const [bulkRunning, setBulkRunning] = useState(false);
   const [bulkConfirm, setBulkConfirm] = useState(false);
+  const isVoid = designTheme === 'void';
+  const surfaceVariant = isVoid ? 'void' : 'marble';
+  const activeUsers = users.filter(user => user.is_active).length;
+  const adminUsers = users.filter(user => ['admin', 'superadmin'].includes(user.role)).length;
+  const totalCredits = users.reduce((sum, user) => sum + user.credits_balance, 0);
+  const totalQuota = users.reduce((sum, user) => sum + user.credits_monthly_quota, 0);
 
   useEffect(() => { loadUsers(); }, []);
 
@@ -311,47 +319,150 @@ export function AdminUsersPage() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-semibold text-surface-900 dark:text-white">{t('admin.users')}</h2>
-          <span className="text-sm text-surface-500 dark:text-surface-400 tabular-nums">({users.length})</span>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-6"
+      data-testid="admin-users-shell"
+      data-surface={surfaceVariant}
+    >
+      <section className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+        isVoid
+          ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
+          : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
+      }`}>
+        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div>
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+              isVoid
+                ? 'bg-cyan-500/10 text-cyan-100'
+                : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
+            }`}>
+              <Coins weight="fill" className="h-3.5 w-3.5" />
+              {isVoid ? 'Void user ledger' : 'Marble user ledger'}
+            </div>
 
-        <div className="relative">
-          <MagnifyingGlass weight="bold" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={t('admin.searchUsers')}
-            className="input pl-9 pr-8 w-full sm:w-64"
-            aria-label={t('admin.searchUsers')}
-          />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              aria-label={t('admin.clearSearch')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded text-surface-400 hover:text-surface-600 dark:hover:text-surface-200 transition-colors"
-            >
-              <X weight="bold" className="w-3.5 h-3.5" />
-            </button>
-          )}
+            <div className="flex flex-col gap-4">
+              <div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-3xl font-black tracking-[-0.04em]">{t('admin.users')}</h1>
+                  <span className={`rounded-full px-3 py-1 text-sm font-semibold tabular-nums ${
+                    isVoid
+                      ? 'bg-white/10 text-white/80'
+                      : 'bg-white/85 text-surface-600 dark:bg-white/10 dark:text-white/80'
+                  }`}>
+                    ({users.length})
+                  </span>
+                </div>
+                <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
+                  Roles, quotas, credits and lifecycle changes stay in one operator surface without dropping the existing bulk and table flows.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                <AdminUsersHeroStat
+                  label="Active accounts"
+                  value={String(activeUsers)}
+                  meta={`${users.length - activeUsers} inactive`}
+                  isVoid={isVoid}
+                  accent
+                />
+                <AdminUsersHeroStat
+                  label="Privileged"
+                  value={String(adminUsers)}
+                  meta="Admin + superadmin"
+                  isVoid={isVoid}
+                />
+                <AdminUsersHeroStat
+                  label="Credit pool"
+                  value={String(totalCredits)}
+                  meta={`${totalQuota} monthly quota`}
+                  isVoid={isVoid}
+                />
+              </div>
+
+              <div className="relative max-w-md">
+                <MagnifyingGlass weight="bold" className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isVoid ? 'text-slate-500' : 'text-surface-400'}`} />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder={t('admin.searchUsers')}
+                  className={`w-full rounded-2xl border py-3 pl-10 pr-10 text-sm outline-none transition ${
+                    isVoid
+                      ? 'border-white/10 bg-slate-950/60 text-white placeholder:text-slate-500 focus:border-cyan-500/40'
+                      : 'border-white/80 bg-white/85 text-surface-900 placeholder:text-surface-400 focus:border-primary-300 dark:border-white/10 dark:bg-white/[0.06] dark:text-white'
+                  }`}
+                  aria-label={t('admin.searchUsers')}
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch('')}
+                    aria-label={t('admin.clearSearch')}
+                    className={`absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 transition-colors ${
+                      isVoid
+                        ? 'text-slate-400 hover:bg-white/10 hover:text-white'
+                        : 'text-surface-400 hover:bg-surface-100 hover:text-surface-700 dark:hover:bg-white/10 dark:hover:text-white'
+                    }`}
+                  >
+                    <X weight="bold" className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className={`rounded-[24px] border p-5 ${
+            isVoid
+              ? 'border-white/10 bg-white/[0.04]'
+              : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
+          }`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+              Control posture
+            </p>
+            <div className="mt-4 space-y-3">
+              <AdminUsersPanelMetric
+                label="Bulk operations"
+                value={selectedIds.size ? `${selectedIds.size} selected` : 'Ready'}
+                helper="Activate, deactivate, role changes and delete stay available."
+                isVoid={isVoid}
+              />
+              <AdminUsersPanelMetric
+                label="Credits + quota"
+                value={`${totalQuota}`}
+                helper="Quota editing and grant-credit modal remain in place."
+                isVoid={isVoid}
+              />
+              <AdminUsersPanelMetric
+                label="Lifecycle"
+                value={`${activeUsers}/${users.length || 0}`}
+                helper="Active state toggles remain inline on each row."
+                isVoid={isVoid}
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 p-3 bg-primary-50 dark:bg-primary-900/20 rounded-xl border border-primary-200 dark:border-primary-800">
-          <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
+        <div className={`flex flex-wrap items-center gap-3 rounded-[22px] border p-4 ${
+          isVoid
+            ? 'border-cyan-500/20 bg-cyan-500/10'
+            : 'border-primary-200 bg-primary-50/90 dark:border-primary-800 dark:bg-primary-900/20'
+        }`}>
+          <span className={`text-sm font-medium ${isVoid ? 'text-cyan-100' : 'text-primary-700 dark:text-primary-300'}`}>
             {t('admin.selectedCount', { count: selectedIds.size })}
           </span>
           <select
             value={bulkAction}
             onChange={e => setBulkAction(e.target.value)}
-            className="input text-xs py-1 px-2"
+            className={`rounded-xl border px-3 py-2 text-xs outline-none ${
+              isVoid
+                ? 'border-white/10 bg-slate-950/70 text-white'
+                : 'border-white/80 bg-white text-surface-900 dark:border-white/10 dark:bg-surface-950/70 dark:text-white'
+            }`}
             aria-label={t('admin.selectAction')}
           >
             <option value="">{t('admin.selectAction')}</option>
@@ -361,7 +472,16 @@ export function AdminUsersPage() {
             <option value="delete">{t('admin.bulkDelete')}</option>
           </select>
           {bulkAction === 'set_role' && (
-            <select value={bulkRole} onChange={e => setBulkRole(e.target.value)} className="input text-xs py-1 px-2" aria-label={t('admin.editRole')}>
+            <select
+              value={bulkRole}
+              onChange={e => setBulkRole(e.target.value)}
+              className={`rounded-xl border px-3 py-2 text-xs outline-none ${
+                isVoid
+                  ? 'border-white/10 bg-slate-950/70 text-white'
+                  : 'border-white/80 bg-white text-surface-900 dark:border-white/10 dark:bg-surface-950/70 dark:text-white'
+              }`}
+              aria-label={t('admin.editRole')}
+            >
               <option value="user">user</option>
               <option value="premium">premium</option>
               <option value="admin">admin</option>
@@ -370,12 +490,17 @@ export function AdminUsersPage() {
           <button
             onClick={() => setBulkConfirm(true)}
             disabled={!bulkAction || bulkRunning}
-            className="px-3 py-1.5 text-xs bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center gap-1"
+            className={`flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-semibold text-white transition disabled:opacity-50 ${
+              isVoid ? 'bg-cyan-500 hover:bg-cyan-400' : 'bg-primary-600 hover:bg-primary-700'
+            }`}
           >
             {bulkRunning ? <SpinnerGap className="animate-spin" weight="bold" size={14} /> : <Lightning weight="bold" size={14} />}
             {t('admin.bulkApply')}
           </button>
-          <button onClick={() => setSelectedIds(new Set())} className="text-xs text-gray-500 hover:text-gray-700">
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className={`text-xs font-medium transition-colors ${isVoid ? 'text-slate-300 hover:text-white' : 'text-surface-500 hover:text-surface-700 dark:text-surface-400 dark:hover:text-white'}`}
+          >
             {t('admin.bulkClear')}
           </button>
         </div>
@@ -399,46 +524,192 @@ export function AdminUsersPage() {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="card p-6 space-y-4">
+            <div className={`rounded-[24px] border p-6 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.35)] ${
+              isVoid
+                ? 'border-slate-800 bg-slate-950/90 text-white'
+                : 'border-surface-200 bg-white dark:border-surface-800 dark:bg-surface-950/80'
+            }`}>
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-surface-900 dark:text-white uppercase tracking-wide">{t('admin.grantCredits')}</h3>
-                <button onClick={() => setCreditUserId(null)} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors" aria-label={t('common.close')}>
+                <div>
+                  <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+                    Credit adjustment
+                  </p>
+                  <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">{t('admin.grantCredits')}</h3>
+                </div>
+                <button
+                  onClick={() => setCreditUserId(null)}
+                  className={`rounded-lg p-1.5 transition-colors ${isVoid ? 'hover:bg-white/10' : 'hover:bg-surface-100 dark:hover:bg-surface-800'}`}
+                  aria-label={t('common.close')}
+                >
                   <X weight="bold" className="w-5 h-5 text-surface-400" />
                 </button>
               </div>
-              <p className="text-sm text-surface-500 dark:text-surface-400">
+              <p className={`mt-3 text-sm ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>
                 {t('admin.grantingTo')} <strong className="text-surface-900 dark:text-white">{users.find(u => u.id === creditUserId)?.name}</strong>
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label htmlFor="credit-amount" className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">{t('admin.amount')}</label>
-                  <input id="credit-amount" type="number" min={1} value={creditAmount} onChange={e => setCreditAmount(e.target.value)} className="input" placeholder="10" />
+                  <label htmlFor="credit-amount" className={`mb-2 block text-sm font-medium ${isVoid ? 'text-slate-200' : 'text-surface-700 dark:text-surface-300'}`}>{t('admin.amount')}</label>
+                  <input
+                    id="credit-amount"
+                    type="number"
+                    min={1}
+                    value={creditAmount}
+                    onChange={e => setCreditAmount(e.target.value)}
+                    className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${
+                      isVoid
+                        ? 'border-white/10 bg-slate-900 text-white placeholder:text-slate-500 focus:border-cyan-500/40'
+                        : 'border-surface-200 bg-white text-surface-900 focus:border-primary-300 dark:border-surface-700 dark:bg-surface-950 dark:text-white'
+                    }`}
+                    placeholder="10"
+                  />
                 </div>
                 <div>
-                  <label htmlFor="credit-description" className="block text-sm font-medium text-surface-700 dark:text-surface-300 mb-2">{t('admin.description')}</label>
-                  <input id="credit-description" type="text" value={creditDesc} onChange={e => setCreditDesc(e.target.value)} className="input" />
+                  <label htmlFor="credit-description" className={`mb-2 block text-sm font-medium ${isVoid ? 'text-slate-200' : 'text-surface-700 dark:text-surface-300'}`}>{t('admin.description')}</label>
+                  <input
+                    id="credit-description"
+                    type="text"
+                    value={creditDesc}
+                    onChange={e => setCreditDesc(e.target.value)}
+                    className={`w-full rounded-2xl border px-4 py-3 text-sm outline-none transition ${
+                      isVoid
+                        ? 'border-white/10 bg-slate-900 text-white placeholder:text-slate-500 focus:border-cyan-500/40'
+                        : 'border-surface-200 bg-white text-surface-900 focus:border-primary-300 dark:border-surface-700 dark:bg-surface-950 dark:text-white'
+                    }`}
+                  />
                 </div>
               </div>
-              <div className="flex gap-3">
-                <button onClick={handleGrantCredits} disabled={grantingCredits || !creditAmount} className="btn btn-primary">
+              <div className="mt-5 flex gap-3">
+                <button
+                  onClick={handleGrantCredits}
+                  disabled={grantingCredits || !creditAmount}
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition disabled:opacity-50 ${
+                    isVoid ? 'bg-cyan-500 hover:bg-cyan-400' : 'bg-primary-600 hover:bg-primary-700'
+                  }`}
+                >
                   {grantingCredits ? <SpinnerGap weight="bold" className="w-4 h-4 animate-spin" /> : <Check weight="bold" className="w-4 h-4" />}
                   {t('admin.grant')}
                 </button>
-                <button onClick={() => setCreditUserId(null)} className="btn btn-secondary">{t('common.cancel')}</button>
+                <button
+                  onClick={() => setCreditUserId(null)}
+                  className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                    isVoid
+                      ? 'border border-white/10 bg-white/[0.04] text-slate-200 hover:bg-white/10'
+                      : 'border border-surface-200 bg-surface-50 text-surface-700 hover:bg-surface-100 dark:border-surface-700 dark:bg-surface-900 dark:text-surface-200 dark:hover:bg-surface-800'
+                  }`}
+                >
+                  {t('common.cancel')}
+                </button>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Users Table — TanStack Table with sorting */}
-      <DataTable
-        data={users}
-        columns={columns}
-        searchValue={debouncedSearch}
-        emptyMessage={search ? t('admin.noUsersMatch') : t('admin.noUsersFound')}
-        exportFilename="users"
-      />
+      <section className={`rounded-[24px] border p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] ${
+        isVoid
+          ? 'border-slate-800 bg-slate-950/85'
+          : 'border-surface-200 bg-white dark:border-surface-800 dark:bg-surface-950/80'
+      }`}>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+              Directory
+            </p>
+            <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">Accounts table</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              isVoid
+                ? 'bg-white/10 text-white/80'
+                : 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300'
+            }`}>
+              {activeUsers} active
+            </span>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              isVoid
+                ? 'bg-cyan-500/10 text-cyan-100'
+                : 'bg-primary-50 text-primary-700 dark:bg-primary-950/40 dark:text-primary-300'
+            }`}>
+              {adminUsers} privileged
+            </span>
+          </div>
+        </div>
+
+        <DataTable
+          data={users}
+          columns={columns}
+          searchValue={debouncedSearch}
+          emptyMessage={search ? t('admin.noUsersMatch') : t('admin.noUsersFound')}
+          exportFilename="users"
+        />
+      </section>
     </motion.div>
+  );
+}
+
+function AdminUsersHeroStat({
+  label,
+  value,
+  meta,
+  isVoid,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  meta: string;
+  isVoid: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div className={`rounded-[22px] border px-4 py-4 ${
+      isVoid
+        ? accent
+          ? 'border-cyan-500/20 bg-cyan-500/10'
+          : 'border-white/10 bg-white/[0.04]'
+        : accent
+        ? 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-900/60'
+        : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
+    }`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+        isVoid
+          ? accent ? 'text-cyan-100' : 'text-white/45'
+          : accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45'
+      }`}>
+        {label}
+      </p>
+      <p className={`mt-3 text-3xl font-black tracking-[-0.04em] ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>
+        {value}
+      </p>
+      <p className={`mt-2 text-xs ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
+    </div>
+  );
+}
+
+function AdminUsersPanelMetric({
+  label,
+  value,
+  helper,
+  isVoid,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  isVoid: boolean;
+}) {
+  return (
+    <div className={`rounded-[20px] border px-4 py-3 ${
+      isVoid
+        ? 'border-white/10 bg-white/[0.03]'
+        : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.03]'
+    }`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+          {label}
+        </p>
+        <span className={`text-sm font-semibold ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</span>
+      </div>
+      <p className={`mt-2 text-xs leading-5 ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{helper}</p>
+    </div>
   );
 }

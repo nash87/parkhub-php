@@ -8,6 +8,8 @@ import userEvent from '@testing-library/user-event';
 const mockCalendarEvents = vi.fn();
 const mockGenerateCalendarToken = vi.fn();
 const mockRescheduleBooking = vi.fn();
+const mockUseTheme = vi.fn();
+const mockUseNavLayout = vi.fn();
 
 vi.mock('../api/client', () => ({
   api: {
@@ -15,6 +17,14 @@ vi.mock('../api/client', () => ({
     generateCalendarToken: (...args: any[]) => mockGenerateCalendarToken(...args),
     rescheduleBooking: (...args: any[]) => mockRescheduleBooking(...args),
   },
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
+}));
+
+vi.mock('../hooks/useNavLayout', () => ({
+  useNavLayout: () => mockUseNavLayout(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -76,11 +86,16 @@ describe('CalendarPage', () => {
   beforeEach(() => {
     mockCalendarEvents.mockClear();
     mockGenerateCalendarToken.mockClear();
+    mockRescheduleBooking.mockClear();
+    mockUseTheme.mockReset();
+    mockUseNavLayout.mockReset();
     mockCalendarEvents.mockResolvedValue({ success: true, data: [] });
     mockGenerateCalendarToken.mockResolvedValue({
       success: true,
       data: { token: 'test-token-123', url: 'http://localhost:3000/api/v1/calendar/ical/test-token-123' },
     });
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
+    mockUseNavLayout.mockReturnValue(['classic', vi.fn()]);
   });
 
   afterEach(() => {
@@ -92,6 +107,16 @@ describe('CalendarPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Calendar')).toBeInTheDocument();
+      expect(screen.getByTestId('calendar-shell')).toHaveAttribute('data-surface', 'marble');
+    });
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    render(<CalendarPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('calendar-shell')).toHaveAttribute('data-surface', 'void');
     });
   });
 

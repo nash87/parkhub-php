@@ -7,18 +7,10 @@ const mockSetTheme = vi.fn();
 const mockSetDesignTheme = vi.fn();
 const mockSetNavLayout = vi.fn();
 const mockSetDensity = vi.fn();
+const mockUseTheme = vi.fn();
 
 vi.mock('../context/ThemeContext', () => ({
-  useTheme: () => ({
-    designTheme: 'aurora',
-    setDesignTheme: mockSetDesignTheme,
-    setTheme: mockSetTheme,
-    resolved: 'light',
-    designThemes: [
-      { id: 'aurora', name: 'Aurora', previewColors: { light: ['#fff', '#eee', '#22c55e', '#0ea5e9'] } },
-      { id: 'metro', name: 'Metro', previewColors: { light: ['#fff', '#eee', '#f97316', '#ef4444'] } },
-    ],
-  }),
+  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('../hooks/useNavLayout', () => ({
@@ -82,6 +74,18 @@ describe('SettingsPage', () => {
     mockSetDesignTheme.mockReset();
     mockSetNavLayout.mockReset();
     mockSetDensity.mockReset();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({
+      designTheme: 'marble',
+      setDesignTheme: mockSetDesignTheme,
+      setTheme: mockSetTheme,
+      resolved: 'light',
+      designThemes: [
+        { id: 'marble', name: 'Marble', previewColors: { light: ['#fff', '#eee', '#14b8a6', '#111827'] } },
+        { id: 'void', name: 'Void', previewColors: { light: ['#fff', '#eef6ff', '#0ea5e9', '#0f172a'] } },
+        { id: 'metro', name: 'Metro', previewColors: { light: ['#fff', '#eee', '#f97316', '#ef4444'] } },
+      ],
+    });
   });
 
   it('renders the settings hub and personal links by default', () => {
@@ -92,9 +96,31 @@ describe('SettingsPage', () => {
     );
 
     expect(screen.getByText('Settings')).toBeInTheDocument();
+    expect(screen.getByTestId('settings-shell')).toHaveAttribute('data-surface', 'marble');
     expect(screen.getByRole('link', { name: /Profile/i })).toHaveAttribute('href', '/profile');
     expect(screen.getByRole('link', { name: /Notifications/i })).toHaveAttribute('href', '/notifications');
     expect(screen.getByRole('link', { name: /Vehicles/i })).toHaveAttribute('href', '/vehicles');
+  });
+
+  it('switches to the void hero surface when the void theme is active', () => {
+    mockUseTheme.mockReturnValue({
+      designTheme: 'void',
+      setDesignTheme: mockSetDesignTheme,
+      setTheme: mockSetTheme,
+      resolved: 'dark',
+      designThemes: [
+        { id: 'marble', name: 'Marble', previewColors: { light: ['#fff', '#eee', '#14b8a6', '#111827'] } },
+        { id: 'void', name: 'Void', previewColors: { light: ['#fff', '#eef6ff', '#0ea5e9', '#0f172a'] } },
+      ],
+    });
+
+    render(
+      <MemoryRouter>
+        <SettingsPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByTestId('settings-shell')).toHaveAttribute('data-surface', 'void');
   });
 
   it('switches to workspace links and forwards appearance changes', async () => {

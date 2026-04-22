@@ -4,6 +4,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 
 // ── Mocks ──
 
+const mockUseTheme = vi.fn();
+
 vi.mock('../api/client', () => ({
   api: {},
   getInMemoryToken: () => 'test-token',
@@ -56,6 +58,10 @@ vi.mock('../constants/animations', () => ({
   fadeUp: { hidden: { opacity: 0 }, show: { opacity: 1 } },
 }));
 
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
+}));
+
 import { TeamLeaderboardPage } from './TeamLeaderboard';
 
 const mockTeam = [
@@ -80,6 +86,8 @@ const mockStats = {
 describe('TeamLeaderboardPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
   });
 
   afterEach(() => {
@@ -102,6 +110,20 @@ describe('TeamLeaderboardPage', () => {
       expect(screen.getByText('Team Leaderboard')).toBeInTheDocument();
     });
     expect(screen.getByTestId('leaderboard-page')).toBeInTheDocument();
+    expect(screen.getByTestId('leaderboard-page')).toHaveAttribute('data-surface', 'marble');
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    global.fetch = vi.fn()
+      .mockResolvedValueOnce({ json: () => Promise.resolve({ success: true, data: mockTeam }) })
+      .mockResolvedValueOnce({ json: () => Promise.resolve({ success: true, data: mockStats }) });
+
+    render(<TeamLeaderboardPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('leaderboard-page')).toHaveAttribute('data-surface', 'void');
+    });
   });
 
   it('shows empty state when no team members', async () => {

@@ -26,6 +26,12 @@ vi.mock('../context/AuthContext', () => ({
   }),
 }));
 
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({
+    designTheme: 'marble',
+  }),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, opts?: any) => {
@@ -36,7 +42,13 @@ vi.mock('react-i18next', () => ({
         'credits.monthlyQuota': 'Monthly Quota',
         'credits.used': 'Used',
         'credits.lastRefill': 'Last Refill',
+        'credits.nextRefill': 'Next Refill',
+        'credits.automatic': 'Automatic',
+        'credits.noExpiry': 'No expiry',
+        'credits.overview': 'Overview',
+        'credits.summaryTitle': 'Credit overview',
         'credits.history': 'History',
+        'credits.entries': 'entries',
         'credits.noTransactions': 'No transactions yet',
         'credits.creditsPerBooking': `${opts?.count ?? 1} credit per booking`,
         'credits.grant': 'Grant',
@@ -52,6 +64,9 @@ vi.mock('framer-motion', () => ({
   motion: {
     div: React.forwardRef(({ children, variants, initial, animate, exit, transition, ...props }: any, ref: any) => (
       <div ref={ref} {...props}>{children}</div>
+    )),
+    section: React.forwardRef(({ children, variants, initial, animate, exit, transition, ...props }: any, ref: any) => (
+      <section ref={ref} {...props}>{children}</section>
     )),
   },
 }));
@@ -106,9 +121,10 @@ describe('CreditsPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Credits')).toBeInTheDocument();
     });
-    expect(screen.getByText('Balance')).toBeInTheDocument();
-    expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.getAllByText('Balance').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('7').length).toBeGreaterThan(0);
     expect(screen.getByText('/ 10')).toBeInTheDocument();
+    expect(screen.getAllByText('Credit overview').length).toBeGreaterThan(0);
   });
 
   it('renders stat cards with quota and used', async () => {
@@ -126,13 +142,13 @@ describe('CreditsPage', () => {
     render(<CreditsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Monthly Quota')).toBeInTheDocument();
+      expect(screen.getAllByText('Monthly Quota').length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('Used')).toBeInTheDocument();
+    expect(screen.getAllByText('Used').length).toBeGreaterThan(0);
     expect(screen.getByText('Last Refill')).toBeInTheDocument();
     // Quota = 10, Used = 10 - 6 = 4
-    expect(screen.getByText('10')).toBeInTheDocument();
-    expect(screen.getByText('4')).toBeInTheDocument();
+    expect(screen.getAllByText('10').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('4').length).toBeGreaterThan(0);
   });
 
   it('shows empty transaction history', async () => {
@@ -175,8 +191,9 @@ describe('CreditsPage', () => {
     });
     expect(screen.getByText('Monthly Refill')).toBeInTheDocument();
     expect(screen.getByText('Deduction')).toBeInTheDocument();
-    expect(screen.getByText('+10')).toBeInTheDocument();
-    expect(screen.getByText('-2')).toBeInTheDocument();
+    expect(screen.getAllByText('+10').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('-2').length).toBeGreaterThan(0);
+    expect(screen.getByText('2 entries')).toBeInTheDocument();
   });
 
   it('falls back to user context when API returns no data', async () => {
@@ -188,6 +205,6 @@ describe('CreditsPage', () => {
       expect(screen.getByText('Credits')).toBeInTheDocument();
     });
     // Falls back to user.credits_balance = 7
-    expect(screen.getByText('7')).toBeInTheDocument();
+    expect(screen.getAllByText('7').length).toBeGreaterThan(0);
   });
 });

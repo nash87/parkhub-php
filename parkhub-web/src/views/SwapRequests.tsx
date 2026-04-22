@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import {
@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 import { format } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
 import { api, getInMemoryToken, type Booking } from '../api/client';
+import { useTheme } from '../context/ThemeContext';
 
 function authHeaders(): Record<string, string> {
   const token = getInMemoryToken();
@@ -41,6 +42,7 @@ const statusConfig: Record<string, { cls: string }> = {
 
 export function SwapRequestsPage() {
   const { t, i18n } = useTranslation();
+  const { designTheme } = useTheme();
   const dateFnsLocale = i18n.language?.startsWith('de') ? de : enUS;
   const [requests, setRequests] = useState<SwapRequest[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -52,7 +54,7 @@ export function SwapRequestsPage() {
   const [swapMessage, setSwapMessage] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const loadData = useCallback(async () => {
+  async function loadData() {
     setLoading(true);
     try {
       const [swapRes, bookingsRes] = await Promise.all([
@@ -66,9 +68,9 @@ export function SwapRequestsPage() {
       toast.error(t('common.error'));
     }
     setLoading(false);
-  }, [t]);
+  }
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => { void loadData(); }, []);
 
   async function handleAccept(id: string) {
     setActing(id);
@@ -132,34 +134,79 @@ export function SwapRequestsPage() {
   }
 
   const activeBookings = bookings.filter(b => b.status === 'active' || b.status === 'confirmed');
+  const isVoid = designTheme === 'void';
+  const surfaceVariant = isVoid ? 'void' : 'marble';
+  const pendingCount = requests.filter((request) => request.status === 'pending').length;
+  const acceptedCount = requests.filter((request) => request.status === 'accepted').length;
 
   if (loading) {
     return (
-      <div className="flex justify-center py-12">
+      <div className="flex justify-center py-12" data-testid="swap-shell" data-surface={surfaceVariant}>
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary-500 border-t-transparent" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="swap-shell" data-surface={surfaceVariant}>
       <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
-        {/* Header */}
-        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <Swap weight="duotone" className="w-7 h-7 text-primary-500" />
+        <motion.div
+          variants={fadeUp}
+          className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+            isVoid
+              ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
+              : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
+          }`}
+        >
+          <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
-              <h1 className="text-2xl font-bold text-surface-900 dark:text-white">{t('swap.title')}</h1>
-              <p className="text-sm text-surface-500 dark:text-surface-400 mt-0.5">{t('swap.subtitle')}</p>
+              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+                isVoid
+                  ? 'bg-cyan-500/10 text-cyan-100'
+                  : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
+              }`}>
+                <Swap weight="fill" className="h-3.5 w-3.5" />
+                {isVoid ? 'Void exchange board' : 'Marble exchange board'}
+              </div>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h1 className="flex items-center gap-2 text-3xl font-black tracking-[-0.04em]">
+                    <Swap weight="duotone" className="w-7 h-7 text-primary-500" />
+                    {t('swap.title')}
+                  </h1>
+                  <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>{t('swap.subtitle')}</p>
+                </div>
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button onClick={() => void loadData()} className="btn btn-secondary">
+                    <ArrowClockwise weight="bold" className="w-4 h-4" /> {t('common.refresh')}
+                  </button>
+                  <button onClick={() => setShowModal(true)} className="btn btn-primary">
+                    <Plus weight="bold" className="w-4 h-4" /> {t('swap.create')}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                <SwapHeroMetric label="Pending" value={String(pendingCount)} meta="Awaiting response" isVoid={isVoid} accent />
+                <SwapHeroMetric label="Accepted" value={String(acceptedCount)} meta="Successful exchanges" isVoid={isVoid} />
+                <SwapHeroMetric label="Eligible bookings" value={String(activeBookings.length)} meta="Available for new requests" isVoid={isVoid} />
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <button onClick={loadData} className="btn btn-secondary">
-              <ArrowClockwise weight="bold" className="w-4 h-4" /> {t('common.refresh')}
-            </button>
-            <button onClick={() => setShowModal(true)} className="btn btn-primary">
-              <Plus weight="bold" className="w-4 h-4" /> {t('swap.create')}
-            </button>
+
+            <div className={`rounded-[24px] border p-5 ${
+              isVoid
+                ? 'border-white/10 bg-white/[0.04]'
+                : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
+            }`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+                Trade lane
+              </p>
+              <div className="mt-4 space-y-3">
+                <SwapPanelMetric label="Open requests" value={String(requests.length)} helper="All visible swap conversations" isVoid={isVoid} />
+                <SwapPanelMetric label="Next action" value={pendingCount > 0 ? 'Review queue' : 'Create offer'} helper="Refresh to reconcile latest state" isVoid={isVoid} />
+                <SwapPanelMetric label="Message coverage" value={requests.some((request) => request.message) ? 'Personalized' : 'Direct'} helper="Optional negotiation note supported" isVoid={isVoid} />
+              </div>
+            </div>
           </div>
         </motion.div>
 
@@ -342,6 +389,70 @@ export function SwapRequestsPage() {
           </div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function SwapHeroMetric({
+  label,
+  value,
+  meta,
+  isVoid,
+  accent = false,
+}: {
+  label: string;
+  value: string;
+  meta: string;
+  isVoid: boolean;
+  accent?: boolean;
+}) {
+  return (
+    <div className={`rounded-[22px] border px-4 py-4 ${
+      accent
+        ? isVoid
+          ? 'border-cyan-500/30 bg-cyan-500/10'
+          : 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-900/60'
+        : isVoid
+          ? 'border-white/10 bg-white/[0.04]'
+          : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
+    }`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+        accent
+          ? isVoid
+            ? 'text-cyan-100'
+            : 'text-emerald-700 dark:text-emerald-300'
+          : isVoid
+            ? 'text-white/45'
+            : 'text-surface-500 dark:text-white/45'
+      }`}>
+        {label}
+      </p>
+      <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">{value}</p>
+      <p className="mt-2 text-xs text-surface-500 dark:text-surface-400">{meta}</p>
+    </div>
+  );
+}
+
+function SwapPanelMetric({
+  label,
+  value,
+  helper,
+  isVoid,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+  isVoid: boolean;
+}) {
+  return (
+    <div className={`rounded-[20px] border px-4 py-4 ${
+      isVoid
+        ? 'border-white/10 bg-white/[0.03]'
+        : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.03]'
+    }`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>{label}</p>
+      <p className="mt-2 text-lg font-semibold">{value}</p>
+      <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">{helper}</p>
     </div>
   );
 }

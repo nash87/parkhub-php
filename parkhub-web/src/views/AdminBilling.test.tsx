@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
+const mockUseTheme = vi.fn();
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, fallbackOrOpts?: string | Record<string, any>) => {
@@ -38,6 +40,10 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
+}));
+
 vi.mock('@phosphor-icons/react', () => ({
   CurrencyDollar: (props: any) => <span data-testid="icon-dollar" {...props} />,
   ChartBar: (props: any) => <span data-testid="icon-chart" {...props} />,
@@ -60,6 +66,8 @@ const sampleDeptData = [
 
 describe('AdminBillingPage', () => {
   beforeEach(() => {
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
     global.fetch = vi.fn((url: string) => {
       if (url.includes('/by-cost-center')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: sampleCcData }) } as Response);
@@ -82,6 +90,17 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => {
       expect(screen.getByText('Cost Center Billing')).toBeInTheDocument();
+      expect(screen.getByTestId('billing-shell')).toHaveAttribute('data-surface', 'marble');
+    });
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+
+    render(<AdminBillingPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('billing-shell')).toHaveAttribute('data-surface', 'void');
     });
   });
 
@@ -89,8 +108,8 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => {
       expect(screen.getByTestId('billing-summary')).toBeInTheDocument();
-      expect(screen.getByText('Total Spending')).toBeInTheDocument();
-      expect(screen.getByText('Total Bookings')).toBeInTheDocument();
+      expect(screen.getAllByText('Total Spending').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Total Bookings').length).toBeGreaterThan(0);
     });
   });
 
@@ -108,7 +127,7 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => expect(screen.getByTestId('billing-tabs')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('By Department'));
+    fireEvent.click(screen.getByTestId('billing-tabs').querySelectorAll('button')[1]!);
     await waitFor(() => {
       const rows = screen.getAllByTestId('billing-row');
       expect(rows).toHaveLength(2);
@@ -189,7 +208,7 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => expect(screen.getByTestId('billing-tabs')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('By Department'));
+    fireEvent.click(screen.getByTestId('billing-tabs').querySelectorAll('button')[1]!);
     await waitFor(() => {
       expect(screen.getByText('No billing data')).toBeInTheDocument();
     });
@@ -209,8 +228,9 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => expect(screen.getByTestId('billing-tabs')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByText('By Department'));
-    fireEvent.click(screen.getByText('By Cost Center'));
+    const tabButtons = screen.getByTestId('billing-tabs').querySelectorAll('button');
+    fireEvent.click(tabButtons[1]!);
+    fireEvent.click(tabButtons[0]!);
     await waitFor(() => {
       expect(screen.getByText('Cost Center Billing')).toBeInTheDocument();
     });

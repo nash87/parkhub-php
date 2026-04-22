@@ -20,12 +20,17 @@ Object.defineProperty(window, 'matchMedia', {
 // ── Mocks ──
 
 const mockGetBookings = vi.fn();
+const mockUseTheme = vi.fn();
 
 vi.mock('../api/client', () => ({
   api: {
     getBookings: (...args: any[]) => mockGetBookings(...args),
   },
   getInMemoryToken: () => 'test-token',
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('react-router-dom', () => ({
@@ -112,6 +117,8 @@ function mockQrBlob() {
 describe('QRCheckInPage', () => {
   beforeEach(() => {
     mockGetBookings.mockClear();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
 
     // Mock URL.createObjectURL / revokeObjectURL
     global.URL.createObjectURL = vi.fn(() => 'blob:mock-qr-url');
@@ -127,7 +134,18 @@ describe('QRCheckInPage', () => {
 
     render(<QRCheckInPage />);
     await waitFor(() => {
-      expect(screen.getByText('Check In')).toBeInTheDocument();
+      expect(screen.getAllByText('Check In').length).toBeGreaterThan(0);
+      expect(screen.getByTestId('checkin-shell')).toHaveAttribute('data-surface', 'marble');
+    });
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    mockGetBookings.mockResolvedValue({ success: true, data: [] });
+
+    render(<QRCheckInPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('checkin-shell')).toHaveAttribute('data-surface', 'void');
     });
   });
 
@@ -136,10 +154,10 @@ describe('QRCheckInPage', () => {
 
     render(<QRCheckInPage />);
     await waitFor(() => {
-      expect(screen.getByText('No active booking')).toBeInTheDocument();
-      expect(screen.getByText('Book a parking spot first')).toBeInTheDocument();
+      expect(screen.getAllByText('No active booking').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Book a parking spot first').length).toBeGreaterThan(0);
     });
-    expect(screen.getByText('Book Now').closest('a')).toHaveAttribute('href', '/book');
+    expect(screen.getAllByText('Book Now').find((node) => node.closest('a'))?.closest('a')).toHaveAttribute('href', '/book');
   });
 
   it('shows booking details with lot name and slot', async () => {
@@ -168,8 +186,8 @@ describe('QRCheckInPage', () => {
 
     render(<QRCheckInPage />);
     await waitFor(() => {
-      expect(screen.getByText('Garage Central')).toBeInTheDocument();
-      expect(screen.getByText('C5')).toBeInTheDocument();
+      expect(screen.getAllByText('Garage Central').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('C5').length).toBeGreaterThan(0);
     });
   });
 
@@ -231,7 +249,7 @@ describe('QRCheckInPage', () => {
 
     render(<QRCheckInPage />);
     await waitFor(() => {
-      expect(screen.getByText('Elapsed Time')).toBeInTheDocument();
+      expect(screen.getAllByText('Elapsed Time').length).toBeGreaterThan(0);
       expect(screen.getByTestId('elapsed-timer')).toBeInTheDocument();
       expect(screen.getByTestId('checkout-btn')).toBeInTheDocument();
     });
@@ -345,7 +363,7 @@ describe('QRCheckInPage', () => {
 
     render(<QRCheckInPage />);
     await waitFor(() => {
-      expect(screen.getByText('No active booking')).toBeInTheDocument();
+      expect(screen.getAllByText('No active booking').length).toBeGreaterThan(0);
     });
   });
 
@@ -359,15 +377,14 @@ describe('QRCheckInPage', () => {
       return Promise.resolve({ ok: false } as Response);
     }) as any;
     render(<QRCheckInPage />);
-    await waitFor(() => expect(screen.getByText(booking.lot_name)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(booking.lot_name).length).toBeGreaterThan(0));
   });
 
   it('getBookings rejection is handled gracefully', async () => {
     mockGetBookings.mockRejectedValue(new Error('server down'));
     render(<QRCheckInPage />);
     await waitFor(() => {
-      // Component survives the rejection and renders the empty state
-      expect(screen.queryByText(/No active booking|No active|Loading/)).toBeTruthy();
+      expect(screen.getAllByText('No active booking').length).toBeGreaterThan(0);
     });
   });
 });

@@ -9,6 +9,7 @@ const mockGetFavorites = vi.fn();
 const mockGetLots = vi.fn();
 const mockGetLotSlots = vi.fn();
 const mockRemoveFavorite = vi.fn();
+const mockUseTheme = vi.fn();
 
 vi.mock('../api/client', () => ({
   api: {
@@ -40,6 +41,10 @@ vi.mock('react-i18next', () => ({
       return map[key] || key;
     },
   }),
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('framer-motion', () => ({
@@ -80,6 +85,8 @@ describe('FavoritesPage', () => {
     mockGetLots.mockClear();
     mockGetLotSlots.mockClear();
     mockRemoveFavorite.mockClear();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
   });
 
   afterEach(() => {
@@ -108,6 +115,18 @@ describe('FavoritesPage', () => {
     });
     expect(screen.getByText('Star a parking slot to save it here')).toBeInTheDocument();
     expect(screen.getByText('Favorites')).toBeInTheDocument();
+  });
+
+  it('switches the summary surface tone with the active design theme', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    mockGetFavorites.mockResolvedValue({ success: true, data: [] });
+    mockGetLots.mockResolvedValue({ success: true, data: [] });
+
+    render(<FavoritesPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('favorites-summary-surface')).toHaveAttribute('data-surface-tone', 'void');
+    });
   });
 
   it('renders favorite cards when data exists', async () => {

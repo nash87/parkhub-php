@@ -1,15 +1,14 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-
-// ── Mocks ──
 
 const mockGetNotifications = vi.fn();
 const mockMarkRead = vi.fn();
 const mockMarkAllRead = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
+const mockUseTheme = vi.fn();
 
 vi.mock('../api/client', () => ({
   api: {
@@ -17,6 +16,10 @@ vi.mock('../api/client', () => ({
     markNotificationRead: (...args: any[]) => mockMarkRead(...args),
     markAllNotificationsRead: (...args: any[]) => mockMarkAllRead(...args),
   },
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -30,6 +33,17 @@ vi.mock('react-i18next', () => ({
         'notifications.allMarkedRead': 'All marked as read',
         'notifications.unreadCount': '{{count}} unread',
         'notifications.unread': 'Unread',
+        'notifications.unreadLabel': 'Unread',
+        'notifications.warningLabel': 'Warnings',
+        'notifications.deliveredLabel': 'Delivered',
+        'notifications.inboxLabel': 'Inbox',
+        'notifications.entries': 'entries',
+        'notifications.summaryLabel': 'Queue summary',
+        'notifications.opsLabel': 'Ops focus',
+        'notifications.latestDigest': 'Latest signal',
+        'notifications.slaLabel': 'Response loop',
+        'notifications.attentionLabel': 'Need attention',
+        'notifications.resolvedLabel': 'Resolved',
         'common.refresh': 'Refresh',
         'common.error': 'An error occurred',
         'timeAgo.justNow': 'just now',
@@ -53,9 +67,6 @@ vi.mock('framer-motion', () => ({
     div: React.forwardRef(({ children, initial, animate, exit, transition, whileHover, whileTap, variants, ...props }: any, ref: any) => (
       <div ref={ref} {...props}>{children}</div>
     )),
-    p: React.forwardRef(({ children, initial, animate, exit, transition, ...props }: any, ref: any) => (
-      <p ref={ref} {...props}>{children}</p>
-    )),
     button: React.forwardRef(({ children, initial, animate, exit, transition, whileHover, whileTap, ...props }: any, ref: any) => (
       <button ref={ref} {...props}>{children}</button>
     )),
@@ -71,10 +82,16 @@ vi.mock('@phosphor-icons/react', () => ({
   Check: (props: any) => <span data-testid="icon-check" {...props} />,
   SpinnerGap: (props: any) => <span data-testid="icon-spinner" {...props} />,
   ArrowClockwise: (props: any) => <span data-testid="icon-refresh" {...props} />,
+  Sparkle: (props: any) => <span data-testid="icon-sparkle" {...props} />,
+  ClockCounterClockwise: (props: any) => <span data-testid="icon-clock" {...props} />,
+  Broadcast: (props: any) => <span data-testid="icon-broadcast" {...props} />,
 }));
 
 vi.mock('react-hot-toast', () => ({
-  default: { success: (...args: any[]) => mockToastSuccess(...args), error: (...args: any[]) => mockToastError(...args) },
+  default: {
+    success: (...args: any[]) => mockToastSuccess(...args),
+    error: (...args: any[]) => mockToastError(...args),
+  },
 }));
 
 import { NotificationsPage } from './Notifications';
@@ -99,6 +116,8 @@ describe('NotificationsPage', () => {
     mockMarkAllRead.mockClear();
     mockToastSuccess.mockClear();
     mockToastError.mockClear();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
   });
 
   afterEach(() => {
@@ -109,7 +128,6 @@ describe('NotificationsPage', () => {
     mockGetNotifications.mockReturnValue(new Promise(() => {}));
 
     const { container } = render(<NotificationsPage />);
-    // Skeleton has .skeleton class elements
     const skeletonElements = container.querySelectorAll('.skeleton');
     expect(skeletonElements.length).toBeGreaterThan(0);
   });
@@ -120,10 +138,10 @@ describe('NotificationsPage', () => {
     render(<NotificationsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('No notifications')).toBeInTheDocument();
+      expect(screen.getAllByText('No notifications').length).toBeGreaterThan(0);
     });
-    // Bell icon shown in empty state
     expect(screen.getByTestId('icon-bell')).toBeInTheDocument();
+    expect(screen.getByText('Queue summary')).toBeInTheDocument();
   });
 
   it('renders notification list with titles and messages', async () => {
@@ -136,10 +154,10 @@ describe('NotificationsPage', () => {
     render(<NotificationsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Booking Confirmed')).toBeInTheDocument();
+      expect(screen.getAllByText('Booking Confirmed').length).toBeGreaterThan(0);
     });
     expect(screen.getByText('Your spot is ready')).toBeInTheDocument();
-    expect(screen.getByText('System Update')).toBeInTheDocument();
+    expect(screen.getAllByText('System Update').length).toBeGreaterThan(0);
     expect(screen.getByText('Maintenance tonight')).toBeInTheDocument();
   });
 
@@ -159,15 +177,13 @@ describe('NotificationsPage', () => {
   });
 
   it('shows "All read" when all notifications are read', async () => {
-    const items = [
-      makeNotification({ id: 'n1', read: true }),
-    ];
+    const items = [makeNotification({ id: 'n1', read: true })];
     mockGetNotifications.mockResolvedValue({ success: true, data: items });
 
     render(<NotificationsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('All read')).toBeInTheDocument();
+      expect(screen.getAllByText('All read').length).toBeGreaterThan(0);
     });
   });
 
@@ -180,22 +196,20 @@ describe('NotificationsPage', () => {
     render(<NotificationsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Unread Item')).toBeInTheDocument();
+      expect(screen.getAllByText('Unread Item').length).toBeGreaterThan(0);
     });
 
-    // Unread notification shows "1 unread"
     expect(screen.getByText('1 unread')).toBeInTheDocument();
 
-    // Click the notification button to mark as read
-    await user.click(screen.getByText('Unread Item').closest('button')!);
+    const inbox = screen.getByRole('list', { name: 'Notifications' });
+    await user.click(within(inbox).getByText('Unread Item').closest('button')!);
 
     await waitFor(() => {
       expect(mockMarkRead).toHaveBeenCalledWith('n1');
     });
 
-    // Optimistic update: now shows "All read"
     await waitFor(() => {
-      expect(screen.getByText('All read')).toBeInTheDocument();
+      expect(screen.getAllByText('All read').length).toBeGreaterThan(0);
     });
   });
 
@@ -233,7 +247,7 @@ describe('NotificationsPage', () => {
     render(<NotificationsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('All read')).toBeInTheDocument();
+      expect(screen.getAllByText('All read').length).toBeGreaterThan(0);
     });
 
     expect(screen.queryByRole('button', { name: /Mark all as read/ })).not.toBeInTheDocument();
@@ -255,7 +269,7 @@ describe('NotificationsPage', () => {
     render(<NotificationsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Notifications')).toBeInTheDocument();
+      expect(screen.getAllByText('Notifications').length).toBeGreaterThan(0);
     });
   });
 
@@ -271,13 +285,15 @@ describe('NotificationsPage', () => {
     const user = userEvent.setup();
     mockGetNotifications.mockResolvedValue({
       success: true,
-      data: [{ id: 'n1', title: 'Test', message: 'm', type: 'info', read: false, created_at: new Date().toISOString() }],
+      data: [{ id: 'n1', title: 'Test', message: 'm', notification_type: 'info', read: false, created_at: new Date().toISOString() }],
     });
     mockMarkAllRead.mockResolvedValue({ success: false, error: { message: 'fail' } });
+
     render(<NotificationsPage />);
-    await waitFor(() => expect(screen.getByText('Test')).toBeInTheDocument());
-    const markAllBtn = screen.getByRole('button', { name: /mark all/i });
-    await user.click(markAllBtn);
+    await waitFor(() => expect(screen.getAllByText('Test').length).toBeGreaterThan(0));
+
+    await user.click(screen.getByRole('button', { name: /mark all/i }));
+
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalled();
     });
@@ -286,29 +302,44 @@ describe('NotificationsPage', () => {
   it('renders success-type notification with success icon color', async () => {
     mockGetNotifications.mockResolvedValue({
       success: true,
-      data: [{ id: 'n1', title: 'Paid', message: 'Your payment succeeded', type: 'success', read: false, created_at: new Date().toISOString() }],
+      data: [{ id: 'n1', title: 'Paid', message: 'Your payment succeeded', notification_type: 'success', read: false, created_at: new Date().toISOString() }],
     });
+
     render(<NotificationsPage />);
-    await waitFor(() => expect(screen.getByText('Paid')).toBeInTheDocument());
+
+    await waitFor(() => expect(screen.getAllByText('Paid').length).toBeGreaterThan(0));
     expect(screen.getByText('Your payment succeeded')).toBeInTheDocument();
   });
 
-  it('renders notification ages — minutes, hours, days buckets', async () => {
+  it('renders notification ages across the time buckets', async () => {
     const now = Date.now();
     mockGetNotifications.mockResolvedValue({
       success: true,
       data: [
-        { id: 'n1', title: 'Fresh', message: 'Just now', type: 'info', read: false, created_at: new Date(now - 10_000).toISOString() },
-        { id: 'n2', title: 'Old minutes', message: 'minutes ago', type: 'info', read: false, created_at: new Date(now - 5 * 60_000).toISOString() },
-        { id: 'n3', title: 'Hours back', message: 'hours ago', type: 'info', read: false, created_at: new Date(now - 3 * 3600_000).toISOString() },
-        { id: 'n4', title: 'Days back', message: 'days ago', type: 'info', read: false, created_at: new Date(now - 2 * 24 * 3600_000).toISOString() },
+        { id: 'n1', title: 'Fresh', message: 'Just now', notification_type: 'info', read: false, created_at: new Date(now - 10_000).toISOString() },
+        { id: 'n2', title: 'Old minutes', message: 'minutes ago', notification_type: 'info', read: false, created_at: new Date(now - 5 * 60_000).toISOString() },
+        { id: 'n3', title: 'Hours back', message: 'hours ago', notification_type: 'info', read: false, created_at: new Date(now - 3 * 3600_000).toISOString() },
+        { id: 'n4', title: 'Days back', message: 'days ago', notification_type: 'info', read: false, created_at: new Date(now - 2 * 24 * 3600_000).toISOString() },
       ],
     });
+
     render(<NotificationsPage />);
-    await waitFor(() => expect(screen.getByText('Fresh')).toBeInTheDocument());
-    // All four timeline buckets resolved without throwing — the different branches of timeAgoFn ran
-    expect(screen.getByText('Old minutes')).toBeInTheDocument();
-    expect(screen.getByText('Hours back')).toBeInTheDocument();
-    expect(screen.getByText('Days back')).toBeInTheDocument();
+
+    await waitFor(() => expect(screen.getAllByText('Fresh').length).toBeGreaterThan(0));
+    expect(screen.getAllByText('Old minutes').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Hours back').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Days back').length).toBeGreaterThan(0);
+  });
+
+  it('renders the void hero variant when the theme is void', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    mockGetNotifications.mockResolvedValue({ success: true, data: [makeNotification({ title: 'Void alert' })] });
+
+    render(<NotificationsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Void signal board')).toBeInTheDocument();
+    });
+    expect(screen.getAllByText('Latest signal').length).toBeGreaterThan(0);
   });
 });

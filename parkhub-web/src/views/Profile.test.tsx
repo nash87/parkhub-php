@@ -30,6 +30,7 @@ const mockUpdateMe = vi.fn();
 const mockChangePassword = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
+const mockUseTheme = vi.fn();
 
 vi.mock('../components/ProfileThemeSection', () => ({
   ProfileThemeSection: () => <div data-testid="theme-section">Theme Section</div>,
@@ -60,6 +61,10 @@ vi.mock('../context/AuthContext', () => ({
     },
     logout: mockLogout,
   }),
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
 }));
 
 const mockSetAccessibilityNeeds = vi.fn().mockResolvedValue({ success: true });
@@ -208,6 +213,9 @@ describe('ProfilePage', () => {
     mockToastSuccess.mockClear();
     mockToastError.mockClear();
     mockLogout.mockClear();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
+    localStorage.clear();
   });
 
   afterEach(() => {
@@ -218,6 +226,17 @@ describe('ProfilePage', () => {
     render(<ProfilePage />);
     expect(screen.getByText('Profil')).toBeInTheDocument();
     expect(screen.getByText('Persönliche Daten verwalten')).toBeInTheDocument();
+  });
+
+  it('renders marble summary surface by default', () => {
+    render(<ProfilePage />);
+    expect(screen.getByTestId('profile-summary-surface')).toHaveAttribute('data-surface-tone', 'marble');
+  });
+
+  it('renders void summary surface when the void theme is active', () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    render(<ProfilePage />);
+    expect(screen.getByTestId('profile-summary-surface')).toHaveAttribute('data-surface-tone', 'void');
   });
 
   it('renders user name, role, and email in view mode', () => {

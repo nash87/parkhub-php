@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 const mockGetBookingHistory = vi.fn();
 const mockGetBookingStats = vi.fn();
 const mockGetLots = vi.fn();
+const mockUseTheme = vi.fn();
 
 vi.mock('../api/client', () => ({
   api: {
@@ -15,6 +16,10 @@ vi.mock('../api/client', () => ({
     getBookingStats: (...args: any[]) => mockGetBookingStats(...args),
     getLots: (...args: any[]) => mockGetLots(...args),
   },
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -119,6 +124,8 @@ describe('ParkingHistoryPage', () => {
     mockGetBookingHistory.mockClear();
     mockGetBookingStats.mockClear();
     mockGetLots.mockClear();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
 
     mockGetLots.mockResolvedValue({ success: true, data: [{ id: 'lot-1', name: 'Garage Alpha', total_slots: 10, available_slots: 5, status: 'open' }] });
     mockGetBookingStats.mockResolvedValue({ success: true, data: makeStats() });
@@ -141,25 +148,36 @@ describe('ParkingHistoryPage', () => {
   it('renders the page title', async () => {
     render(<ParkingHistoryPage />);
     await waitFor(() => {
-      expect(screen.getByText('Parking History')).toBeInTheDocument();
+      expect(screen.getAllByText('Parking History').length).toBeGreaterThan(0);
+      expect(screen.getByTestId('history-shell')).toHaveAttribute('data-surface', 'marble');
+    });
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+
+    render(<ParkingHistoryPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('history-shell')).toHaveAttribute('data-surface', 'void');
     });
   });
 
   it('displays stats cards', async () => {
     render(<ParkingHistoryPage />);
     await waitFor(() => {
-      expect(screen.getByText('42')).toBeInTheDocument();
-      expect(screen.getByText('150')).toBeInTheDocument();
-      expect(screen.getByText('Total Bookings')).toBeInTheDocument();
-      expect(screen.getByText('Credits Spent')).toBeInTheDocument();
+      expect(screen.getAllByText('42').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('150').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Total Bookings').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Credits Spent').length).toBeGreaterThan(0);
     });
   });
 
   it('shows booking history items', async () => {
     render(<ParkingHistoryPage />);
     await waitFor(() => {
-      expect(screen.getByText('Completed')).toBeInTheDocument();
-      expect(screen.getByText('Cancelled')).toBeInTheDocument();
+      expect(screen.getAllByText('Completed').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Cancelled').length).toBeGreaterThan(0);
     });
   });
 
@@ -177,7 +195,7 @@ describe('ParkingHistoryPage', () => {
   it('renders filter controls', async () => {
     render(<ParkingHistoryPage />);
     await waitFor(() => {
-      expect(screen.getByText('Filters')).toBeInTheDocument();
+      expect(screen.getAllByText('Filters').length).toBeGreaterThan(0);
       expect(screen.getByLabelText('Filter by lot')).toBeInTheDocument();
     });
   });

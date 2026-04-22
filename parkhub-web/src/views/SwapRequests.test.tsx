@@ -4,10 +4,12 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 const mockGetBookings = vi.fn();
+const mockUseTheme = vi.fn();
 vi.mock('../api/client', () => ({
   api: { getBookings: (...a: any[]) => mockGetBookings(...a) },
   getInMemoryToken: vi.fn(() => 'tok'),
 }));
+vi.mock('../context/ThemeContext', () => ({ useTheme: () => mockUseTheme() }));
 
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }) }));
 vi.mock('framer-motion', () => ({
@@ -42,6 +44,8 @@ const bookings = [
 describe('SwapRequestsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
     mockGetBookings.mockResolvedValue({ success: true, data: bookings });
     globalThis.fetch = vi.fn((url: string, opts?: any) => {
       if (url.includes('/accept')) return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
@@ -54,7 +58,20 @@ describe('SwapRequestsPage', () => {
 
   it('renders swap requests', async () => {
     render(<SwapRequestsPage />);
-    await waitFor(() => expect(screen.getByText('Lot A')).toBeInTheDocument());
+    await waitFor(() => {
+      expect(screen.getByText('Lot A')).toBeInTheDocument();
+      expect(screen.getByTestId('swap-shell')).toHaveAttribute('data-surface', 'marble');
+    });
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+
+    render(<SwapRequestsPage />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('swap-shell')).toHaveAttribute('data-surface', 'void');
+    });
   });
 
   it('shows message when present', async () => {

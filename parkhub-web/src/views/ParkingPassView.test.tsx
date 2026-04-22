@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+const mockUseTheme = vi.fn();
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -78,6 +83,8 @@ const samplePasses = [
 
 describe('ParkingPassPage', () => {
   beforeEach(() => {
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
     global.fetch = vi.fn(() =>
       Promise.resolve({
         json: () => Promise.resolve({ success: true, data: samplePasses }),
@@ -91,12 +98,23 @@ describe('ParkingPassPage', () => {
 
   it('renders the page title', async () => {
     render(<ParkingPassPage />);
-    await waitFor(() => expect(screen.getByText('Parking Passes')).toBeTruthy());
+    await waitFor(() => {
+      expect(screen.getByText('Parking Passes')).toBeTruthy();
+      expect(screen.getByTestId('parking-pass-shell')).toHaveAttribute('data-surface', 'marble');
+    });
+  });
+
+  it('switches to the void surface when the void theme is active', async () => {
+    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+    render(<ParkingPassPage />);
+    await waitFor(() => {
+      expect(screen.getByTestId('parking-pass-shell')).toHaveAttribute('data-surface', 'void');
+    });
   });
 
   it('shows subtitle', async () => {
     render(<ParkingPassPage />);
-    await waitFor(() => expect(screen.getByText('Your digital parking passes')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('Your digital parking passes').length).toBeGreaterThan(0));
   });
 
   it('displays passes after loading', async () => {
@@ -112,7 +130,7 @@ describe('ParkingPassPage', () => {
     await waitFor(() => screen.getByText('Parking Passes'));
     fireEvent.click(screen.getByLabelText('Help'));
     await waitFor(() =>
-      expect(screen.getByText(/Show this pass at the parking entrance/)).toBeTruthy()
+      expect(screen.getAllByText(/Show this pass at the parking entrance/).length).toBeGreaterThan(0)
     );
   });
 
@@ -121,9 +139,9 @@ describe('ParkingPassPage', () => {
     await waitFor(() => screen.getByText('Garage Alpha'));
     fireEvent.click(screen.getByText('Garage Alpha'));
     await waitFor(() => {
-      expect(screen.getByText('Alice')).toBeTruthy();
-      expect(screen.getByText('Digital Parking Pass')).toBeTruthy();
-      expect(screen.getByText('abc123def456')).toBeTruthy();
+      expect(screen.getAllByText('Alice').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Digital Parking Pass').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('abc123def456').length).toBeGreaterThan(0);
     });
   });
 
@@ -134,17 +152,17 @@ describe('ParkingPassPage', () => {
       } as Response)
     );
     render(<ParkingPassPage />);
-    await waitFor(() => expect(screen.getByText('No active parking passes')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('No active parking passes').length).toBeGreaterThan(0));
   });
 
   it('closes full-screen pass after clicking close button', async () => {
     render(<ParkingPassPage />);
     await waitFor(() => screen.getByText('Garage Alpha'));
     fireEvent.click(screen.getByText('Garage Alpha'));
-    await waitFor(() => screen.getByText('Digital Parking Pass'));
+    await waitFor(() => screen.getByText('Close'));
     fireEvent.click(screen.getByText('Close'));
     await waitFor(() => {
-      expect(screen.queryByText('Digital Parking Pass')).not.toBeInTheDocument();
+      expect(screen.queryByText('Close')).not.toBeInTheDocument();
     });
   });
 
