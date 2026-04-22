@@ -13,6 +13,7 @@ const mockCreateBooking = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
 const mockUseNavLayout = vi.fn();
+const mockUseTheme = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
@@ -34,6 +35,10 @@ vi.mock('../api/client', () => ({
 
 vi.mock('../hooks/useNavLayout', () => ({
   useNavLayout: () => mockUseNavLayout(),
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -172,6 +177,8 @@ describe('BookPage', () => {
     mockToastError.mockClear();
     mockUseNavLayout.mockReset();
     mockUseNavLayout.mockReturnValue(['dock', vi.fn()]);
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
     mockGetDynamicPrice.mockResolvedValue({ success: false, data: null });
   });
 
@@ -818,7 +825,7 @@ describe('BookPage', () => {
     await user.click(screen.getByText('Continue'));
     await waitFor(() => expect(screen.getByText('Confirm Booking')).toBeInTheDocument());
     // Should show vehicle info
-    expect(screen.getByText('M-AB-123 (BMW)')).toBeInTheDocument();
+    expect(screen.getAllByText('M-AB-123 (BMW)').length).toBeGreaterThanOrEqual(1);
   });
 
   it('confirm shows estimated cost', async () => {

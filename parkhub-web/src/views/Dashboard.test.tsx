@@ -8,6 +8,7 @@ const mockGetBookings = vi.fn();
 const mockGetUserStats = vi.fn();
 const mockGetCo2Summary = vi.fn();
 const mockUseNavLayout = vi.fn();
+const mockUseTheme = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
@@ -29,6 +30,10 @@ vi.mock('../context/AuthContext', () => ({
 
 vi.mock('../hooks/useNavLayout', () => ({
   useNavLayout: () => mockUseNavLayout(),
+}));
+
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('../api/client', () => ({
@@ -200,6 +205,8 @@ describe('DashboardPage', () => {
     mockGetCo2Summary.mockClear();
     mockUseNavLayout.mockReset();
     mockUseNavLayout.mockReturnValue(['classic', vi.fn()]);
+    mockUseTheme.mockReset();
+    mockUseTheme.mockReturnValue({ designTheme: 'classic' });
     // Default: CO2 endpoint returns a fresh summary. Individual tests
     // can override.
     mockGetCo2Summary.mockResolvedValue({

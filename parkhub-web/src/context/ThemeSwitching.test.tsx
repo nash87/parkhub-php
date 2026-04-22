@@ -1,7 +1,7 @@
 /**
  * Comprehensive theme switching audit.
  *
- * Tests every one of the 16 design themes end-to-end:
+ * Tests every one of the 18 design themes end-to-end:
  * - Activation via setDesignTheme
  * - data-design-theme DOM attribute set correctly
  * - localStorage persistence
@@ -58,7 +58,7 @@ vi.mock('../api/client', () => ({
 import { ThemeProvider, useTheme, DESIGN_THEMES, type DesignThemeId } from './ThemeContext';
 
 const ALL_THEME_IDS: DesignThemeId[] = [
-  'classic', 'glass', 'bento', 'brutalist', 'neon', 'warm',
+  'classic', 'marble', 'void', 'glass', 'bento', 'brutalist', 'neon', 'warm',
   'liquid', 'mono', 'ocean', 'forest', 'synthwave', 'zen',
   'aurora', 'material', 'sakura', 'midnight',
 ];
@@ -95,8 +95,8 @@ describe('Theme Switching — Comprehensive Audit', () => {
   });
 
   describe('Design theme catalog integrity', () => {
-    it('exports exactly 16 themes', () => {
-      expect(DESIGN_THEMES).toHaveLength(16);
+    it('exports exactly 18 themes', () => {
+      expect(DESIGN_THEMES).toHaveLength(18);
     });
 
     it('has no duplicate theme IDs', () => {
@@ -286,7 +286,7 @@ describe('Theme Switching — Comprehensive Audit', () => {
   });
 
   describe('Rapid theme switching', () => {
-    it('handles switching through all 16 themes in sequence', () => {
+    it('handles switching through all 18 themes in sequence', () => {
       const { getState } = renderWithTheme();
       for (const id of ALL_THEME_IDS) {
         act(() => { getState().setDesignTheme(id); });

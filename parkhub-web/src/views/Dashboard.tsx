@@ -21,6 +21,7 @@ import {
   type SensorEntry,
 } from '../components/KineticObservatory';
 import { useNavLayout } from '../hooks/useNavLayout';
+import { useTheme } from '../context/ThemeContext';
 
 interface SurfaceLot {
   label: string;
@@ -41,6 +42,7 @@ export function DashboardPage() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const [navLayout] = useNavLayout();
+  const { designTheme } = useTheme();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [co2, setCo2] = useState<Co2Summary | null>(null);
@@ -257,6 +259,12 @@ export function DashboardPage() {
 
   if (loading) return <div role="status" aria-label={t('dashboard.loadingDashboard')}><DashboardSkeleton /></div>;
 
+  const surfaceVariant = designTheme === 'void' || navLayout === 'focus'
+    ? 'void'
+    : designTheme === 'marble' || navLayout === 'dock'
+    ? 'marble'
+    : null;
+
   return (
     <AnimatePresence mode="wait">
     <motion.div key="dashboard-loaded" variants={container} initial="hidden" animate="show" className="space-y-6">
@@ -282,7 +290,7 @@ export function DashboardPage() {
         </div>
       </motion.div>
 
-      {navLayout === 'dock' && (
+      {surfaceVariant === 'marble' && (
         <motion.div variants={item}>
           <MarbleDashboardSurface
             clock={liveClock}
@@ -301,7 +309,7 @@ export function DashboardPage() {
         </motion.div>
       )}
 
-      {navLayout === 'focus' && (
+      {surfaceVariant === 'void' && (
         <motion.div variants={item}>
           <VoidDashboardSurface
             clock={liveClock}

@@ -10,6 +10,10 @@ vi.mock('react-router-dom', () => ({
   useLocation: () => ({ pathname: '/admin' }),
 }));
 
+vi.mock('../context/ThemeContext', () => ({
+  useTheme: () => ({ designTheme: 'marble' }),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string) => {

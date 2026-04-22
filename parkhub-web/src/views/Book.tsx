@@ -20,6 +20,7 @@ import {
 import { SkeletonCard } from '../components/Skeleton';
 import toast from 'react-hot-toast';
 import { useNavLayout } from '../hooks/useNavLayout';
+import { useTheme } from '../context/ThemeContext';
 
 type Step = 1 | 2 | 3;
 
@@ -34,6 +35,7 @@ export function BookPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [navLayout] = useNavLayout();
+  const { designTheme } = useTheme();
 
   const [step, setStep] = useState<Step>(1);
   const [lots, setLots] = useState<ParkingLot[]>([]);
@@ -137,7 +139,9 @@ export function BookPage() {
   const end = new Date(start.getTime() + duration * 60 * 60 * 1000);
   const effectiveRate = dynamicPrice?.dynamic_pricing_active ? dynamicPrice.current_price : selectedLot?.hourly_rate;
   const estimatedCost = effectiveRate != null ? (effectiveRate * duration).toFixed(2) : null;
-  const shell = getStepShell(step, isFocus, t);
+  const surfaceVariant = getSurfaceVariant(designTheme, navLayout);
+  const isVoid = surfaceVariant === 'void';
+  const shell = getStepShell(step, surfaceVariant, t);
 
   const slideVariants = {
     enter: (dir: number) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),
@@ -145,16 +149,14 @@ export function BookPage() {
     exit: (dir: number) => ({ x: dir > 0 ? -80 : 80, opacity: 0 }),
   };
 
-  const isFocus = navLayout === 'focus';
-
   return (
     <div className="space-y-6">
       {confirmed && <ConfettiOverlay />}
 
       <div className={`overflow-hidden rounded-[2rem] border p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] ${
-        isFocus
+        isVoid
           ? 'border-slate-800/90 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.20),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.96))]'
-          : 'border-surface-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.18),_transparent_38%),linear-gradient(135deg,rgba(255,255,255,0.98),rgba(240,253,250,0.92))] dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.24),_transparent_40%),linear-gradient(135deg,rgba(12,18,28,0.98),rgba(15,23,42,0.94))]'
+          : 'border-stone-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.18),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.24),_transparent_40%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))]'
       }`}>
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex items-start gap-3">
@@ -165,17 +167,17 @@ export function BookPage() {
             )}
             <div className="space-y-2">
               <div className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] shadow-sm ${
-                isFocus
+                isVoid
                   ? 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
-                  : 'border-primary-200/70 bg-white/85 text-primary-700 dark:border-primary-900/60 dark:bg-surface-950/65 dark:text-primary-300'
+                  : 'border-emerald-200/70 bg-white/85 text-emerald-700 dark:border-emerald-900/60 dark:bg-surface-950/65 dark:text-emerald-300'
               }`}>
                 {shell.kicker}
               </div>
               <div>
-                <h1 className={`text-3xl font-black ${isFocus ? 'text-white' : 'text-surface-900 dark:text-white'}`} style={{ letterSpacing: '-0.03em' }}>
+                <h1 className={`text-3xl font-black ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`} style={{ letterSpacing: '-0.03em' }}>
                   {shell.title}
                 </h1>
-                <p className={`mt-1 max-w-2xl text-sm leading-6 ${isFocus ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
+                <p className={`mt-1 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
                   {shell.description}
                 </p>
               </div>
@@ -183,7 +185,7 @@ export function BookPage() {
           </div>
 
           <nav aria-label={t('book.progress', 'Booking progress')} className={`grid grid-cols-3 gap-2 rounded-[1.5rem] border p-2 shadow-sm backdrop-blur ${
-            isFocus
+            isVoid
               ? 'border-slate-800 bg-slate-950/70'
               : 'border-white/70 bg-white/80 dark:border-surface-800 dark:bg-surface-950/70'
           }`}>
@@ -226,15 +228,15 @@ export function BookPage() {
         </div>
 
         <div className={`mt-5 flex flex-col gap-3 border-t pt-4 lg:flex-row lg:items-center lg:justify-between ${
-          isFocus ? 'border-slate-800' : 'border-white/70 dark:border-surface-800'
+          isVoid ? 'border-slate-800' : 'border-white/70 dark:border-surface-800'
         }`}>
           <div className={`flex flex-wrap items-center gap-2 text-xs font-medium ${
-            isFocus ? 'text-slate-400' : 'text-surface-500 dark:text-surface-400'
+            isVoid ? 'text-slate-400' : 'text-surface-500 dark:text-surface-400'
           }`}>
-            <span className={`rounded-full px-3 py-1 ${isFocus ? 'bg-slate-950/70' : 'bg-white/80 dark:bg-surface-950/65'}`}>{t('book.progress', 'Booking progress')}</span>
-            <span className={`rounded-full px-3 py-1 ${isFocus ? 'bg-slate-950/70' : 'bg-white/80 dark:bg-surface-950/65'}`}>{step}/3</span>
+            <span className={`rounded-full px-3 py-1 ${isVoid ? 'bg-slate-950/70' : 'bg-white/80 dark:bg-surface-950/65'}`}>{t('book.progress', 'Booking progress')}</span>
+            <span className={`rounded-full px-3 py-1 ${isVoid ? 'bg-slate-950/70' : 'bg-white/80 dark:bg-surface-950/65'}`}>{step}/3</span>
           </div>
-          <div className={`h-2 w-full overflow-hidden rounded-full lg:max-w-sm ${isFocus ? 'bg-slate-950/70' : 'bg-white/80 dark:bg-surface-950/65'}`}>
+          <div className={`h-2 w-full overflow-hidden rounded-full lg:max-w-sm ${isVoid ? 'bg-slate-950/70' : 'bg-white/80 dark:bg-surface-950/65'}`}>
             <motion.div
               className="h-full rounded-full bg-gradient-to-r from-teal-500 via-primary-500 to-amber-400"
               initial={{ width: `${(step / 3) * 100}%` }}
@@ -885,8 +887,13 @@ function SummaryTile({ label, value }: { label: string; value: string }) {
   );
 }
 
-function getStepShell(step: Step, isFocus: boolean, t: TFunction) {
-  if (isFocus) {
+function getSurfaceVariant(designTheme: string, navLayout: ReturnType<typeof useNavLayout>[0]): 'marble' | 'void' {
+  if (designTheme === 'void' || navLayout === 'focus') return 'void';
+  return 'marble';
+}
+
+function getStepShell(step: Step, surfaceVariant: 'marble' | 'void', t: TFunction) {
+  if (surfaceVariant === 'void') {
     return {
       kicker: 'Booking studio',
       title: t('book.title'),

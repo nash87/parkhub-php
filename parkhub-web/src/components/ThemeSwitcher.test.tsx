@@ -73,7 +73,7 @@ describe('ThemeSwitcher', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders all 16 theme cards when open', () => {
+  it('renders all 18 theme cards when open', () => {
     render(
       <ThemeProvider>
         <ThemeSwitcher open={true} onClose={() => {}} />
@@ -83,9 +83,9 @@ describe('ThemeSwitcher', () => {
     // Each theme card has an aria-label with theme name
     expect(screen.getByRole('dialog')).toBeTruthy();
     const buttons = screen.getAllByRole('button', { pressed: undefined });
-    // 16 theme cards + close button = 13 buttons
+    // Theme cards + close button
     const themeButtons = buttons.filter(b => b.getAttribute('aria-pressed') !== null);
-    expect(themeButtons).toHaveLength(16);
+    expect(themeButtons).toHaveLength(18);
   });
 
   it('does not render when closed', () => {
@@ -135,12 +135,9 @@ describe('ThemeSwitcher', () => {
       </ThemeProvider>,
     );
 
-    // Find the Neon theme card — it's a button with aria-pressed that contains "Neon" text
-    const themeButtons = screen.getAllByRole('button').filter(
-      b => b.getAttribute('aria-pressed') !== null
-    );
-    // Neon is the 5th theme (index 4)
-    const neonCard = themeButtons[4];
+    const neonCard = screen.getByText('Neon').closest('button');
+    expect(neonCard).not.toBeNull();
+    if (!neonCard) throw new Error('Neon theme card not found');
     await user.click(neonCard);
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith('parkhub_design_theme', 'neon');

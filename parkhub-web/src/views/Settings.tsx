@@ -57,7 +57,17 @@ export function SettingsPage() {
 
   const themeSwatches = useMemo<ThemeSwatch[]>(
     () =>
-      designThemes.map((t) => ({
+      [...designThemes]
+        .sort((a, b) => {
+          const priority = ['marble', 'void'];
+          const ai = priority.indexOf(a.id);
+          const bi = priority.indexOf(b.id);
+          if (ai === -1 && bi === -1) return 0;
+          if (ai === -1) return 1;
+          if (bi === -1) return -1;
+          return ai - bi;
+        })
+        .map((t) => ({
         value: t.id,
         label: t.name,
         color: `linear-gradient(135deg, ${t.previewColors.light[2]}, ${t.previewColors.light[3]})`,

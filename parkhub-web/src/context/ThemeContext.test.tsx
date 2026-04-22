@@ -57,6 +57,8 @@ function ThemeConsumer() {
       <button data-testid="set-dark" onClick={() => setTheme('dark')}>Dark</button>
       <button data-testid="set-light" onClick={() => setTheme('light')}>Light</button>
       <button data-testid="set-system" onClick={() => setTheme('system')}>System</button>
+      <button data-testid="set-marble" onClick={() => setDesignTheme('marble')}>Marble</button>
+      <button data-testid="set-void" onClick={() => setDesignTheme('void')}>Void</button>
       <button data-testid="set-glass" onClick={() => setDesignTheme('glass')}>Glass</button>
       <button data-testid="set-neon" onClick={() => setDesignTheme('neon')}>Neon</button>
       <button data-testid="set-brutalist" onClick={() => setDesignTheme('brutalist')}>Brutalist</button>
@@ -69,6 +71,10 @@ function ThemeConsumer() {
       <button data-testid="set-forest" onClick={() => setDesignTheme('forest')}>Forest</button>
       <button data-testid="set-synthwave" onClick={() => setDesignTheme('synthwave')}>Synthwave</button>
       <button data-testid="set-zen" onClick={() => setDesignTheme('zen')}>Zen</button>
+      <button data-testid="set-aurora" onClick={() => setDesignTheme('aurora')}>Aurora</button>
+      <button data-testid="set-material" onClick={() => setDesignTheme('material')}>Material</button>
+      <button data-testid="set-sakura" onClick={() => setDesignTheme('sakura')}>Sakura</button>
+      <button data-testid="set-midnight" onClick={() => setDesignTheme('midnight')}>Midnight</button>
     </div>
   );
 }
@@ -230,14 +236,14 @@ describe('ThemeContext', () => {
     expect(screen.getByTestId('design-theme-name').textContent).toBe('Classic');
   });
 
-  it('exposes all 16 design themes', () => {
+  it('exposes all 18 design themes', () => {
     render(
       <ThemeProvider>
         <ThemeConsumer />
       </ThemeProvider>,
     );
 
-    expect(screen.getByTestId('design-themes-count').textContent).toBe('16');
+    expect(screen.getByTestId('design-themes-count').textContent).toBe('18');
   });
 
   it('setDesignTheme changes the active design theme', async () => {
@@ -248,6 +254,12 @@ describe('ThemeContext', () => {
         <ThemeConsumer />
       </ThemeProvider>,
     );
+
+    await user.click(screen.getByTestId('set-marble'));
+    expect(screen.getByTestId('design-theme').textContent).toBe('marble');
+
+    await user.click(screen.getByTestId('set-void'));
+    expect(screen.getByTestId('design-theme').textContent).toBe('void');
 
     await user.click(screen.getByTestId('set-glass'));
     expect(screen.getByTestId('design-theme').textContent).toBe('glass');
@@ -332,8 +344,10 @@ describe('ThemeContext', () => {
     }
   });
 
-  it('DESIGN_THEMES contains all 16 themes', () => {
+  it('DESIGN_THEMES contains all 18 themes', () => {
     const ids = DESIGN_THEMES.map(t => t.id);
+    expect(ids).toContain('marble');
+    expect(ids).toContain('void');
     expect(ids).toContain('classic');
     expect(ids).toContain('glass');
     expect(ids).toContain('bento');
@@ -346,10 +360,10 @@ describe('ThemeContext', () => {
     expect(ids).toContain('forest');
     expect(ids).toContain('synthwave');
     expect(ids).toContain('zen');
-    expect(ids).toHaveLength(16);
+    expect(ids).toHaveLength(18);
   });
 
-  it('can switch to all 16 design themes', async () => {
+  it('can switch to all 18 design themes', async () => {
     const user = userEvent.setup();
 
     render(
@@ -359,8 +373,9 @@ describe('ThemeContext', () => {
     );
 
     const allThemes: DesignThemeId[] = [
-      'classic', 'glass', 'bento', 'brutalist', 'neon', 'warm',
+      'classic', 'marble', 'void', 'glass', 'bento', 'brutalist', 'neon', 'warm',
       'liquid', 'mono', 'ocean', 'forest', 'synthwave', 'zen',
+      'aurora', 'material', 'sakura', 'midnight',
     ];
 
     for (const themeId of allThemes) {
@@ -371,7 +386,7 @@ describe('ThemeContext', () => {
   });
 
   it('each new theme has valid preview colors', () => {
-    const newThemes: DesignThemeId[] = ['liquid', 'mono', 'ocean', 'forest', 'synthwave', 'zen'];
+    const newThemes: DesignThemeId[] = ['marble', 'void', 'liquid', 'mono', 'ocean', 'forest', 'synthwave', 'zen'];
     for (const id of newThemes) {
       const theme = DESIGN_THEMES.find(t => t.id === id);
       expect(theme).toBeDefined();
