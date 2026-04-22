@@ -17,7 +17,7 @@ class UserFactory extends Factory
 
         return [
             'name' => "{$firstName} {$lastName}",
-            'username' => strtolower($firstName).rand(10, 99),
+            'username' => strtolower(preg_replace('/[^a-z]/', '', strtolower($firstName))).'_'.Str::random(8),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
