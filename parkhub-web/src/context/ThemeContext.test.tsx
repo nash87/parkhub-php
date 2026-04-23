@@ -225,15 +225,15 @@ describe('ThemeContext', () => {
 
   // ── Design Theme Tests ──
 
-  it('defaults design theme to classic', () => {
+  it('defaults design theme to marble (v5 flagship)', () => {
     render(
       <ThemeProvider>
         <ThemeConsumer />
       </ThemeProvider>,
     );
 
-    expect(screen.getByTestId('design-theme').textContent).toBe('classic');
-    expect(screen.getByTestId('design-theme-name').textContent).toBe('Classic');
+    expect(screen.getByTestId('design-theme').textContent).toBe('marble');
+    expect(screen.getByTestId('design-theme-name').textContent).toBe('Marble');
   });
 
   it('exposes all 18 design themes', () => {
@@ -314,14 +314,14 @@ describe('ThemeContext', () => {
       </ThemeProvider>,
     );
 
-    // Initial
-    expect(document.documentElement.dataset.designTheme).toBe('classic');
+    // Initial — v5 flagship
+    expect(document.documentElement.dataset.designTheme).toBe('marble');
 
     await user.click(screen.getByTestId('set-brutalist'));
     expect(document.documentElement.dataset.designTheme).toBe('brutalist');
   });
 
-  it('falls back to classic for invalid localStorage design theme', () => {
+  it('falls back to marble for invalid localStorage design theme', () => {
     localStorageMock.setItem('parkhub_design_theme', 'invalid_theme');
 
     render(
@@ -330,7 +330,7 @@ describe('ThemeContext', () => {
       </ThemeProvider>,
     );
 
-    expect(screen.getByTestId('design-theme').textContent).toBe('classic');
+    expect(screen.getByTestId('design-theme').textContent).toBe('marble');
   });
 
   it('each DESIGN_THEMES entry has required fields', () => {

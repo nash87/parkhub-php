@@ -244,10 +244,10 @@ describe('Theme Switching — Comprehensive Audit', () => {
       expect(localStorage.getItem('parkhub_design_theme')).toBe('classic');
     });
 
-    it('falls back to classic on corrupted localStorage', () => {
+    it('falls back to marble (v5 flagship default) on corrupted localStorage', () => {
       localStorage.setItem('parkhub_design_theme', 'garbage-not-a-theme');
       const { getState } = renderWithTheme();
-      expect(getState().designTheme).toBe('classic');
+      expect(getState().designTheme).toBe('marble');
     });
 
     it('currentDesignTheme falls back to first entry when designTheme is somehow unknown', () => {

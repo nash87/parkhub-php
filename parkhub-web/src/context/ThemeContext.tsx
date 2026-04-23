@@ -204,7 +204,9 @@ export const DESIGN_THEMES: DesignThemeInfo[] = [
   },
 ];
 
-const DEFAULT_DESIGN_THEME: DesignThemeId = 'classic';
+// v5 default: Marble is now the flagship design (editorial premium surface,
+// OKLCH tokens, bento layouts). Void remains as the dark-first alternative.
+const DEFAULT_DESIGN_THEME: DesignThemeId = 'marble';
 
 // ── Context ──
 

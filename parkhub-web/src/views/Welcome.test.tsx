@@ -178,13 +178,24 @@ describe('WelcomePage', () => {
     expect(mockChangeLanguage).toHaveBeenCalledWith('de');
   });
 
-  it('sets localStorage flag and navigates to /login on "Get Started"', async () => {
+  it('routes first-time users to the onboarding tour on "Get Started"', async () => {
     const user = userEvent.setup();
     render(<WelcomePage />);
 
     await user.click(screen.getByText('Get Started'));
 
     expect(localStorage.getItem('parkhub_welcome_seen')).toBe('1');
+    // Fresh user has never seen the tour → redirect to /tour before /login
+    expect(mockNavigate).toHaveBeenCalledWith('/tour');
+  });
+
+  it('sends returning (post-tour) users straight to /login on "Get Started"', async () => {
+    localStorage.setItem('parkhub_onboarding_v5_seen', '1');
+    const user = userEvent.setup();
+    render(<WelcomePage />);
+
+    await user.click(screen.getByText('Get Started'));
+
     expect(mockNavigate).toHaveBeenCalledWith('/login');
   });
 
