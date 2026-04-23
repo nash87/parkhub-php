@@ -7,6 +7,9 @@
     "test:e2e": "npx playwright test",
     "test:e2e:ui": "npx playwright test --ui",
     "test:e2e:chromium": "npx playwright test --project=chromium",
+    "test:e2e:local": "bash scripts/e2e-local.sh",
+    "test:e2e:local:chromium": "bash scripts/e2e-local.sh --project=chromium",
+    "test:e2e:local:design": "bash scripts/e2e-local.sh --project=chromium e2e/visual.spec.ts e2e/a11y.spec.ts",
     "test:e2e:report": "npx playwright show-report"
   },
   "dependencies": {

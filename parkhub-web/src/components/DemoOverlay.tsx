@@ -112,9 +112,13 @@ export function DemoOverlay({ reloadPage = defaultReloadPage }: { reloadPage?: (
 
   return (
     <motion.div
+      // Match the hooks the visual regression suite hides before screenshots.
+      // Without them, the live countdown/viewer banner bleeds into baselines
+      // and turns unrelated page diffs into false negatives.
+      data-demo-overlay
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed top-3 left-1/2 -translate-x-1/2 z-40 max-sm:top-auto max-sm:bottom-20 max-sm:left-auto max-sm:right-3 max-sm:translate-x-0 max-sm:scale-90 max-sm:origin-bottom-right"
+      className="demo-overlay fixed top-3 left-1/2 -translate-x-1/2 z-40 max-sm:top-auto max-sm:bottom-20 max-sm:left-auto max-sm:right-3 max-sm:translate-x-0 max-sm:scale-90 max-sm:origin-bottom-right"
     >
       <div className="glass-card shadow-xl">
         <button

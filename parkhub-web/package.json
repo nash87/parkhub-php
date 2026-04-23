@@ -16,6 +16,7 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "i18n:coverage": "tsx scripts/locale-coverage.mjs"
   },
   "dependencies": {
