@@ -3,9 +3,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 /**
- * All 26 navigation entries ship as real v5 screens — the PlaceholderV5
- * fallback component and its import are dead code. This guard keeps it
- * that way so we don't silently reintroduce a placeholder path.
+ * Static guards over `App.tsx`.
+ *
+ *  - Placeholder fallback has been retired in v5.1; no re-imports allowed.
+ *  - URL-based deep-linking + View Transitions + keyboard-shortcut hook
+ *    must stay wired into the shell (regression guard for Tier-1 UX).
  */
 describe('design-v5/App', () => {
   const appSrc = fs.readFileSync(
@@ -20,5 +22,21 @@ describe('design-v5/App', () => {
   it('has no Placeholder screen file on disk', () => {
     const placeholderPath = path.resolve(__dirname, './screens/Placeholder.tsx');
     expect(fs.existsSync(placeholderPath)).toBe(false);
+  });
+
+  it('imports startViewTransition for cross-screen fades', () => {
+    expect(appSrc).toMatch(/from '\.\/viewTransitions'/);
+    expect(appSrc).toMatch(/startViewTransition\(/);
+  });
+
+  it('wires deep-link hooks so /v5/<id> round-trips', () => {
+    expect(appSrc).toMatch(/from '\.\/useDeepLink'/);
+    expect(appSrc).toMatch(/useSyncScreenToUrl/);
+    expect(appSrc).toMatch(/readScreenFromUrl/);
+  });
+
+  it('wires the shared keyboard-shortcut hook', () => {
+    expect(appSrc).toMatch(/from '\.\/useKeyboardShortcuts'/);
+    expect(appSrc).toMatch(/useKeyboardShortcuts\(/);
   });
 });
