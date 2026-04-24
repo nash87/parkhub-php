@@ -199,12 +199,6 @@ parameters:
 			path: app/Http/Controllers/Api/BillingController.php
 
 		-
-			message: '#^Ternary operator condition is always true\.$#'
-			identifier: ternary.alwaysTrue
-			count: 1
-			path: app/Http/Controllers/Api/BookingCalendarController.php
-
-		-
 			message: '#^Left side of && is always true\.$#'
 			identifier: booleanAnd.leftAlwaysTrue
 			count: 1

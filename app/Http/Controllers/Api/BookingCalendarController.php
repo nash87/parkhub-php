@@ -75,10 +75,11 @@ class BookingCalendarController extends Controller
             // instead of stringifying through strtotime(), both for
             // strict_types correctness and to dodge the double-timezone
             // roundtrip that the parse-string-back detour used to incur.
+            // end_time is declared non-null on the bookings table (see
+            // Booking @property and the initial migration), so no fallback
+            // ternary — larastan/phpstan flags the dead branch at level 5.
             $start = gmdate('Ymd\THis\Z', $b->start_time->timestamp);
-            $end = $b->end_time
-                ? gmdate('Ymd\THis\Z', $b->end_time->timestamp)
-                : gmdate('Ymd\THis\Z', $b->start_time->timestamp + 3600);
+            $end = gmdate('Ymd\THis\Z', $b->end_time->timestamp);
             $summary = "Parking: {$b->slot_number} ({$b->lot_name})";
             $location = $b->lot_name ?? '';
             $description = $b->vehicle_plate ? "Vehicle: {$b->vehicle_plate}" : '';
@@ -121,10 +122,9 @@ class BookingCalendarController extends Controller
         $prodId = '-//ParkHub//Bookings//EN';
         $now = gmdate('Ymd\THis\Z');
         $uid = $booking->id.'@parkhub';
+        // end_time is non-null on bookings — same reasoning as ical() above.
         $start = gmdate('Ymd\THis\Z', $booking->start_time->timestamp);
-        $end = $booking->end_time
-            ? gmdate('Ymd\THis\Z', $booking->end_time->timestamp)
-            : gmdate('Ymd\THis\Z', $booking->start_time->timestamp + 3600);
+        $end = gmdate('Ymd\THis\Z', $booking->end_time->timestamp);
         $summary = "Parking: {$booking->slot_number} ({$booking->lot_name})";
         $location = $booking->lot_name ?? '';
         $description = $booking->vehicle_plate ? "Vehicle: {$booking->vehicle_plate}" : '';
