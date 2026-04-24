@@ -1394,6 +1394,15 @@ export interface CheckInStatus {
   checked_out_at: string | null;
 }
 
+/**
+ * Guest booking payload returned by `GET /api/v1/bookings/guest`.
+ *
+ * The `status` union mirrors the backend `Booking::STATUS_*` constants
+ * (see `app/Models/Booking.php` — PENDING, CONFIRMED, ACTIVE, COMPLETED,
+ * CANCELLED, NO_SHOW; EXPIRED is produced by TTL sweeps). Newly created
+ * guest passes land in `confirmed` (GuestBookingController), so clients
+ * MUST accept the full set to render and act on fresh records.
+ */
 export interface GuestBooking {
   id: string;
   lot_id: string;
@@ -1405,7 +1414,14 @@ export interface GuestBooking {
   guest_code: string;
   start_time: string;
   end_time: string;
-  status: 'active' | 'expired' | 'cancelled';
+  status:
+    | 'pending'
+    | 'confirmed'
+    | 'active'
+    | 'completed'
+    | 'expired'
+    | 'cancelled'
+    | 'no_show';
   created_at: string;
 }
 
