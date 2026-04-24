@@ -24107,6 +24107,47 @@
         ]
       }
     },
+    "/v1/bookings/{id}.ics": {
+      "get": {
+        "operationId": "bookingCalendar.icalSingle",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/calendar; charset=utf-8": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "",
+            "headers": {
+              "Content-Disposition": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "Tier-2 item 9 — single-booking .ics download.\nGET /api/v1/bookings/{id}.ics → RFC5545 VCALENDAR with one VEVENT",
+        "tags": [
+          "BookingCalendar"
+        ]
+      }
+    },
     "/v1/bookings/{id}/checkin": {
       "post": {
         "operationId": "bookingCheckIn.checkin",
