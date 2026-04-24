@@ -9,7 +9,7 @@ import { V5Sidebar } from './sidebar';
 import { api } from '../api/client';
 import { V5TopBar } from './TopBar';
 import { V5CommandPalette } from './CommandPalette';
-import { V5AIPanel } from './AIPanel';
+import { V5AssistantPanel } from './AssistantPanel';
 import { breadcrumbFor, byId, type ScreenId } from './nav';
 import { startViewTransition } from './viewTransitions';
 import { readScreenFromUrl, useSyncScreenToUrl } from './useDeepLink';
@@ -151,7 +151,7 @@ function V5Shell() {
     return readScreenFromUrl(storedFallback);
   });
   const [cmdOpen, setCmdOpen] = useState(false);
-  const [aiOpen, setAiOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, screen);
@@ -189,14 +189,14 @@ function V5Shell() {
 
   // Global single-key shortcuts (opt-in per screen via future hook calls).
   useKeyboardShortcuts({
-    '?': () => setAiOpen((o) => !o),
+    '?': () => setAssistantOpen((o) => !o),
     '/': (e) => {
       e.preventDefault();
       setCmdOpen(true);
     },
     Escape: () => {
       setCmdOpen(false);
-      setAiOpen(false);
+      setAssistantOpen(false);
     },
   });
 
@@ -240,8 +240,8 @@ function V5Shell() {
           title={meta?.label ?? ''}
           breadcrumb={breadcrumbFor(screen)}
           onOpenCommand={() => setCmdOpen(true)}
-          onToggleAI={() => setAiOpen((o) => !o)}
-          aiOpen={aiOpen}
+          onToggleAssistant={() => setAssistantOpen((o) => !o)}
+          assistantOpen={assistantOpen}
         />
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           <main
@@ -258,7 +258,7 @@ function V5Shell() {
           >
             <ScreenComponent navigate={navigate} />
           </main>
-          <V5AIPanel open={aiOpen} />
+          <V5AssistantPanel open={assistantOpen} />
         </div>
       </div>
       <V5CommandPalette
