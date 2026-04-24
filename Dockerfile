@@ -16,7 +16,7 @@ RUN DOCKER=1 npm run build
 # ---------------------------------------------------------------------------
 # Stage 2: Composer dependency install (no dev deps)
 # ---------------------------------------------------------------------------
-FROM docker.io/library/composer:2@sha256:b148074c5cf8e5c564e92baa3f0d2e28ffa0361ede57a03de3bf4b9cf80de54a AS vendor
+FROM docker.io/library/composer:2@sha256:dc292c5c0f95f526b051d4c341bf08e7e2b18504c74625e3203d7f123050e318 AS vendor
 WORKDIR /app
 COPY composer.json composer.lock ./
 RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --no-interaction
