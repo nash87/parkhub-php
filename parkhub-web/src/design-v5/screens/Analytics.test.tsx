@@ -103,6 +103,36 @@ describe('AnalyticsV5', () => {
   });
 });
 
+describe('AnalyticsV5 — stable uPlot data reference (mirrors parkhub-rust #379)', () => {
+  // Regression guard for the Codex P2 finding on parkhub-rust PR #379:
+  // "ChartBlock passes a fresh array literal ([xs, ys]) on every render, and
+  //  UPlotChart's effect depends on data, so any parent re-render tears down
+  //  and recreates the uPlot instance even when the series values are
+  //  unchanged."
+  //
+  // Fix already shipped here via PR #340 (lazy-load). These tests lock the
+  // memoization in place so it cannot silently revert on future refactors.
+
+  it('ChartBlock memoizes the `data` tuple with [xs, ys] deps', () => {
+    // data must be useMemo-d with xs + ys as deps so a query-status re-render
+    // with unchanged values preserves the tuple identity.
+    expect(ANALYTICS_SRC).toMatch(
+      /const\s+data\s*=\s*useMemo\s*<\s*\[\s*number\[\]\s*,\s*number\[\]\s*\]\s*>\s*\(\s*\(\s*\)\s*=>\s*\[\s*xs\s*,\s*ys\s*\]\s*,\s*\[\s*xs\s*,\s*ys\s*\]\s*\)/,
+    );
+  });
+
+  it('ChartBlock does NOT pass an inline [xs, ys] array to UPlotChart', () => {
+    // The banned pattern: `data={[xs, ys]}` as a JSX attribute value.
+    expect(ANALYTICS_SRC).not.toMatch(/data=\{\s*\[\s*xs\s*,\s*ys\s*\]\s*\}/);
+  });
+
+  it('ChartBlock memoizes the `options` object', () => {
+    // Options holds closures over stroke/fill/tickLabels; memo keeps the
+    // reference stable so UPlotChart's effect does not re-run.
+    expect(ANALYTICS_SRC).toMatch(/const\s+options\s*=\s*useMemo\s*</);
+  });
+});
+
 describe('AnalyticsV5 — Lighthouse LCP budget (lazy uPlot)', () => {
   it('Analytics.tsx dynamically imports UPlotChart via React.lazy', () => {
     // Eager imports of UPlotChart bloat the initial JS bundle (+~40KB uPlot)
