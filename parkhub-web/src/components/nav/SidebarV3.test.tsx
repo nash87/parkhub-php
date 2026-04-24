@@ -4,6 +4,15 @@
  * The component is intentionally stateful and data-driven, so the test
  * surface here stays narrow: verify the focus shell renders on empty data
  * and that the live-pass card appears for an active booking.
+ *
+ * Note on timing: the GitHub Actions hosted runners are consistently slower
+ * at transforming + executing this 1300-line component than the local dev
+ * machine. Two hardening moves keep this suite reliable in CI:
+ *   - Static top-level import (vs. per-test `await import(...)`) so the
+ *     component is parsed exactly once and react-router + phosphor-icons
+ *     don't pay the Vite transform tax inside every `it` block.
+ *   - 15 s waitFor timeout to absorb CI variance when the render pipeline
+ *     queues behind other suites running in parallel.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -38,9 +47,16 @@ vi.mock('../../context/AuthContext', () => ({
   }),
 }));
 
+// Static import — depends on `vi.mock` hoisting by Vitest, not runtime
+// dynamic import. This cuts ~8 s of redundant Vite transform per `it` block
+// in CI while keeping the mock graph correct.
+import { SidebarV3 } from './SidebarV3';
+
 function ok<T>(data: T) {
   return Promise.resolve({ success: true, data } as const);
 }
+
+const WAIT_FOR_OPTS = { timeout: 15_000 } as const;
 
 describe('SidebarV3', () => {
   beforeEach(() => {
@@ -54,8 +70,6 @@ describe('SidebarV3', () => {
     getLotsMock.mockReturnValue(ok<ParkingLot[]>([]));
     getLotSlotsMock.mockReturnValue(ok<ParkingSlot[]>([]));
 
-    const { SidebarV3 } = await import('./SidebarV3');
-
     render(
       <MemoryRouter>
         <SidebarV3 />
@@ -64,11 +78,11 @@ describe('SidebarV3', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/No active booking/i)).toBeInTheDocument();
-    });
+    }, WAIT_FOR_OPTS);
     expect(screen.getByText(/Book now/i)).toBeInTheDocument();
     expect(screen.getByText('Today')).toBeInTheDocument();
     expect(screen.getByText('Book')).toBeInTheDocument();
-  });
+  }, 20_000);
 
   it('renders the Live Pass card for an active booking', async () => {
     const now = new Date();
@@ -100,8 +114,6 @@ describe('SidebarV3', () => {
     getLotsMock.mockReturnValue(ok<ParkingLot[]>([lot]));
     getLotSlotsMock.mockReturnValue(ok<ParkingSlot[]>([]));
 
-    const { SidebarV3 } = await import('./SidebarV3');
-
     render(
       <MemoryRouter>
         <SidebarV3 />
@@ -110,8 +122,8 @@ describe('SidebarV3', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Parked')).toBeInTheDocument();
-    });
+    }, WAIT_FOR_OPTS);
     expect(screen.getByText(/M-AB 7823/)).toBeInTheDocument();
     expect(screen.getByText('Show QR')).toBeInTheDocument();
-  });
+  }, 20_000);
 });

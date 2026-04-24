@@ -61,6 +61,23 @@ function fallbackPrediction(idx: number): { predicted: number; peakHour: number;
   return { predicted: 20, peakHour: 10, offPeakHour: 7 };
 }
 
+/**
+ * Admin-denial detector shared with Rangliste. Works across three error shapes:
+ * structured `{code:'FORBIDDEN'}` (Rust), `{code:'HTTP_403'}` (requestOnce
+ * fallback), and raw string `"Forbidden. Administrator access required."`
+ * (PHP RequireAdmin middleware).
+ */
+function isForbiddenError(err: unknown): boolean {
+  if (typeof err === 'string') {
+    return /forbidden|administrator access/i.test(err);
+  }
+  if (err && typeof err === 'object') {
+    const code = (err as { code?: unknown }).code;
+    return code === 'FORBIDDEN' || code === 'HTTP_403';
+  }
+  return false;
+}
+
 export function VorhersagenV5({ navigate: _navigate }: { navigate: (id: ScreenId) => void }) {
   // Admin stats are optional inputs — `/api/v1/admin/stats` is admin-gated on
   // both the Rust (`check_admin`) and PHP (admin middleware) backends. Non-admin
@@ -73,10 +90,13 @@ export function VorhersagenV5({ navigate: _navigate }: { navigate: (id: ScreenId
     queryFn: async () => {
       const res = await api.getAdminStatsExtended();
       if (!res.success) {
-        if (res.error?.code === 'FORBIDDEN' || res.error?.code === 'HTTP_403') {
+        if (isForbiddenError(res.error)) {
           return null;
         }
-        throw new Error(res.error?.message ?? 'Vorhersagen konnten nicht geladen werden');
+        const message = typeof res.error === 'string'
+          ? res.error
+          : res.error?.message ?? 'Vorhersagen konnten nicht geladen werden';
+        throw new Error(message);
       }
       return res.data;
     },

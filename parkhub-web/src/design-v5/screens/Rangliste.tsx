@@ -46,6 +46,27 @@ const EMPTY_STATS: UserBookingStats = {
 
 const MEDAL_COLOR = ['oklch(0.82 0.16 85)', 'oklch(0.72 0 0)', 'oklch(0.55 0.1 55)'];
 
+/**
+ * Admin-denial detector. Works across three possible error shapes returned by
+ * `api.getAdminStatsExtended()`:
+ *   1. Structured `{ code: 'FORBIDDEN', … }` — Rust backend
+ *   2. Structured `{ code: 'HTTP_403', … }` — requestOnce fallback when
+ *      `json.error` was absent or non-object-with-code
+ *   3. Raw string `"Forbidden. Administrator access required."` — PHP
+ *      `RequireAdmin` middleware returns `{"error": "…"}`; requestOnce passes
+ *      the string straight through as `res.error`.
+ */
+function isForbiddenError(err: unknown): boolean {
+  if (typeof err === 'string') {
+    return /forbidden|administrator access/i.test(err);
+  }
+  if (err && typeof err === 'object') {
+    const code = (err as { code?: unknown }).code;
+    return code === 'FORBIDDEN' || code === 'HTTP_403';
+  }
+  return false;
+}
+
 export function RanglisteV5({ navigate: _navigate }: { navigate: (id: ScreenId) => void }) {
   const teamQuery = useQuery({
     queryKey: ['team-members'],
@@ -70,10 +91,13 @@ export function RanglisteV5({ navigate: _navigate }: { navigate: (id: ScreenId) 
     queryFn: async () => {
       const res = await api.getAdminStatsExtended();
       if (!res.success) {
-        if (res.error?.code === 'FORBIDDEN' || res.error?.code === 'HTTP_403') {
+        if (isForbiddenError(res.error)) {
           return null;
         }
-        throw new Error(res.error?.message ?? 'Statistiken konnten nicht geladen werden');
+        const message = typeof res.error === 'string'
+          ? res.error
+          : res.error?.message ?? 'Statistiken konnten nicht geladen werden';
+        throw new Error(message);
       }
       return res.data;
     },

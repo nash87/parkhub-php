@@ -61,6 +61,20 @@ describe('VorhersagenV5', () => {
     expect(screen.queryByText('Fehler beim Laden')).toBeNull();
   });
 
+  it('also degrades when admin middleware returns raw string error (PHP RequireAdmin)', async () => {
+    // Regression for Codex #336: PHP RequireAdmin returns
+    // `{"error": "Forbidden. Administrator access required."}` — string, not
+    // object. `res.error?.code` is undefined; screen must still fall back.
+    mockGetStats.mockResolvedValue({
+      success: false,
+      data: null,
+      error: 'Forbidden. Administrator access required.',
+    });
+    renderScreen();
+    await waitFor(() => expect(screen.getAllByTestId('day-card')).toHaveLength(7));
+    expect(screen.queryByText('Fehler beim Laden')).toBeNull();
+  });
+
   it('still surfaces error when stats fail with non-auth error', async () => {
     mockGetStats.mockResolvedValue({ success: false, data: null, error: { code: 'HTTP_500', message: 'server error' } });
     renderScreen();
