@@ -66,9 +66,11 @@
     "@testing-library/user-event": "^14.6.1",
     "@vitest/coverage-v8": "^4.1.4",
     "babel-plugin-react-compiler": "^1.0.0",
+    "http-server": "^14.1.1",
     "jsdom": "^29.0.2",
     "storybook": "^10.3.5",
     "typescript": "^5.9.3",
-    "vitest": "^4.1.0"
+    "vitest": "^4.1.0",
+    "wait-on": "^9.0.5"
   }
 }

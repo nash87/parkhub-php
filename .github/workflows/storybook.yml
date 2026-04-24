@@ -48,9 +48,13 @@ jobs:
 
       - name: Serve Storybook (background)
         working-directory: parkhub-web
+        # Use --no-install so npx can only execute the copies installed
+        # from package-lock.json by `npm ci`. Prevents CI from silently
+        # pulling whatever the latest upstream release happens to be,
+        # which is the supply-chain risk flagged in PR #345 review.
         run: |
-          nohup npx --yes http-server storybook-static -p 6006 --silent -a 127.0.0.1 > /tmp/storybook-server.log 2>&1 &
-          npx wait-on tcp:127.0.0.1:6006 --timeout 60000
+          nohup npx --no-install http-server storybook-static -p 6006 --silent -a 127.0.0.1 > /tmp/storybook-server.log 2>&1 &
+          npx --no-install wait-on tcp:127.0.0.1:6006 --timeout 60000
 
       - name: Run test-storybook
         working-directory: parkhub-web
