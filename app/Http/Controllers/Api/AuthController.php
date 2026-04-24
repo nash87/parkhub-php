@@ -288,6 +288,55 @@ class AuthController extends Controller
         return response()->json($this->userResponse($user->fresh()));
     }
 
+    /**
+     * GET /api/v1/me/settings — return the authenticated user's v5
+     * customization blob. Returns `null` when the user has never
+     * customized; clients fall back to factory defaults.
+     */
+    public function getMySettings(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $request->user()->settings,
+        ]);
+    }
+
+    /**
+     * PUT /api/v1/me/settings — replace the user's v5 settings blob.
+     *
+     * Body: `{ "settings": { ... } }` — schema is opaque to the server.
+     * Validation is structural only (must be a JSON object, capped size);
+     * the frontend's V5SettingsProvider.migrate() owns shape correctness.
+     */
+    public function updateMySettings(Request $request): JsonResponse
+    {
+        $request->validate([
+            'settings' => ['required', 'array'],
+        ]);
+
+        // Cap at 32 KB serialized — protects the column from runaway clients.
+        $payload = $request->input('settings');
+        $encoded = json_encode($payload);
+        if ($encoded === false || strlen($encoded) > 32768) {
+            return response()->json([
+                'success' => false,
+                'error' => [
+                    'code' => 'PAYLOAD_TOO_LARGE',
+                    'message' => 'Einstellungen-Blob darf 32 KB nicht überschreiten.',
+                ],
+            ], 413);
+        }
+
+        $user = $request->user();
+        $user->settings = $payload;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'data' => $user->settings,
+        ]);
+    }
+
     public function deleteAccount(DeleteAccountRequest $request): JsonResponse
     {
         $user = $request->user();

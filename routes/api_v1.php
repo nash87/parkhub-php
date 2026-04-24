@@ -132,6 +132,12 @@ Route::middleware([StartSession::class, 'auth:sanctum', 'throttle:api', 'session
     Route::get('/users/me', [AuthController::class, 'me']);
     Route::put('/users/me', [AuthController::class, 'updateMe']);
 
+    // v5 customization — per-user settings JSON blob (theme, sidebar, font,
+    // density, feature toggles, notifications, privacy). Schema is owned by
+    // the frontend; server stores opaque JSON.
+    Route::get('/me/settings', [AuthController::class, 'getMySettings']);
+    Route::put('/me/settings', [AuthController::class, 'updateMySettings']);
+
     // Feature flags — stub for frontend compatibility
     Route::get('/features', [PublicController::class, 'featureFlags']);
 
