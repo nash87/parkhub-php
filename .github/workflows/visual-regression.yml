@@ -103,7 +103,18 @@ jobs:
           trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
 
           ./scripts/ci/wait-for-url.sh http://127.0.0.1:8000/api/v1/health/live 60
-          npx playwright test --project=chromium --workers=1 --reporter=github e2e/visual.spec.ts
+          # v4 blade surfaces (existing) + v5 visual + v5 happy-paths.
+          # v5 specs internally skip the mobile-chrome project until v5
+          # ships a responsive refactor, so --project=chromium is enough.
+          # Keep workers=1 — php artisan serve is single-process and
+          # concurrent logins race.
+          npx playwright test \
+            --project=chromium \
+            --workers=1 \
+            --reporter=github \
+            e2e/visual.spec.ts \
+            e2e/v5-visual.spec.ts \
+            e2e/v5-happy-paths.spec.ts
 
       - name: Upload diff artifacts
         if: failure()
