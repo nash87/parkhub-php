@@ -5,13 +5,14 @@ import { useTranslation } from 'react-i18next';
 import {
   Clock, Car, X, SpinnerGap,
   ArrowClockwise, Warning,
-  MagnifyingGlass, Funnel, QrCode, FilePdf,
+  MagnifyingGlass, Funnel, QrCode, FilePdf, CalendarPlus,
 } from '@phosphor-icons/react';
 import type { TFunction } from 'react-i18next';
 import { api, type Booking, type Vehicle } from '../api/client';
 import { BookingsSkeleton } from '../components/Skeleton';
 import { ParkingPass } from '../components/ParkingPass';
 import { stagger, fadeUp } from '../constants/animations';
+import { useUndoToast, UNDO_WINDOW_MS } from '../hooks/useUndoToast';
 import toast from 'react-hot-toast';
 import { format, formatDistanceToNow, isFuture } from 'date-fns';
 import { de, enUS } from 'date-fns/locale';
@@ -28,6 +29,7 @@ export function BookingsPage() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchLot, setSearchLot] = useState('');
   const [passBooking, setPassBooking] = useState<Booking | null>(null);
+  const undo = useUndoToast();
 
   const handleWsEvent = useCallback((event: WsEvent) => {
     if (event.event === 'booking_created') {
@@ -52,10 +54,34 @@ export function BookingsPage() {
 
   async function handleCancel(id: string) {
     setCancelling(id);
+    const prev = bookings.find(b => b.id === id);
     const res = await api.cancelBooking(id);
     if (res.success) {
-      setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
+      setBookings(prevList => prevList.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
       toast.success(t('bookings.cancelled'));
+      // Tier-2 item 11 — offer Rückgängig for UNDO_WINDOW_MS.
+      if (prev) {
+        undo.offer({
+          label: t('common.undo', 'Rückgängig'),
+          inverse: async () => {
+            // Re-create via quickBook payload (no inverse cancel API yet; we
+            // reinstate the row locally + fire a new booking request).
+            const recreateRes = await api.createBooking({
+              lot_id: prev.lot_id,
+              slot_id: prev.slot_id,
+              start_time: prev.start_time,
+              end_time: prev.end_time,
+              vehicle_id: prev.vehicle_id ?? undefined,
+            });
+            if (recreateRes.success && recreateRes.data) {
+              setBookings(prevList => prevList.map(b => b.id === id ? { ...b, ...recreateRes.data!, status: 'active' } : b));
+              toast.success(t('bookings.restored', 'Buchung wiederhergestellt'));
+            } else {
+              toast.error(t('common.error', 'Aktion fehlgeschlagen'));
+            }
+          },
+        });
+      }
     } else {
       toast.error(t('bookings.cancelFailed'));
     }
@@ -163,6 +189,20 @@ export function BookingsPage() {
       </Section>
     </motion.div>
     {passBooking && <ParkingPass booking={passBooking} onClose={() => setPassBooking(null)} />}
+
+    {/* Tier-2 item 11 — undo toast. Active for UNDO_WINDOW_MS after a cancel. */}
+    {undo.active && (
+      <div role="status" aria-live="polite"
+           className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl bg-surface-900 text-white px-4 py-3 shadow-2xl"
+           data-testid="undo-toast">
+        <span className="text-sm">{t('bookings.cancelled', 'Buchung storniert')}</span>
+        <button type="button" onClick={undo.undo} data-testid="undo-button"
+                className="text-sm font-semibold text-primary-300 hover:text-primary-200"
+                aria-label={t('common.undo', 'Rückgängig')}>
+          {t('common.undo', 'Rückgängig')}
+        </button>
+      </div>
+    )}
     </AnimatePresence>
   );
 }
@@ -289,6 +329,16 @@ function BookingCard({ booking, now, vehicles, onCancel, cancelling, onShowPass,
             data-testid={`invoice-${booking.id}`}
           >
             <FilePdf weight="bold" className="w-4 h-4" /> {t('bookings.downloadInvoice')}
+          </a>
+          {/* Tier-2 item 9 — Zum Kalender hinzufügen (single-booking .ics). */}
+          <a
+            href={`${(import.meta as Record<string, any>).env?.VITE_API_URL || ''}/api/v1/bookings/${booking.id}.ics`}
+            download={`parkhub-booking-${booking.id}.ics`}
+            className="btn btn-sm btn-ghost text-surface-600 hover:bg-surface-50 dark:hover:bg-surface-800"
+            aria-label={`${t('bookings.addToCalendar', 'Zum Kalender hinzufügen')} ${booking.lot_name}`}
+            data-testid={`ical-${booking.id}`}
+          >
+            <CalendarPlus weight="bold" className="w-4 h-4" /> {t('bookings.addToCalendar', 'Zum Kalender hinzufügen')}
           </a>
           {isActiveOrConfirmed && (
             <button

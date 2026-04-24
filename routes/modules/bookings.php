@@ -43,6 +43,8 @@ Route::middleware(['module:bookings', 'auth:sanctum', 'throttle:api'])->group(fu
 
     // iCal feed
     Route::get('/bookings/ical', [BookingCalendarController::class, 'ical']);
+    // Tier-2 item 9 — single-booking .ics download
+    Route::get('/bookings/{id}.ics', [BookingCalendarController::class, 'icalSingle']);
 
     // Admin bookings
     Route::middleware('admin')->prefix('admin')->group(function () {

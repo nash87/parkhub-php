@@ -50,9 +50,10 @@ vi.mock('@phosphor-icons/react', () => ({
   Square: (props: any) => <span data-testid="icon-square" {...props} />,
   Trash: (props: any) => <span data-testid="icon-trash" {...props} />,
   Lightning: (props: any) => <span data-testid="icon-lightning" {...props} />,
+  FilePdf: (props: any) => <span data-testid="icon-pdf" {...props} />,
+  DownloadSimple: (props: any) => <span data-testid="icon-download" {...props} />,
   CaretUp: (props: any) => <span data-testid="icon-caret-up" {...props} />,
   CaretDown: (props: any) => <span data-testid="icon-caret-down" {...props} />,
-  DownloadSimple: (props: any) => <span data-testid="icon-download" {...props} />,
 }));
 
 vi.mock('react-i18next', () => ({

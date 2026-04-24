@@ -10,6 +10,7 @@ const mockGetLots = vi.fn();
 const mockGetLotSlots = vi.fn();
 const mockGetVehicles = vi.fn();
 const mockCreateBooking = vi.fn();
+const mockGetBookings = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
 
@@ -23,6 +24,7 @@ vi.mock('../api/client', () => ({
     getLotSlots: (...args: any[]) => mockGetLotSlots(...args),
     getVehicles: (...args: any[]) => mockGetVehicles(...args),
     createBooking: (...args: any[]) => mockCreateBooking(...args),
+    getBookings: (...args: any[]) => mockGetBookings(...args),
     getDynamicPrice: vi.fn().mockResolvedValue({ price: 5.0, multiplier: 1.0, reason: 'normal' }),
     getOperatingHours: vi.fn().mockResolvedValue({ hours: [] }),
   },
@@ -145,6 +147,8 @@ describe('BookPage', () => {
     mockGetLotSlots.mockClear();
     mockGetVehicles.mockClear();
     mockCreateBooking.mockClear();
+    mockGetBookings.mockClear();
+    mockGetBookings.mockResolvedValue({ success: true, data: [] });
     mockToastSuccess.mockClear();
     mockToastError.mockClear();
   });
@@ -573,5 +577,50 @@ describe('BookPage', () => {
   it('scoring weights sum to 100%', () => {
     // frequency: 40%, availability: 30%, price: 20%, distance: 10%
     expect(40 + 30 + 20 + 10).toBe(100);
+  });
+
+  it('Tier-2 item 8 — shows conflict confirmation when new booking overlaps an existing one', async () => {
+    const user = userEvent.setup();
+    const lot = makeLot();
+    const slot = makeSlot();
+
+    // Book's default start = (now rounded down to the hour) + 1h, duration default = 2h.
+    // Build an existing booking that wraps that window by ±3h so it always overlaps.
+    const defaultStart = new Date();
+    defaultStart.setMinutes(0, 0, 0);
+    defaultStart.setHours(defaultStart.getHours() + 1);
+    const overlappingExisting = {
+      id: 'existing-1',
+      lot_name: 'Garage Alpha',
+      start_time: new Date(defaultStart.getTime() - 60 * 60 * 1000).toISOString(),
+      end_time: new Date(defaultStart.getTime() + 5 * 60 * 60 * 1000).toISOString(),
+      status: 'active',
+    };
+
+    mockGetLots.mockResolvedValue({ success: true, data: [lot] });
+    mockGetVehicles.mockResolvedValue({ success: true, data: [] });
+    mockGetLotSlots.mockResolvedValue({ success: true, data: [slot] });
+    mockGetBookings.mockResolvedValue({ success: true, data: [overlappingExisting] });
+    mockCreateBooking.mockResolvedValue({ success: true, data: { id: 'new-1' } });
+
+    render(<BookPage />);
+
+    await waitFor(() => expect(mockGetBookings).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByText('Garage Alpha')).toBeInTheDocument());
+    await user.click(screen.getByText('Garage Alpha'));
+    await waitFor(() => expect(screen.getByText('A1')).toBeInTheDocument());
+    await user.click(screen.getByText('A1'));
+    await user.click(screen.getByText('Continue'));
+    await waitFor(() => expect(screen.getByText('Confirm Booking')).toBeInTheDocument());
+
+    // First click: should NOT submit, but show the conflict dialog.
+    await user.click(screen.getByText('Confirm Booking'));
+    const confirmBtn = await screen.findByTestId('conflict-confirm');
+    expect(mockCreateBooking).not.toHaveBeenCalled();
+    expect(screen.getByTestId('conflict-message')).toBeInTheDocument();
+
+    // Second click on "Bestätigen": bypass, submit.
+    await user.click(confirmBtn);
+    await waitFor(() => expect(mockCreateBooking).toHaveBeenCalledTimes(1));
   });
 });
