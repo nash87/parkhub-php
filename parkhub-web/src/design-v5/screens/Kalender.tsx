@@ -60,6 +60,7 @@ export function KalenderV5({ navigate }: { navigate: (id: ScreenId) => void }) {
     queryKey: ['kalender', rangeStart, rangeEnd],
     queryFn: async () => {
       const res = await api.calendarEvents(rangeStart, rangeEnd);
+      if (!res.success) throw new Error(res.error?.message ?? 'Kalenderdaten konnten nicht geladen werden');
       return res.data ?? [];
     },
     staleTime: 30_000,

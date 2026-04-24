@@ -129,4 +129,10 @@ describe('KalenderV5', () => {
     const nextStart = mockCalendarEvents.mock.calls[mockCalendarEvents.mock.calls.length - 1][0];
     expect(nextStart).not.toBe(initialStart);
   });
+
+  it('surfaces query error when success:false', async () => {
+    mockCalendarEvents.mockResolvedValue({ success: false, data: null, error: { code: 'FORBIDDEN', message: 'denied' } });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Fehler beim Laden')).toBeInTheDocument());
+  });
 });

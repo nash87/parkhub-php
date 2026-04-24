@@ -33,6 +33,7 @@ export function KarteV5({ navigate }: { navigate: (id: ScreenId) => void }) {
     queryKey: ['karte'],
     queryFn: async () => {
       const res = await api.getMapMarkers();
+      if (!res.success) throw new Error(res.error?.message ?? 'Karte konnte nicht geladen werden');
       return res.data ?? [];
     },
     staleTime: 30_000,

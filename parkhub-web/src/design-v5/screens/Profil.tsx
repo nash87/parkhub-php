@@ -49,6 +49,7 @@ export function ProfilV5({ navigate: _navigate }: { navigate: (id: ScreenId) => 
     queryKey: ['profil'],
     queryFn: async () => {
       const res = await api.me();
+      if (!res.success) throw new Error(res.error?.message ?? 'Profil konnte nicht geladen werden');
       return res.data;
     },
     staleTime: 30_000,
@@ -74,33 +75,32 @@ export function ProfilV5({ navigate: _navigate }: { navigate: (id: ScreenId) => 
   }, [user]);
 
   const saveMutation = useMutation({
-    mutationFn: (payload: Partial<User>) => api.updateMe(payload),
-    onSuccess: (res) => {
-      if (res.success) {
-        qc.invalidateQueries({ queryKey: ['profil'] });
-        toast('Profil aktualisiert', 'success');
-      } else {
-        toast(res.error?.message || 'Speichern fehlgeschlagen', 'error');
-      }
+    mutationFn: async (payload: Partial<User>) => {
+      const res = await api.updateMe(payload);
+      if (!res.success) throw new Error(res.error?.message ?? 'Speichern fehlgeschlagen');
+      return res.data;
     },
-    onError: () => toast('Speichern fehlgeschlagen', 'error'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['profil'] });
+      toast('Profil aktualisiert', 'success');
+    },
+    onError: (err: Error) => toast(err.message || 'Speichern fehlgeschlagen', 'error'),
   });
 
   const passwordMutation = useMutation({
-    mutationFn: async (payload: { current: string; next: string; confirm: string }) =>
-      api.changePassword(payload.current, payload.next, payload.confirm),
-    onSuccess: (res) => {
-      if (res.success) {
-        toast('Passwort geändert', 'success');
-        setPwCurrent('');
-        setPwNew('');
-        setPwConfirm('');
-        setPwOpen(false);
-      } else {
-        toast(res.error?.message || 'Passwortänderung fehlgeschlagen', 'error');
-      }
+    mutationFn: async (payload: { current: string; next: string; confirm: string }) => {
+      const res = await api.changePassword(payload.current, payload.next, payload.confirm);
+      if (!res.success) throw new Error(res.error?.message ?? 'Passwortänderung fehlgeschlagen');
+      return res.data;
     },
-    onError: () => toast('Passwortänderung fehlgeschlagen', 'error'),
+    onSuccess: () => {
+      toast('Passwort geändert', 'success');
+      setPwCurrent('');
+      setPwNew('');
+      setPwConfirm('');
+      setPwOpen(false);
+    },
+    onError: (err: Error) => toast(err.message || 'Passwortänderung fehlgeschlagen', 'error'),
   });
 
   function handleLangChange(code: string) {

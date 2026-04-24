@@ -82,6 +82,7 @@ export function BuchenV5({ navigate }: { navigate: (id: ScreenId) => void }) {
     queryKey: ['buchen-lots'],
     queryFn: async () => {
       const res = await api.getLots();
+      if (!res.success) throw new Error(res.error?.message ?? 'Parkplätze konnten nicht geladen werden');
       return res.data ?? [];
     },
     staleTime: 30_000,
@@ -92,6 +93,7 @@ export function BuchenV5({ navigate }: { navigate: (id: ScreenId) => void }) {
     queryKey: ['buchen-vehicles'],
     queryFn: async () => {
       const res = await api.getVehicles();
+      if (!res.success) throw new Error(res.error?.message ?? 'Fahrzeuge konnten nicht geladen werden');
       return res.data ?? [];
     },
     staleTime: 30_000,
@@ -106,6 +108,7 @@ export function BuchenV5({ navigate }: { navigate: (id: ScreenId) => void }) {
     enabled: !!selectedLot,
     queryFn: async () => {
       const res = await api.getLotSlots(selectedLot!.id);
+      if (!res.success) throw new Error(res.error?.message ?? 'Stellplätze konnten nicht geladen werden');
       return res.data ?? [];
     },
     staleTime: 15_000,
@@ -113,20 +116,22 @@ export function BuchenV5({ navigate }: { navigate: (id: ScreenId) => void }) {
   const slots = slotsResp ?? [];
 
   const createMutation = useMutation({
-    mutationFn: (payload: CreateBookingPayload) => api.createBooking(payload),
-    onSuccess: (res) => {
-      if (res.success) {
-        qc.invalidateQueries({ queryKey: ['buchungen'] });
-        toast('Buchung bestätigt', 'success');
-        navigate('buchungen');
-      } else {
+    mutationFn: async (payload: CreateBookingPayload) => {
+      const res = await api.createBooking(payload);
+      if (!res.success) {
         const msg = res.error?.code === 'INSUFFICIENT_CREDITS'
           ? 'Nicht genug Credits'
           : res.error?.message || 'Buchung fehlgeschlagen';
-        toast(msg, 'error');
+        throw new Error(msg);
       }
+      return res.data;
     },
-    onError: () => toast('Buchung fehlgeschlagen', 'error'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['buchungen'] });
+      toast('Buchung bestätigt', 'success');
+      navigate('buchungen');
+    },
+    onError: (err: Error) => toast(err.message || 'Buchung fehlgeschlagen', 'error'),
   });
 
   if (lotsLoading) {

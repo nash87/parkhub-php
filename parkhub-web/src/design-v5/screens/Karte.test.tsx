@@ -97,4 +97,10 @@ describe('KarteV5', () => {
     fireEvent.click(screen.getByText('Platz buchen'));
     expect(navigate).toHaveBeenCalledWith('buchen');
   });
+
+  it('surfaces query error when success:false', async () => {
+    mockGetMapMarkers.mockResolvedValue({ success: false, data: null, error: { code: 'FORBIDDEN', message: 'denied' } });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Fehler beim Laden')).toBeInTheDocument());
+  });
 });

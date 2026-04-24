@@ -93,7 +93,8 @@ describe('ProfilV5', () => {
     await waitFor(() => expect(screen.getByDisplayValue('Florian Kaiser')).toBeInTheDocument());
     fireEvent.change(screen.getByDisplayValue('Florian Kaiser'), { target: { value: 'Elly' } });
     fireEvent.click(screen.getByTestId('profil-save'));
-    await waitFor(() => expect(mockToast).toHaveBeenCalledWith('Speichern fehlgeschlagen', 'error'));
+    // onError now propagates the thrown Error's message; falls back to 'Speichern fehlgeschlagen' only if empty
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith('boom', 'error'));
   });
 
   it('submits password change when all fields valid', async () => {
@@ -131,5 +132,44 @@ describe('ProfilV5', () => {
     const themeBtns = screen.getAllByTestId('profil-theme');
     fireEvent.click(themeBtns[2]); // void
     expect(mockSetMode).toHaveBeenCalledWith('void');
+  });
+
+  it('surfaces query error when me() responds success:false', async () => {
+    mockMe.mockResolvedValue({ success: false, data: null, error: { code: 'UNAUTHENTICATED', message: 'login required' } });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Fehler beim Laden')).toBeInTheDocument());
+  });
+
+  it('calls onError (no success toast) when updateMe responds success:false', async () => {
+    mockMe.mockResolvedValue({ success: true, data: USER });
+    mockUpdateMe.mockResolvedValue({ success: false, data: null, error: { code: 'VALIDATION', message: 'email already in use' } });
+    renderScreen();
+    await waitFor(() => expect(screen.getByDisplayValue('Florian Kaiser')).toBeInTheDocument());
+    fireEvent.change(screen.getByDisplayValue('Florian Kaiser'), { target: { value: 'Elly' } });
+    fireEvent.click(screen.getByTestId('profil-save'));
+    await waitFor(() => {
+      expect(mockUpdateMe).toHaveBeenCalled();
+      expect(mockToast).toHaveBeenCalledWith('email already in use', 'error');
+    });
+    expect(mockToast).not.toHaveBeenCalledWith('Profil aktualisiert', 'success');
+  });
+
+  it('calls onError (no success toast) when changePassword responds success:false', async () => {
+    mockMe.mockResolvedValue({ success: true, data: USER });
+    mockChangePassword.mockResolvedValue({ success: false, data: null, error: { code: 'INVALID_PASSWORD', message: 'current password wrong' } });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Mein Profil')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('profil-pw-toggle'));
+    const pwInputs = document.querySelectorAll<HTMLInputElement>('input[type="password"]');
+    const [currentPw, newPw, confirmPw] = pwInputs;
+    fireEvent.change(currentPw, { target: { value: 'old-pass-12345' } });
+    fireEvent.change(newPw, { target: { value: 'brand-new-pass-12345' } });
+    fireEvent.change(confirmPw, { target: { value: 'brand-new-pass-12345' } });
+    fireEvent.click(screen.getByTestId('profil-pw-submit'));
+    await waitFor(() => {
+      expect(mockChangePassword).toHaveBeenCalled();
+      expect(mockToast).toHaveBeenCalledWith('current password wrong', 'error');
+    });
+    expect(mockToast).not.toHaveBeenCalledWith('Passwort geändert', 'success');
   });
 });

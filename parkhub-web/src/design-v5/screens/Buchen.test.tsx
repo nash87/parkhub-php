@@ -151,6 +151,31 @@ describe('BuchenV5', () => {
     await waitFor(() => expect(screen.getByTestId('buchen-confirm')).toBeInTheDocument());
     fireEvent.click(screen.getByTestId('buchen-confirm'));
 
-    await waitFor(() => expect(mockToast).toHaveBeenCalledWith('Buchung fehlgeschlagen', 'error'));
+    // onError now propagates the thrown Error's message; falls back to 'Buchung fehlgeschlagen' only if empty
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith('boom', 'error'));
+  });
+
+  it('surfaces query error when getLots responds success:false', async () => {
+    mockGetLots.mockResolvedValue({ success: false, data: null, error: { code: 'FORBIDDEN', message: 'denied' } });
+    renderScreen();
+    await waitFor(() => expect(screen.getByText('Fehler beim Laden')).toBeInTheDocument());
+  });
+
+  it('calls onError (no success toast) when createBooking responds success:false with INSUFFICIENT_CREDITS', async () => {
+    mockGetLots.mockResolvedValue({ success: true, data: [LOT_OPEN] });
+    mockGetLotSlots.mockResolvedValue({ success: true, data: [SLOT_A] });
+    mockCreateBooking.mockResolvedValue({ success: false, data: null, error: { code: 'INSUFFICIENT_CREDITS', message: 'no credits' } });
+    renderScreen();
+
+    await waitFor(() => expect(screen.getByText('Parkhaus Nord')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('buchen-lot-card'));
+    await waitFor(() => expect(screen.getByTestId('buchen-slot')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('buchen-slot'));
+    fireEvent.click(screen.getByRole('button', { name: /Weiter/ }));
+    await waitFor(() => expect(screen.getByTestId('buchen-confirm')).toBeInTheDocument());
+    fireEvent.click(screen.getByTestId('buchen-confirm'));
+
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith('Nicht genug Credits', 'error'));
+    expect(mockToast).not.toHaveBeenCalledWith('Buchung bestätigt', 'success');
   });
 });
