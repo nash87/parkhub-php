@@ -9,7 +9,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Changed
+
+- **Design v5 rollout complete**: all 26 navigation screens ship as real v5 components; the `<PlaceholderV5>` fallback has been retired and `SCREENS` is typed as a total `Record<ScreenId, …>` so regressions become compile-time errors.
+
+### Added
+
+- **Playwright `mobile-chrome` project**: `parkhub-web/playwright.config.ts` now registers a Pixel-5 viewport project so v5 specs can opt into mobile runs via `--project=mobile-chrome`, matching the parkhub-rust config.
 
 ---
 

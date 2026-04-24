@@ -39,6 +39,21 @@
 
 ---
 
+## Design v5 Status (26 / 26 screens shipped)
+
+| Surface | Status |
+|---------|--------|
+| **All navigation screens** | 26 / 26 ported to `parkhub-web/src/design-v5/` -- the `<PlaceholderV5>` fallback has been retired. |
+| **Themes** | OKLCH tokens across `marble_light`, `marble_dark`, `void`; self-hosted Inter-Variable keeps the LCP budget green. |
+| **Command Palette** | cmdk-powered, mounted globally, reachable from every route with `Cmd+K` / `Ctrl+K`. |
+| **Onboarding** | 3-step `/tour` wizard (Privacy -> Toggles -> Trust) guides first-time users before the Laravel app shell mounts. |
+| **Accessibility** | axe-core runs in CI on the v5 surfaces; keyboard-only nav verified for the full shell + AI panel. |
+| **Mobile** | Playwright now ships a `mobile-chrome` (Pixel 5) project so v5 specs can opt into mobile viewports on CI. |
+
+Live demo: <https://parkhub-php-demo.onrender.com>.
+
+---
+
 ## What's New in v4.13.0
 
 | Feature | Description |

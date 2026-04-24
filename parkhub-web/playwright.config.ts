@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test';
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e',
@@ -16,5 +16,8 @@ export default defineConfig({
   },
   projects: [
     { name: 'chromium', use: { browserName: 'chromium' } },
+    // Pixel 5 viewport — v5 specs opt into this project via
+    // `--project=mobile-chrome` for mobile-only happy paths.
+    { name: 'mobile-chrome', use: { ...devices['Pixel 5'] } },
   ],
 });
