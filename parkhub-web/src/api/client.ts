@@ -423,10 +423,19 @@ export const api = {
   // ── Calendar ──
   // Backend (both rust `CalendarQuery` and PHP `BookingCalendarController::calendarEvents`)
   // reads `from`/`to`. Sending `start`/`end` silently skips the filter → unbounded result set.
+  //
+  // Inclusive end-bound normalisation:
+  // The PHP backend applies `where('end_time', '<=', $to)`; when callers
+  // (e.g. `Kalender.tsx` / `Calendar.tsx`) pass a date-only `YYYY-MM-DD`,
+  // Laravel interprets it as `00:00:00` of that day and silently drops any
+  // booking ending later on the boundary day. We normalise a bare date here
+  // to end-of-day `23:59:59` so the filter is inclusive of the entire
+  // selected final day. Full-datetime inputs pass through untouched so
+  // direct-call consumers can override the window precisely.
   calendarEvents: (from: string, to: string) => {
     const params = new URLSearchParams();
     params.set('from', from);
-    params.set('to', to);
+    params.set('to', /^\d{4}-\d{2}-\d{2}$/.test(to) ? `${to} 23:59:59` : to);
     return request<CalendarEvent[]>(`/api/v1/calendar/events?${params.toString()}`);
   },
   generateCalendarToken: () =>

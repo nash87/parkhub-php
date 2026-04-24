@@ -787,16 +787,36 @@ describe('API client', () => {
     expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('/api/v1/notifications/read-all');
   });
 
-  it('calls calendarEvents with from/to query params (not start/end — backend ignores those)', async () => {
+  it('calls calendarEvents with from/to query params, normalising bare-date to to end-of-day (inclusive)', async () => {
+    // Regression for PR #335: the PHP backend filter is `end_time <= $to`;
+    // when `to` is a date-only `YYYY-MM-DD`, Laravel interprets it as
+    // midnight and silently drops bookings ending later on the boundary day.
+    // The client normalises to `YYYY-MM-DD 23:59:59` so the filter is
+    // inclusive of the entire selected day.
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true, status: 200,
       json: () => Promise.resolve({ success: true, data: [] }),
     });
     await api.calendarEvents('2026-01-01', '2026-01-31');
     const url = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
-    expect(url).toBe('/api/v1/calendar/events?from=2026-01-01&to=2026-01-31');
+    const parsed = new URL(url, 'http://localhost');
+    expect(parsed.pathname).toBe('/api/v1/calendar/events');
+    expect(parsed.searchParams.get('from')).toBe('2026-01-01');
+    expect(parsed.searchParams.get('to')).toBe('2026-01-31 23:59:59');
     expect(url).not.toMatch(/[?&]start=/);
     expect(url).not.toMatch(/[?&]end=/);
+  });
+
+  it('passes full-datetime to values through calendarEvents untouched', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: () => Promise.resolve({ success: true, data: [] }),
+    });
+    await api.calendarEvents('2026-01-01 08:00:00', '2026-01-31 17:30:00');
+    const url = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][0] as string;
+    const parsed = new URL(url, 'http://localhost');
+    expect(parsed.searchParams.get('from')).toBe('2026-01-01 08:00:00');
+    expect(parsed.searchParams.get('to')).toBe('2026-01-31 17:30:00');
   });
 
   it('calls generateCalendarToken', async () => {
