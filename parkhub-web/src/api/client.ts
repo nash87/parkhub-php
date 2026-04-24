@@ -371,6 +371,15 @@ export const api = {
   adminUpdateSettings: (data: Record<string, string>) =>
     request('/api/v1/admin/settings', { method: 'PUT', body: JSON.stringify(data) }),
 
+  // ── Admin Cost-Center Billing (routes/modules/cost_center.php) ──
+  // Admin-only aggregates for tenant-wide finance reporting. The v5 Billing
+  // screen surfaces these instead of the personal `/payments/history` feed.
+  // PHP gate: `admin` middleware + `module:cost_center` guard.
+  adminBillingByCostCenter: () =>
+    request<AdminCostCenterSummary[]>('/api/v1/admin/billing/by-cost-center'),
+  adminBillingByDepartment: () =>
+    request<AdminDepartmentSummary[]>('/api/v1/admin/billing/by-department'),
+
   // ── Admin Modules (T-1720 v2 — runtime enable/disable) ──
   patchModule: (name: string, runtime_enabled: boolean) =>
     request<ModuleInfo>(`/api/v1/admin/modules/${encodeURIComponent(name)}`, {
@@ -964,6 +973,33 @@ export interface PaymentHistoryEntry {
 export interface StripeConfigResponse {
   publishable_key?: string;
   configured: boolean;
+}
+
+/**
+ * Admin cost-center billing aggregate — matches the PHP
+ * `BillingController::byCostCenter` response shape (routes/modules/cost_center.php).
+ * Amount is in whole currency units (float), not cents.
+ */
+export interface AdminCostCenterSummary {
+  cost_center: string;
+  department: string;
+  user_count: number;
+  total_bookings: number;
+  total_credits_used: number;
+  total_amount: number;
+  currency: string;
+}
+
+/**
+ * Admin department billing aggregate — matches `BillingController::byDepartment`.
+ */
+export interface AdminDepartmentSummary {
+  department: string;
+  user_count: number;
+  total_bookings: number;
+  total_credits_used: number;
+  total_amount: number;
+  currency: string;
 }
 
 export interface UserStats {
