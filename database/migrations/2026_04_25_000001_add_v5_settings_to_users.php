@@ -16,7 +16,8 @@ use Illuminate\Support\Facades\Schema;
  *
  * `null` means "user hasn't customized yet" — clients fall back to defaults.
  */
-return new class extends Migration {
+return new class extends Migration
+{
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {

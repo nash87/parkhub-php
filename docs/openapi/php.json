@@ -3912,6 +3912,13 @@
           "role": {
             "type": "string"
           },
+          "settings": {
+            "items": {},
+            "type": [
+              "array",
+              "null"
+            ]
+          },
           "tenant_id": {
             "type": [
               "string",
@@ -3959,7 +3966,8 @@
           "ical_token",
           "tenant_id",
           "accessibility_needs",
-          "cost_center"
+          "cost_center",
+          "settings"
         ],
         "title": "User",
         "type": "object"
@@ -30004,6 +30012,146 @@
         "summary": "GET /api/v1/me/passes — list all active passes for current user",
         "tags": [
           "ParkingPass"
+        ]
+      }
+    },
+    "/v1/me/settings": {
+      "get": {
+        "operationId": "auth.getMySettings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {},
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "GET /api/v1/me/settings — return the authenticated user's v5\ncustomization blob. Returns `null` when the user has never\ncustomized; clients fall back to factory defaults",
+        "tags": [
+          "Auth"
+        ]
+      },
+      "put": {
+        "description": "Body: `{ \"settings\": { ... } }` — schema is opaque to the server.\nValidation is structural only (must be a JSON object, capped size);\nthe frontend's V5SettingsProvider.migrate() owns shape correctness.",
+        "operationId": "auth.updateMySettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "settings": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "settings"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {},
+                      "type": [
+                        "array",
+                        "null"
+                      ]
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "const": "PAYLOAD_TOO_LARGE",
+                          "type": "string"
+                        },
+                        "message": {
+                          "const": "Einstellungen-Blob darf 32 KB nicht überschreiten.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        },
+        "summary": "PUT /api/v1/me/settings — replace the user's v5 settings blob",
+        "tags": [
+          "Auth"
         ]
       }
     },
