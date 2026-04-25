@@ -23,7 +23,13 @@ pre-commit:
 
     lint-ts:
       glob: "parkhub-web/**/*.{ts,tsx,js,jsx}"
-      run: cd parkhub-web && npx --no-install biome check --no-errors-on-unmatched {staged_files}
+      root: "parkhub-web/"
+      # Skip cleanly until Biome is installed; the previous version ran
+      # `npx --no-install biome check` even when @biomejs/biome was missing,
+      # which silently no-op'd the gate on fresh clones.
+      skip:
+        - run: test ! -d node_modules/@biomejs/biome
+      run: npx --no-install biome check --no-errors-on-unmatched {staged_files}
       stage_fixed: true
       fail_text: "Biome found issues. Run `cd parkhub-web && npx biome check --write` to auto-fix."
 
@@ -32,8 +38,13 @@ pre-commit:
       glob: "parkhub-web/**/*.{ts,tsx}"
       # tsc --noEmit is project-wide; we cannot pass {staged_files}
       # because TS resolves the whole module graph. Still cheap (~5s).
+      # Skip clauses keep the gate non-fatal on fresh clones — without
+      # them `npx tsc` would silently fall back to npm-package "tsc"@2.0.4
+      # (Steve Sanderson's 2014 transpiler shim) which exits 0 unconditionally.
+      skip:
+        - run: test ! -f ../node_modules/typescript/package.json
       run: npx --no-install tsc --noEmit
-      fail_text: "TypeScript errors in parkhub-web."
+      fail_text: "TypeScript errors in parkhub-web. Run `npm install` at the root if typescript is missing."
 
 pre-push:
   parallel: true
@@ -51,7 +62,10 @@ pre-push:
     vitest:
       root: parkhub-web/
       # --changed runs only tests affected by uncommitted/changed files.
-      # On a clean branch this falls back to the full suite.
+      # On a clean branch this falls back to the full suite. Skip cleanly
+      # if vitest hasn't been installed locally yet.
+      skip:
+        - run: test ! -d node_modules/vitest
       run: npx --no-install vitest --run --changed
       fail_text: "Frontend tests failing in parkhub-web."
 
