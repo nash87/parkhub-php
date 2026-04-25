@@ -5,6 +5,9 @@
   "engines": {
     "node": ">=22.12.0"
   },
+  "overrides": {
+    "uuid": "^14.0.0"
+  },
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
