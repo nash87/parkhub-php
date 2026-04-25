@@ -20,13 +20,23 @@ cd "$REPO_ROOT"
 SNAPSHOT="docs/openapi/php.json"
 DUMP="scripts/dump-openapi.sh"
 DUMP_BACKUP=""
+SNAPSHOT_BACKUP=""
+
+# Save the current snapshot file (may contain WIP edits) so we can restore
+# byte-for-byte after the test mutates it. NEVER use `git checkout` here —
+# it would silently discard a developer's unrelated in-progress changes.
+SNAPSHOT_BACKUP="$(mktemp)"
+cp -p "$SNAPSHOT" "$SNAPSHOT_BACKUP"
 
 cleanup() {
     if [[ -n "$DUMP_BACKUP" && -f "$DUMP_BACKUP" ]]; then
         cp -p "$DUMP_BACKUP" "$DUMP"
         rm -f "$DUMP_BACKUP"
     fi
-    git checkout -- "$SNAPSHOT" 2>/dev/null || true
+    if [[ -n "$SNAPSHOT_BACKUP" && -f "$SNAPSHOT_BACKUP" ]]; then
+        cp -p "$SNAPSHOT_BACKUP" "$SNAPSHOT"
+        rm -f "$SNAPSHOT_BACKUP"
+    fi
 }
 trap cleanup EXIT
 
