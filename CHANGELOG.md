@@ -9,6 +9,15 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+---
+
+## [4.14.0] - 2026-04-25
+
+Minor bump catching up with parkhub-rust 4.14.x baseline (the parity-governance
+target — both runtimes should publish the same version surface). Ships the
+v5 customization framework, branding alignment, and a wide CI/security/test-
+infrastructure cleanup pass on top of the 4.13 patch series.
+
 ### Changed
 
 - **Design v5 rollout complete**: all 26 navigation screens ship as real v5 components; the `<PlaceholderV5>` fallback has been retired and `SCREENS` is typed as a total `Record<ScreenId, …>` so regressions become compile-time errors.
@@ -21,8 +30,12 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 - **CI security swap** — trufflehog (AGPL) replaced by gitleaks binary direct (MIT) (#365).
 - **CodeQL** — actions language analysis split into its own job (#364).
 - **uuid override** — pinned to ^14 to close GHSA-w5hq-g745-h8pq (#367).
-- **Deps** — tailwind pinned past 4.2.4 vite regression (#366).
+- **Deps** — tailwind pinned past 4.2.4 vite regression (#366); Dependabot cooldown 5/10/15-day defaults (#371).
 - **Policies fix** — `Policies.tsx` draft effect re-keyed on `activeId` only; previous dependency on the `active` object reference clobbered in-flight edits on every render (#370).
+- **Analytics test fix** — wait for lazy `UPlotChart` canvases before counting (#376).
+- **typescript devDep + @astrojs/check** installed so `npx tsc` / `astro check` actually run instead of silently passing on missing tools (#374, lefthook hardening #378).
+- **Phase 1–4b tsc cleanup** — typed `firstCall`/`nthCall` helpers in `client.test.ts` (#375), `wsAt` helper in `useWebSocket.test.ts` (#377), plus admin/EV view-test pattern cleanup (#379, #380). Drives the parkhub-web tsc baseline from 546 → ~370 errors.
+- **parity-governance.md** aligned with rust canonical text (#372 docs cleanup; broader sync via parkhub-rust#413).
 
 ---
 
