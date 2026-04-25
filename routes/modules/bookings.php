@@ -27,6 +27,10 @@ Route::middleware(['module:bookings', 'auth:sanctum', 'throttle:api'])->group(fu
     Route::post('/bookings/quick', [BookingController::class, 'quickBook']);
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::post('/bookings', [BookingController::class, 'store']);
+    // Tier-2 item 9 — single-booking .ics download.
+    // MUST come before the /bookings/{id} catch-all, otherwise Laravel
+    // matches `<uuid>.ics` against {id} and 404s the calendar download.
+    Route::get('/bookings/{id}.ics', [BookingCalendarController::class, 'icalSingle']);
     Route::get('/bookings/{id}', [BookingController::class, 'show']);
     Route::delete('/bookings/{id}', [BookingController::class, 'destroy']);
     Route::put('/bookings/{id}/notes', [BookingController::class, 'updateNotes']);
@@ -43,8 +47,6 @@ Route::middleware(['module:bookings', 'auth:sanctum', 'throttle:api'])->group(fu
 
     // iCal feed
     Route::get('/bookings/ical', [BookingCalendarController::class, 'ical']);
-    // Tier-2 item 9 — single-booking .ics download
-    Route::get('/bookings/{id}.ics', [BookingCalendarController::class, 'icalSingle']);
 
     // Admin bookings
     Route::middleware('admin')->prefix('admin')->group(function () {
