@@ -198,6 +198,70 @@ npx tsc --noEmit                    # Type check
 
 ---
 
+## Local CI (Lefthook)
+
+ParkHub runs the same gates locally that GitHub Actions runs remotely. The
+goal is to catch 90%+ of CI failures before push so the 15-30 min round-trip
+is reserved for genuinely cross-cutting checks.
+
+### One-time setup
+
+```bash
+composer install                    # installs lefthook via composer post-install
+cd parkhub-web && npm install && cd ..
+lefthook install                    # registers .git/hooks/pre-commit + pre-push
+```
+
+If `lefthook` is not on `$PATH`, install it from
+[https://lefthook.dev](https://lefthook.dev) (Linux/macOS: `brew install lefthook`
+or `npm i -g lefthook`).
+
+### What runs when
+
+| Hook | Speed | Commands |
+|------|-------|----------|
+| `pre-commit` | <10s typical | Pint format check, ESLint (changed files), `tsc --noEmit` |
+| `pre-push` | <60s typical | PHPStan, PHPUnit Unit suite, Vitest (changed), OpenAPI drift, types drift |
+
+Pre-commit runs on staged files only. Pre-push runs the full gate set in
+parallel and is the local mirror of the GitHub Actions pipeline.
+
+### Replaying CI locally
+
+```bash
+lefthook run pre-commit             # Same as committing, without committing
+lefthook run pre-push               # Full local CI replay
+```
+
+### Drift gates
+
+* `scripts/check-openapi-drift.sh` regenerates `docs/openapi/php.json` via
+  Scramble and fails if the committed snapshot is stale. Always run
+  `composer dump-autoload` first — Scramble silently drops endpoints when
+  the autoload map is out of date.
+* `scripts/check-types-drift.sh` is a no-op in this repo. The shared TS API
+  types live in `parkhub-web/src/api/types.gen.ts` and are owned by the
+  parkhub-rust repo; that repo's pre-push gates the regen.
+
+### Bypassing in emergencies
+
+```bash
+git push --no-verify                # Skip pre-push (logged + frowned-upon)
+git commit --no-verify              # Skip pre-commit
+```
+
+Use only when you have a justified reason (broken hook, time-critical
+hotfix). CI will still run the full gate set on the PR.
+
+### Operator action required (one-time)
+
+Mergify (`.mergify.yml`) is checked into the repo but the GitHub App must be
+enabled on `nash87/parkhub-php` via the
+[Mergify dashboard](https://dashboard.mergify.com) before merge-queue and
+auto-merge actions take effect. Until then, the file is inert.
+
+---
+
 ## Branch Naming Conventions
 
 Use the following prefixes for branch names:

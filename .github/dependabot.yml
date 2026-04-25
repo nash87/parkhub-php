@@ -12,37 +12,42 @@ updates:
     labels: ["dependencies", "ci"]
     open-pull-requests-limit: 5
 
-  # npm (frontend)
+  # npm (root tooling)
+  # Minor + patch grouped, majors ungrouped for individual review.
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
     groups:
-      npm-tooling-minor-patch:
+      npm-tooling-deps:
+        patterns: ["*"]
         update-types: ["minor", "patch"]
     labels: ["dependencies", "ci"]
     open-pull-requests-limit: 5
 
+  # npm (parkhub-web frontend)
   - package-ecosystem: "npm"
     directory: "/parkhub-web"
     schedule:
       interval: "weekly"
       day: "monday"
     groups:
-      npm-minor-patch:
+      npm-deps:
+        patterns: ["*"]
         update-types: ["minor", "patch"]
     labels: ["dependencies", "frontend"]
     open-pull-requests-limit: 5
 
-  # Composer (PHP)
+  # Composer (PHP) — minor + patch grouped, majors ungrouped.
   - package-ecosystem: "composer"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
     groups:
-      composer-minor-patch:
+      composer-deps:
+        patterns: ["*"]
         update-types: ["minor", "patch"]
     labels: ["dependencies", "php"]
     open-pull-requests-limit: 5

@@ -1,0 +1,64 @@
+# Lefthook config — local-first CI for parkhub-php
+#
+# Goal: catch 90%+ of CI failures before push so the GitHub Actions
+# round-trip (15-30 min) is reserved for genuinely cross-cutting checks.
+#
+# Pre-commit runs only on staged files and stays fast (<10s typical).
+# Pre-push runs the heavier gates (PHPStan, PHPUnit unit suite, vitest,
+# OpenAPI/types drift) in parallel.
+#
+# Bypass in emergencies with `git push --no-verify`. Logged + frowned-upon.
+# Full local replay: `lefthook run pre-push`.
+
+min_version: 1.7.0
+
+pre-commit:
+  parallel: true
+  commands:
+    fmt-php:
+      glob: "**/*.php"
+      run: ./vendor/bin/pint --test {staged_files}
+      stage_fixed: true
+      fail_text: "Pint format violations. Fix with: ./vendor/bin/pint"
+
+    lint-ts:
+      root: parkhub-web/
+      glob: "parkhub-web/**/*.{ts,tsx}"
+      run: npx --no-install eslint --max-warnings=0 {staged_files}
+      fail_text: "ESLint errors in parkhub-web. Fix lints or run: cd parkhub-web && npx eslint --fix"
+
+    typecheck-ts:
+      root: parkhub-web/
+      glob: "parkhub-web/**/*.{ts,tsx}"
+      # tsc --noEmit is project-wide; we cannot pass {staged_files}
+      # because TS resolves the whole module graph. Still cheap (~5s).
+      run: npx --no-install tsc --noEmit
+      fail_text: "TypeScript errors in parkhub-web."
+
+pre-push:
+  parallel: true
+  commands:
+    phpstan:
+      run: ./vendor/bin/phpstan analyse --memory-limit=2G --no-progress
+      fail_text: "PHPStan errors. Fix violations or update phpstan-baseline.neon if intentional."
+
+    phpunit-fast:
+      # Only the Unit suite — Feature/Integration/Simulation run on CI
+      # to keep the local pre-push loop under ~30s.
+      run: ./vendor/bin/phpunit --testsuite=Unit --stop-on-failure
+      fail_text: "Unit tests failing locally. Fix before push or CI will reject."
+
+    vitest:
+      root: parkhub-web/
+      # --changed runs only tests affected by uncommitted/changed files.
+      # On a clean branch this falls back to the full suite.
+      run: npx --no-install vitest --run --changed
+      fail_text: "Frontend tests failing in parkhub-web."
+
+    openapi-drift:
+      run: scripts/check-openapi-drift.sh
+      fail_text: "OpenAPI spec drift detected. See script output."
+
+    types-drift:
+      run: scripts/check-types-drift.sh
+      fail_text: "TypeScript types drift detected. See script output."
