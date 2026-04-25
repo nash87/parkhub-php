@@ -79,7 +79,7 @@ describe('EVChargingPage', () => {
   beforeEach(() => {
     mockUseTheme.mockReset();
     mockUseTheme.mockReturnValue({ designTheme: 'marble' });
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/chargers/sessions')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
       }
@@ -135,7 +135,7 @@ describe('AdminChargersPage', () => {
   beforeEach(() => {
     mockUseTheme.mockReset();
     mockUseTheme.mockReturnValue({ designTheme: 'marble' });
-    global.fetch = vi.fn(() =>
+    (global as any).fetch = vi.fn(() =>
       Promise.resolve({ json: () => Promise.resolve({ success: true, data: { total_chargers: 8, available: 5, in_use: 2, offline: 1, total_sessions: 120, total_kwh: 1500.5 } }) } as Response)
     );
   });
@@ -170,7 +170,7 @@ describe('EVChargingPage - extended', () => {
   afterEach(() => vi.restoreAllMocks());
 
   it('shows empty chargers state', async () => {
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/chargers/sessions')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
       }
@@ -187,7 +187,7 @@ describe('EVChargingPage - extended', () => {
   });
 
   it('shows help text', async () => {
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/lots')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [{ id: 'lot-1', name: 'Main Lot' }] }) } as Response);
       }
@@ -218,7 +218,7 @@ describe('EVChargingPage - extended', () => {
       }
       return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
     });
-    global.fetch = mockFetch;
+    (global as any).fetch = mockFetch;
     render(<EVChargingPage />);
     await waitFor(() => expect(screen.getByText('Start Charging')).toBeTruthy());
     fireEvent.click(screen.getByText('Start Charging'));
@@ -227,7 +227,7 @@ describe('EVChargingPage - extended', () => {
 
   it('start charging failure', async () => {
 
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/start')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: false, error: { message: 'Busy' } }) } as Response);
       }
@@ -252,7 +252,7 @@ describe('EVChargingPage - extended', () => {
 
   it('start charging network error', async () => {
 
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/start')) {
         return Promise.reject(new Error('net'));
       }
@@ -277,7 +277,7 @@ describe('EVChargingPage - extended', () => {
 
   it('stops charging with active session', async () => {
     const sessions = [{ id: 'ses1', charger_id: 'ch1', user_id: 'u1', start_time: '2026-04-10T08:00:00Z', end_time: null, kwh_consumed: 5.5, status: 'active' }];
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/stop')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true }) } as Response);
       }
@@ -303,7 +303,7 @@ describe('EVChargingPage - extended', () => {
   it('stop charging failure', async () => {
 
     const sessions = [{ id: 'ses1', charger_id: 'ch1', user_id: 'u1', start_time: '2026-04-10T08:00:00Z', end_time: null, kwh_consumed: 5, status: 'active' }];
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/stop')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: false, error: { message: 'Cannot stop' } }) } as Response);
       }
@@ -330,7 +330,7 @@ describe('EVChargingPage - extended', () => {
     const sessions = [
       { id: 'ses1', charger_id: 'ch1', user_id: 'u1', start_time: '2026-04-08T08:00:00Z', end_time: '2026-04-08T10:00:00Z', kwh_consumed: 15.3, status: 'completed' },
     ];
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/chargers/sessions')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: sessions }) } as Response);
       }
@@ -348,7 +348,7 @@ describe('EVChargingPage - extended', () => {
   });
 
   it('lot selector changes chargers', async () => {
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/chargers/sessions')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
       }
@@ -372,7 +372,7 @@ describe('EVChargingPage - extended', () => {
   });
 
   it('shows location hint when present', async () => {
-    global.fetch = vi.fn((url: string) => {
+    (global as any).fetch = vi.fn((url: string) => {
       if (typeof url === 'string' && url.includes('/chargers/sessions')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: [] }) } as Response);
       }
