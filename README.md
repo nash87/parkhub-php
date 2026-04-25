@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml"><img src="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v4.13.0-brightgreen.svg?style=flat-square" alt="v4.13.0"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v4.13.4-brightgreen.svg?style=flat-square" alt="v4.13.4"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="MIT License"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg?style=flat-square&logo=php&logoColor=white" alt="PHP 8.4"></a>
   <a href="https://laravel.com/"><img src="https://img.shields.io/badge/Laravel-13-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 13"></a>
@@ -68,7 +68,7 @@
 | **Themes** | OKLCH tokens across `marble_light`, `marble_dark`, `void`; self-hosted Inter-Variable keeps the LCP budget green. |
 | **Command Palette** | cmdk-powered, mounted globally, reachable from every route with `Cmd+K` / `Ctrl+K`. |
 | **Onboarding** | 3-step `/tour` wizard (Privacy -> Toggles -> Trust) guides first-time users before the Laravel app shell mounts. |
-| **Accessibility** | axe-core runs in CI on the v5 surfaces; keyboard-only nav verified for the full shell + AI panel. |
+| **Accessibility** | axe-core runs in CI on the v5 surfaces; keyboard-only nav verified for the full shell + Assistent panel. |
 | **Mobile** | Playwright now ships a `mobile-chrome` (Pixel 5) project so v5 specs can opt into mobile viewports on CI. |
 
 Live demo: <https://parkhub-php-demo.onrender.com>.

@@ -159,8 +159,9 @@ primitives ([docs.github.com/en/actions](https://docs.github.com/en/actions)):
 - **CodeQL** — `codeql.yml` currently scans the JS/TS surfaces on every PR.
 - **Dependency review** — PRs run `actions/dependency-review-action`, and the
   result is now folded into the main `required` gate in `ci.yml`.
-- **Secret scan** — trufflehog (`security.yml`) on every PR; composer audit
-  weekly; Trivy FS + image scan on every Dockerfile change.
+- **Secret scan** — `gitleaks` (MIT) binary direct in `security.yml` on every
+  PR over the full git history; replaced trufflehog (AGPL) on 2026-04-25 (#365).
+  Composer audit weekly; Trivy FS + image scan on every Dockerfile change.
 - **Artifact attestations** — `docker/build-push-action@v7` chains
   `actions/attest-build-provenance@v4` to publish SLSA v1 provenance for every
   pushed image. See

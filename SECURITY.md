@@ -115,7 +115,7 @@ matrix + verification commands.
 - **`npm audit --omit=dev`** runs nightly; production JS dependencies are kept on known-clean versions.
 - **`roave/security-advisories`** is a `require-dev` dependency, which blocks `composer install` from bringing in a Composer package that has a published CVE.
 - **Trivy** filesystem scan (`vuln,misconfig`) runs on every push and nightly, uploading SARIF to the GitHub Security tab.
-- **`trufflehog`** secret scan runs on every push over the full git history; it reports only verified/unknown credentials to keep false positives low.
+- **`gitleaks`** (MIT) secret scan runs on every push over the full git history. Replaced trufflehog (AGPL) on 2026-04-25 (#365) — invoked as the upstream binary directly (gitleaks-action wrapper switched to a proprietary EULA in v2).
 - **Docker images** are built with `provenance: mode=max, sbom: true` and signed via `actions/attest-build-provenance`, giving SLSA L3 attestations downloadable from the release assets.
 
 ## Full Security Documentation

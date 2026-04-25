@@ -16,6 +16,13 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ### Added
 
 - **Playwright `mobile-chrome` project**: `parkhub-web/playwright.config.ts` now registers a Pixel-5 viewport project so v5 specs can opt into mobile runs via `--project=mobile-chrome`, matching the parkhub-rust config.
+- **Customization Framework v5** — settings, sidebar variants, density, fonts, feature toggles, `deepLinking` gate (#353).
+- **Branding alignment** — user-facing v5 strings switched from "KI"/"AI" to "Assistent" (#355).
+- **CI security swap** — trufflehog (AGPL) replaced by gitleaks binary direct (MIT) (#365).
+- **CodeQL** — actions language analysis split into its own job (#364).
+- **uuid override** — pinned to ^14 to close GHSA-w5hq-g745-h8pq (#367).
+- **Deps** — tailwind pinned past 4.2.4 vite regression (#366).
+- **Policies fix** — `Policies.tsx` draft effect re-keyed on `activeId` only; previous dependency on the `active` object reference clobbered in-flight edits on every render (#370).
 
 ---
 
