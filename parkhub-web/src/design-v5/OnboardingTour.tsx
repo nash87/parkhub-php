@@ -372,7 +372,17 @@ function TourInner() {
     if (typeof window === 'undefined') return {};
     try {
       const stored = window.localStorage.getItem(STORAGE_PREFS);
-      if (stored) return JSON.parse(stored) as Record<string, boolean>;
+      if (stored) {
+        const parsed = JSON.parse(stored) as Record<string, boolean>;
+        // Back-compat: the old toggle id was `ai_suggestions`; PR #355
+        // renamed it to `smart_suggestions` to drop the AI/KI branding.
+        // Migrate the persisted value forward so users who opted-in
+        // before don't silently fall back to the new default.
+        if (parsed.ai_suggestions !== undefined && parsed.smart_suggestions === undefined) {
+          parsed.smart_suggestions = parsed.ai_suggestions;
+        }
+        return parsed;
+      }
     } catch {
       /* ignore corrupted prefs */
     }

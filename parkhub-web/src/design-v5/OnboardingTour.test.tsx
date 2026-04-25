@@ -86,6 +86,21 @@ describe('OnboardingTour', () => {
     const stored = JSON.parse(window.localStorage.getItem('parkhub_onboarding_v5_prefs') || '{}');
     expect(Object.keys(stored).length).toBeGreaterThan(0);
   });
+
+  it('migrates pre-existing ai_suggestions value forward to smart_suggestions', () => {
+    // Simulate user who already opted-in under the old toggle id.
+    window.localStorage.setItem(
+      'parkhub_onboarding_v5_prefs',
+      JSON.stringify({ ai_suggestions: true }),
+    );
+    renderTour();
+    // advance to the features step so the persistence effect runs
+    fireEvent.click(screen.getByRole('button', { name: /Weiter/i }));
+    const stored = JSON.parse(
+      window.localStorage.getItem('parkhub_onboarding_v5_prefs') || '{}',
+    );
+    expect(stored.smart_suggestions).toBe(true);
+  });
 });
 
 describe('hasSeenOnboardingTour / markOnboardingTourSeen', () => {
