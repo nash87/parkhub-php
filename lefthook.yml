@@ -22,10 +22,10 @@ pre-commit:
       fail_text: "Pint format violations. Fix with: ./vendor/bin/pint"
 
     lint-ts:
-      root: parkhub-web/
-      glob: "parkhub-web/**/*.{ts,tsx}"
-      run: npx --no-install eslint --max-warnings=0 {staged_files}
-      fail_text: "ESLint errors in parkhub-web. Fix lints or run: cd parkhub-web && npx eslint --fix"
+      glob: "parkhub-web/**/*.{ts,tsx,js,jsx}"
+      run: cd parkhub-web && npx --no-install biome check --no-errors-on-unmatched {staged_files}
+      stage_fixed: true
+      fail_text: "Biome found issues. Run `cd parkhub-web && npx biome check --write` to auto-fix."
 
     typecheck-ts:
       root: parkhub-web/

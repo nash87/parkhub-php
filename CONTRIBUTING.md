@@ -188,13 +188,21 @@ ParkHub uses [Laravel Pint](https://laravel.com/docs/pint) for PHP code formatti
 Fix all Larastan errors before submitting a PR. The baseline file (`phpstan-baseline.neon`)
 contains known issues that are being addressed over time.
 
-### Frontend -- ESLint + TypeScript
+### Frontend -- Biome + TypeScript
+
+ParkHub uses [Biome](https://biomejs.dev) for frontend lint + format. Biome is a
+single Rust-native binary that replaces ESLint and Prettier (~25x faster) and
+ships under MIT OR Apache-2.0.
 
 ```bash
 cd parkhub-web
-npx eslint src/                     # Lint frontend code
+npx biome check src/                # Lint + format check
+npx biome check --write src/        # Auto-fix
 npx tsc --noEmit                    # Type check
 ```
+
+Configuration lives in `parkhub-web/biome.json`. The lefthook `lint-ts` hook
+runs `biome check` against staged files and re-stages auto-fixed output.
 
 ---
 
@@ -220,7 +228,7 @@ or `npm i -g lefthook`).
 
 | Hook | Speed | Commands |
 |------|-------|----------|
-| `pre-commit` | <10s typical | Pint format check, ESLint (changed files), `tsc --noEmit` |
+| `pre-commit` | <10s typical | Pint format check, Biome check (changed files, auto-fix re-staged), `tsc --noEmit` |
 | `pre-push` | <60s typical | PHPStan, PHPUnit Unit suite, Vitest (changed), OpenAPI drift, types drift |
 
 Pre-commit runs on staged files only. Pre-push runs the full gate set in
@@ -253,12 +261,30 @@ git commit --no-verify              # Skip pre-commit
 Use only when you have a justified reason (broken hook, time-critical
 hotfix). CI will still run the full gate set on the PR.
 
-### Operator action required (one-time)
+---
 
-Mergify (`.mergify.yml`) is checked into the repo but the GitHub App must be
-enabled on `nash87/parkhub-php` via the
-[Mergify dashboard](https://dashboard.mergify.com) before merge-queue and
-auto-merge actions take effect. Until then, the file is inert.
+## Merge Queue
+
+ParkHub uses GitHub's **native merge queue** (GA since 2023) -- no third-party
+SaaS required. Activate it once via:
+
+> Settings -> Branches -> Branch protection rules -> select the rule for `main` ->
+> check **Require merge queue**.
+
+Configure the required status checks (`CI`, `CodeQL`, etc.) in the same UI.
+There is no config file in the repo for this; it is a native GitHub feature
+managed entirely through repository settings.
+
+## Auto-merge
+
+To opt a PR into auto-merge, apply the **`auto-merge`** label. The
+`.github/workflows/auto-merge.yml` workflow then enables GitHub's native
+auto-merge, which squash-merges the PR once all required status checks pass
+and any required review approvals land.
+
+The workflow runs on `pull_request_target` so it works for Dependabot PRs and
+forks. Permissions are scoped to `pull-requests: write` + `contents: write`
+only -- no third-party app installation required.
 
 ---
 
