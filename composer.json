@@ -91,7 +91,7 @@
             "@php artisan package:discover --ansi"
         ],
         "lefthook:install": [
-            "@php -r \"if (file_exists('vendor/bin/lefthook')) { passthru('vendor/bin/lefthook install'); exit; } $rc=0; passthru('lefthook install', $rc); if ($rc !== 0) { fwrite(STDERR, \\\"warning: lefthook not found on PATH or in vendor/bin; install it from https://lefthook.dev to enable local CI hooks\\n\\\"); }\""
+            "@php bin/post-install.php"
         ],
         "post-install-cmd": [
             "@lefthook:install"
