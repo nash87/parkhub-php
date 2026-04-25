@@ -1,14 +1,21 @@
 version: 2
 updates:
-  # GitHub Actions — group all action bumps into one PR
+  # GitHub Actions — group all minor + patch action bumps. Major bumps
+  # remain individual so workflow YAML can be reviewed action-by-action.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
     groups:
-      actions:
+      github-actions:
         patterns: ["*"]
+        update-types: ["minor", "patch"]
+    cooldown:
+      default-days: 5
+      semver-patch-days: 5
+      semver-minor-days: 10
+      semver-major-days: 15
     labels: ["dependencies", "ci"]
     open-pull-requests-limit: 5
 
@@ -24,14 +31,19 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     ignore:
-      # tailwindcss 4.2.4 / @tailwindcss/vite 4.2.4 ship a vite build
+      # tailwindcss + @tailwindcss/vite 4.2.3 and 4.2.4 ship a vite build
       # regression: "Missing field tsconfigPaths on
-      # BindingViteResolvePluginConfig.resolveOptions". Pin past it
-      # until 4.2.5+ is released. Drop these entries once upstream ships.
+      # BindingViteResolvePluginConfig.resolveOptions". Pin past them
+      # until 4.2.5+ is verified green. Drop once upstream ships fix.
       - dependency-name: "tailwindcss"
-        versions: ["4.2.4"]
+        versions: [">=4.2.3 <4.2.5"]
       - dependency-name: "@tailwindcss/vite"
-        versions: ["4.2.4"]
+        versions: [">=4.2.3 <4.2.5"]
+    cooldown:
+      default-days: 5
+      semver-patch-days: 5
+      semver-minor-days: 10
+      semver-major-days: 15
     labels: ["dependencies", "ci"]
     open-pull-requests-limit: 5
 
@@ -46,14 +58,19 @@ updates:
         patterns: ["*"]
         update-types: ["minor", "patch"]
     ignore:
-      # tailwindcss 4.2.4 / @tailwindcss/vite 4.2.4 ship a vite build
+      # tailwindcss + @tailwindcss/vite 4.2.3 and 4.2.4 ship a vite build
       # regression: "Missing field tsconfigPaths on
-      # BindingViteResolvePluginConfig.resolveOptions". Pin past it
-      # until 4.2.5+ is released. Drop these entries once upstream ships.
+      # BindingViteResolvePluginConfig.resolveOptions". Pin past them
+      # until 4.2.5+ is verified green. Drop once upstream ships fix.
       - dependency-name: "tailwindcss"
-        versions: ["4.2.4"]
+        versions: [">=4.2.3 <4.2.5"]
       - dependency-name: "@tailwindcss/vite"
-        versions: ["4.2.4"]
+        versions: [">=4.2.3 <4.2.5"]
+    cooldown:
+      default-days: 5
+      semver-patch-days: 5
+      semver-minor-days: 10
+      semver-major-days: 15
     labels: ["dependencies", "frontend"]
     open-pull-requests-limit: 5
 
@@ -67,6 +84,11 @@ updates:
       composer-deps:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+    cooldown:
+      default-days: 5
+      semver-patch-days: 5
+      semver-minor-days: 10
+      semver-major-days: 15
     labels: ["dependencies", "php"]
     open-pull-requests-limit: 5
 
@@ -75,5 +97,10 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 5
+      semver-patch-days: 5
+      semver-minor-days: 10
+      semver-major-days: 15
     labels: ["dependencies", "docker"]
     open-pull-requests-limit: 5
