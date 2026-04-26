@@ -208,7 +208,7 @@ run_step "frontend typecheck (advisory until tsc-phase4 lands)" "cd parkhub-web 
 
 run_step "frontend vitest" "cd parkhub-web && npm test"
 
-run_step_heavy "frontend build" "cd parkhub-web && npm run build && cd .. && npm run build"
+run_step "frontend build" "cd parkhub-web && npm run build && cd .. && npm run build"
 
 # ---------------- Drift gates -----------------------------------------------
 # Both scripts already follow the same pattern as the rust side: they
