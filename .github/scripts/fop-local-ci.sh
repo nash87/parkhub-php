@@ -126,7 +126,14 @@ EOF
 }
 
 # All non-trivial work goes through `fop build --backend local` so the
-# fop queue can serialize concurrent runs and apply the 12 GiB OOM cap.
+# fop queue can serialize concurrent runs and apply the OOM cap.
+#
+# `interactive-small` shrinks the per-step memory request to ~1-2 GiB
+# instead of the 6 GiB default. PHP/Composer/Pint/PHPStan/Vitest steps
+# rarely exceed 1 GiB resident, so the bigger request would just stall
+# the queue under multi-tab pressure. Heavy builds (release artifacts,
+# Playwright browser harness) opt back into a larger profile via
+# `run_step_heavy` below.
 run_step() {
   local name="$1"
   local command="$2"
@@ -135,7 +142,18 @@ run_step() {
     printf 'DRY-RUN: %s\n' "$command"
     return 0
   fi
-  fop build --backend local . --preset custom -- bash -euo pipefail -c "$command"
+  fop build --backend local --resource-profile interactive-small . --preset custom -- bash -euo pipefail -c "$command"
+}
+
+run_step_heavy() {
+  local name="$1"
+  local command="$2"
+  printf '\n==> %s (heavy)\n' "$name"
+  if [[ "$dry_run" -eq 1 ]]; then
+    printf 'DRY-RUN: %s\n' "$command"
+    return 0
+  fi
+  fop build --backend local --resource-profile batch-medium . --preset custom -- bash -euo pipefail -c "$command"
 }
 
 # `run_direct` is for instantaneous shell checks (git diff, etc.) that
@@ -185,7 +203,7 @@ run_step "frontend typecheck" "cd parkhub-web && ./node_modules/.bin/tsc --noEmi
 
 run_step "frontend vitest" "cd parkhub-web && npm test"
 
-run_step "frontend build" "cd parkhub-web && npm run build && cd .. && npm run build"
+run_step_heavy "frontend build" "cd parkhub-web && npm run build && cd .. && npm run build"
 
 # ---------------- Drift gates -----------------------------------------------
 # Both scripts already follow the same pattern as the rust side: they
@@ -204,9 +222,9 @@ if [[ "$profile" == "full" ]]; then
   # local parity by allowing soft failure with a logged note.
   run_step "schemathesis contract fuzz (soft)" "if command -v schemathesis >/dev/null 2>&1; then ./scripts/dump-openapi.sh && schemathesis run --checks=all --hypothesis-max-examples=50 docs/openapi/php.json --base-url=http://127.0.0.1:8082 || echo 'schemathesis returned non-zero (soft on full profile)'; else echo 'schemathesis not installed; skipping'; fi"
 
-  run_step "infection mutation testing" "./vendor/bin/infection --threads=4 --no-progress"
+  run_step_heavy "infection mutation testing" "./vendor/bin/infection --threads=4 --no-progress"
 
-  run_step "playwright chromium e2e" "./scripts/ci/bootstrap-laravel.sh && npm run build:php --prefix parkhub-web && pid=''; cleanup() { if [[ -n \"\${pid:-}\" ]]; then kill \"\$pid\" 2>/dev/null || true; fi; }; trap cleanup EXIT; { DEMO_MODE=true PARKHUB_ADMIN_PASSWORD=demo PARKHUB_DISABLE_RATE_LIMITS=true php artisan serve --host=127.0.0.1 --port=8082 >/tmp/parkhub-e2e.log 2>&1 & pid=\$!; }; ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60 && npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium"
+  run_step_heavy "playwright chromium e2e" "./scripts/ci/bootstrap-laravel.sh && npm run build:php --prefix parkhub-web && pid=''; cleanup() { if [[ -n \"\${pid:-}\" ]]; then kill \"\$pid\" 2>/dev/null || true; fi; }; trap cleanup EXIT; { DEMO_MODE=true PARKHUB_ADMIN_PASSWORD=demo PARKHUB_DISABLE_RATE_LIMITS=true php artisan serve --host=127.0.0.1 --port=8082 >/tmp/parkhub-e2e.log 2>&1 & pid=\$!; }; ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60 && npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium"
 fi
 
 if [[ "$profile" == "cd" ]]; then
