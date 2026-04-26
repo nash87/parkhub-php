@@ -22,6 +22,13 @@ Profiles:
 Environment overrides:
   FOP_LOCAL_CI_STATUS_REPO  owner/repo for status post (else autodetected
                             from git remotes named github → upstream → origin).
+  FOP_LOCAL_CI_DIRECT       1 = bypass the `fop build` queue wrapper and
+                            run each step directly in the current shell.
+                            Use only for the bootstrap chicken-and-egg
+                            run that introduces this script, or when
+                            you have explicit reason to skip the queue.
+                            Operators must guarantee memory headroom
+                            themselves in this mode.
 EOF
 }
 
@@ -134,12 +141,23 @@ EOF
 # the queue under multi-tab pressure. Heavy builds (release artifacts,
 # Playwright browser harness) opt back into a larger profile via
 # `run_step_heavy` below.
+#
+# Setting FOP_LOCAL_CI_DIRECT=1 bypasses the fop queue wrapper and
+# runs each step directly in the current shell. Use this for the
+# bootstrap chicken-and-egg run that introduces this script (the queue
+# would refuse capacity if a sibling tab already holds the parallelism
+# slot), or when running outside fop entirely. Operators must still
+# guarantee local memory headroom themselves in that mode.
 run_step() {
   local name="$1"
   local command="$2"
   printf '\n==> %s\n' "$name"
   if [[ "$dry_run" -eq 1 ]]; then
     printf 'DRY-RUN: %s\n' "$command"
+    return 0
+  fi
+  if [[ "${FOP_LOCAL_CI_DIRECT:-0}" == "1" ]]; then
+    bash -euo pipefail -c "$command"
     return 0
   fi
   fop build --backend local --resource-profile interactive-small . --preset custom -- bash -euo pipefail -c "$command"
@@ -151,6 +169,10 @@ run_step_heavy() {
   printf '\n==> %s (heavy)\n' "$name"
   if [[ "$dry_run" -eq 1 ]]; then
     printf 'DRY-RUN: %s\n' "$command"
+    return 0
+  fi
+  if [[ "${FOP_LOCAL_CI_DIRECT:-0}" == "1" ]]; then
+    bash -euo pipefail -c "$command"
     return 0
   fi
   fop build --backend local --resource-profile batch-medium . --preset custom -- bash -euo pipefail -c "$command"
