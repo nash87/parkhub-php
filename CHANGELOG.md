@@ -11,6 +11,21 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [5.0.1] - 2026-04-26
+
+Patch release aligning the PHP runtime with the post-v5.0 cutting-edge
+CI/security wave and parkhub-rust v5.0.1.
+
+### Changed
+
+- **VERSION** 4.15.0 -> 5.0.1.
+- **`parkhub-web/package.json` + `parkhub-web/package-lock.json`** version 4.15.0 -> 5.0.1.
+- **README** release badge bumped to v5.0.1.
+- **OpenAPI dump bootstrap** now uses an isolated temporary SQLite database for fresh worktrees and pre-push hooks.
+- **Dependency Review** remains advisory until GitHub Dependency Graph is enabled for this repository.
+
+---
+
 ## [4.15.0] - 2026-04-26
 
 Coordinated version-surface parity bump with parkhub-rust 4.15.0
