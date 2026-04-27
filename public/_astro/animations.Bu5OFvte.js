@@ -1,1 +1,0 @@
-const t={hidden:{opacity:0},show:{opacity:1,transition:{staggerChildren:.06}}},a={hidden:{opacity:0},show:{opacity:1,transition:{staggerChildren:.08}}},o={hidden:{opacity:0,y:20},show:{opacity:1,y:0}};export{t as a,o as f,a as s};
