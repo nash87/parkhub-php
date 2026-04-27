@@ -26,12 +26,19 @@ env:
   CI: 'true'
   PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
 
+# Default shell to bash so 'set -euo pipefail' works in step scripts —
+# act_runner's default 'sh' is dash/BusyBox which doesn't support pipefail.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   lost-pixel:
     name: Lost Pixel (pages + Storybook)
     runs-on: ubuntu-latest
     container:
       image: 192.168.178.250:5000/gitea/runner-images:ubuntu-latest
+      options: --add-host=gitea.test:192.168.178.212
     timeout-minutes: 30
     continue-on-error: true # Diffs surface as artefacts, never block.
     defaults:
@@ -48,15 +55,9 @@ jobs:
 
       - run: npm ci --no-audit --no-fund
 
-      - name: Cache Playwright browsers
-        id: pw-cache
-        uses: http://192.168.178.212:3000/actions/cache@v4
-        with:
-          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
-          key: pw-${{ runner.os }}-${{ hashFiles('parkhub-web/package-lock.json') }}
-
       - name: Install Playwright (chromium only)
-        if: steps.pw-cache.outputs.cache-hit != 'true'
+        # SOTA-2026 (T-2280): actions/cache@v4 is not mirrored to private
+        # Gitea — install fresh per run (~30s extra).
         run: npx --no-install playwright install --with-deps chromium
 
       - name: Build Astro site
@@ -85,7 +86,9 @@ jobs:
       - name: Upload diffs
         if: always()
         working-directory: ${{ github.workspace }}
-        uses: http://192.168.178.212:3000/actions/upload-artifact@v4
+        # SOTA-2026 (T-2280): @v4 uses a GHES-incompatible artifact API
+        # not yet served by Gitea Actions. @v3 is the last GHES-compat tag.
+        uses: http://192.168.178.212:3000/actions/upload-artifact@v3
         with:
           name: lost-pixel-diffs-${{ github.run_number }}
           path: |

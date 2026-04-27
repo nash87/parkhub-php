@@ -24,6 +24,12 @@ env:
   PHP_VERSION: '8.4'
   NODE_VERSION: '22.12.0'
 
+# Default shell to bash so 'set -euo pipefail' works in step scripts —
+# act_runner's default 'sh' is dash/BusyBox which doesn't support pipefail.
+defaults:
+  run:
+    shell: bash
+
 jobs:
   composer-audit:
     name: Composer Audit

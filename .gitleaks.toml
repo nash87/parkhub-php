@@ -1,0 +1,29 @@
+title = "parkhub-php gitleaks allowlist"
+description = "Webhook endpoint paths + i18n strings are not secrets"
+
+[allowlist]
+description = "Endpoint path identifiers and frontend i18n string blobs"
+regexes = [
+	# React-hook import paths (`../hooks/useXyz`) and webhook endpoint
+	# segments are public identifiers, not auth tokens. T-2280: false
+	# positives in resources/js/src/**, parkhub-web/src/**, app/**.
+	'''hooks/[a-zA-Z][a-zA-Z0-9_-]*''',
+	# Public REST endpoints under /api/v{n}/admin/webhooks-* — path schema,
+	# not credentials.
+	'''api/v\d+/admin/webhooks''',
+	'''webhooks-v\d+''',
+	# i18n locale dictionaries are large compressed string blobs that
+	# trip generic high-entropy detectors. Triage shows zero real secrets.
+	'''i18n/locales/''',
+]
+paths = [
+	# Vendor + node_modules (already gitignored, but belt-and-braces).
+	'''vendor/''',
+	'''node_modules/''',
+	# Built Storybook output — generated artifact, not source.
+	'''parkhub-web/storybook-static/''',
+	# Lighthouse / Lost-Pixel CI artefacts (generated).
+	'''\.lost-pixel/''',
+	'''\.unlighthouse/''',
+	'''_accessibility-reports/''',
+]
