@@ -138,7 +138,8 @@ export function BookPage() {
   const start = new Date(startDate);
   const end = new Date(start.getTime() + duration * 60 * 60 * 1000);
   const effectiveRate = dynamicPrice?.dynamic_pricing_active ? dynamicPrice.current_price : selectedLot?.hourly_rate;
-  const estimatedCost = effectiveRate != null ? (effectiveRate * duration).toFixed(2) : null;
+  const effectiveRateNum = effectiveRate != null ? Number(effectiveRate) : null;
+  const estimatedCost = effectiveRateNum != null ? (effectiveRateNum * duration).toFixed(2) : null;
   const surfaceVariant = getSurfaceVariant(designTheme, navLayout);
   const isVoid = surfaceVariant === 'void';
   const shell = getStepShell(step, surfaceVariant, t);
@@ -486,7 +487,7 @@ function StepSelectLot({ lots, loading, onSelect, t }: {
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('book.rate', 'Rate')}</p>
                     <p className="mt-1 text-sm font-semibold text-surface-900 dark:text-white">
-                      {lot.hourly_rate != null ? `${lot.currency || '€'}${lot.hourly_rate.toFixed(2)}/h` : t('book.rateOnRequest', 'Rate on request')}
+                      {lot.hourly_rate != null ? `${lot.currency || '€'}${Number(lot.hourly_rate).toFixed(2)}/h` : t('book.rateOnRequest', 'Rate on request')}
                     </p>
                   </div>
                   <span className="rounded-full border border-primary-200 bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700 transition-colors group-hover:border-primary-400 group-hover:bg-primary-100 dark:border-primary-900/60 dark:bg-primary-950/40 dark:text-primary-300">
@@ -556,8 +557,9 @@ function StepSelectSlot({ lot, slots, loading, selectedSlot, onSelectSlot,
   const start = new Date(startDate);
   const end = new Date(start.getTime() + duration * 60 * 60 * 1000);
   const effectiveRate = dynamicPrice?.dynamic_pricing_active ? dynamicPrice.current_price : lot.hourly_rate;
-  const rateLabel = effectiveRate != null ? `${lot.currency || dynamicPrice?.currency || '€'}${effectiveRate.toFixed(2)}/h` : '—';
-  const estimatedCost = effectiveRate != null ? `${lot.currency || dynamicPrice?.currency || '€'}${(effectiveRate * duration).toFixed(2)}` : null;
+  const effectiveRateNum = effectiveRate != null ? Number(effectiveRate) : null;
+  const rateLabel = effectiveRateNum != null ? `${lot.currency || dynamicPrice?.currency || '€'}${effectiveRateNum.toFixed(2)}/h` : '—';
+  const estimatedCost = effectiveRateNum != null ? `${lot.currency || dynamicPrice?.currency || '€'}${(effectiveRateNum * duration).toFixed(2)}` : null;
   const groupedSlots = groupSlotsByZone(slots);
   const selectedVehicleRecord = vehicles.find((vehicle) => vehicle.id === selectedVehicle);
 
@@ -588,7 +590,7 @@ function StepSelectSlot({ lot, slots, loading, selectedSlot, onSelectSlot,
                     ? t('book.discountPricing', 'Discount pricing')
                     : t('book.livePricing', 'Live pricing')}
                 </span>
-                <span>{dynamicPrice.currency}{dynamicPrice.current_price.toFixed(2)}/h</span>
+                <span>{dynamicPrice.currency}{Number(dynamicPrice.current_price).toFixed(2)}/h</span>
               </div>
             )}
           </div>
