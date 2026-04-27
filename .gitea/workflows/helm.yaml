@@ -1,0 +1,55 @@
+# Mirror of .github/workflows/helm.yml for Gitea Actions runner.
+# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Edit .github/workflows/helm.yml as source-of-truth, then re-mirror.
+
+name: Helm Chart
+
+on:
+  pull_request:
+    paths:
+      - 'helm/**'
+      - '.github/workflows/helm.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'helm/**'
+      - '.github/workflows/helm.yml'
+
+permissions:
+  contents: read
+
+env:
+  # Dummy app key for template rendering only (chart requires config.appKey).
+  CI_APP_KEY: 'base64:Q0lfREVGQVVMVF9URVNUX0FQUF9LRVlfTk9UX0ZPUl9QUk9EVUNUSU9OX1VTRQ=='
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint + Template
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+        with:
+          version: 'v3.16.4'
+      - name: helm lint
+        run: helm lint helm/parkhub --set config.appKey="$CI_APP_KEY"
+      - name: helm template (default values)
+        run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" > /tmp/rendered-default.yaml
+      - name: helm template (grafana opt-in)
+        run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set grafana.dashboardsEnabled=true > /tmp/rendered-grafana.yaml
+      - name: helm template (pdb + topology enabled)
+        run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set pdb.enabled=true > /tmp/rendered-ha.yaml
+      - name: helm template (ServiceMonitor enabled)
+        run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set monitoring.serviceMonitor.enabled=true > /tmp/rendered-servicemonitor.yaml
+      - name: helm template (PrometheusRule enabled)
+        run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set monitoring.prometheusRule.enabled=true > /tmp/rendered-prometheusrule.yaml
+      - name: Validate rendered YAML
+        run: |
+          for f in /tmp/rendered-*.yaml; do
+            yq eval-all '.' "$f" > /dev/null || { echo "YAML parse failed in $f"; exit 1; }
+          done

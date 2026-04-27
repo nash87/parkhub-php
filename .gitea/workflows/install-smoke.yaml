@@ -1,0 +1,54 @@
+# Mirror of .github/workflows/install-smoke.yml for Gitea Actions runner.
+# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Edit .github/workflows/install-smoke.yml as source-of-truth, then re-mirror.
+
+name: Install Smoke
+on:
+  schedule:
+    - cron: '0 7 * * *'  # 07:00 UTC nightly
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - name: Cold clone
+        run: |
+          git clone --depth 1 https://github.com/nash87/parkhub-php.git /tmp/smoke
+      - name: Follow INSTALLATION.md Docker Compose steps
+        working-directory: /tmp/smoke
+        run: |
+          # Step 2 — seed required secrets
+          {
+            echo "APP_KEY=base64:$(openssl rand -base64 32)"
+            echo "MYSQL_ROOT_PASSWORD=$(openssl rand -base64 24)"
+            echo "MYSQL_PASSWORD=$(openssl rand -base64 24)"
+            echo "DB_PASSWORD=$(openssl rand -base64 24)"
+            echo "PARKHUB_ADMIN_EMAIL=admin@example.com"
+            echo "PARKHUB_ADMIN_PASSWORD=$(openssl rand -base64 24)"
+          } > .env
+          # Align MYSQL_PASSWORD with DB_PASSWORD so app and db agree
+          sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=$(grep '^DB_PASSWORD=' .env | cut -d= -f2-)|" .env
+          # Step 4 — start
+          docker compose up -d
+          # Step 5 — verify
+          for i in {1..60}; do
+            if curl -sf http://localhost:8080/api/health >/dev/null 2>&1; then
+              echo "READY after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "FAIL: /api/health never green"
+          docker compose logs
+          exit 1
+      - name: Teardown
+        if: always()
+        working-directory: /tmp/smoke
+        run: docker compose down -v

@@ -1,0 +1,22 @@
+# Mirror of .github/workflows/auto-merge.yml for Gitea Actions runner.
+# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Edit .github/workflows/auto-merge.yml as source-of-truth, then re-mirror.
+
+name: Auto-merge on label
+on:
+  pull_request_target:
+    types: [labeled, synchronize]
+permissions:
+  pull-requests: write
+  contents: write
+jobs:
+  enable-auto-merge:
+    if: contains(github.event.pull_request.labels.*.name, 'auto-merge')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable native GitHub auto-merge (squash)
+        env:
+          GH_TOKEN: ${{ secrets.GITEA_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: gh pr merge --auto --squash "$PR_NUMBER"

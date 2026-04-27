@@ -1,0 +1,158 @@
+# Mirror of .github/workflows/schemathesis.yml for Gitea Actions runner.
+# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Edit .github/workflows/schemathesis.yml as source-of-truth, then re-mirror.
+
+name: Schemathesis (contract fuzzing)
+
+on:
+  schedule:
+    # Nightly at 06:00 UTC, after the nightly E2E (05:00) and infection
+    # (05:00) runs have claimed the runner fleet.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docs/openapi/php.json'
+      - 'app/**'
+      - '.github/workflows/schemathesis.yml'
+
+concurrency:
+  group: schemathesis-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract-fuzz:
+    name: Fuzz OpenAPI contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Soft job — schemathesis surfaces contract drift and 500s that are
+    # legal-by-spec. During the baseline pass we expect violations; the
+    # workflow must still complete and upload its report so we can
+    # triage follow-up tasks off the nightly run.
+    continue-on-error: true
+    steps:
+      - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # TODO(gitea-mirror): No mirror at http://192.168.178.212:3000/shivammathur/setup-php yet.
+      # Pin upstream until we mirror; revisit when Gitea mirror lands.
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache composer
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+
+      - name: Install composer deps
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Set up Python
+        uses: http://192.168.178.212:3000/actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: '3.12'
+
+      - name: Install schemathesis
+        run: pip install --disable-pip-version-check 'schemathesis==4.15.2'
+
+      - name: Bootstrap Laravel (SQLite)
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: file
+          SESSION_DRIVER: file
+          DEMO_MODE: 'true'
+          PARKHUB_ADMIN_EMAIL: admin@parkhub.test
+          PARKHUB_ADMIN_PASSWORD: demo
+          PARKHUB_DISABLE_RATE_LIMITS: 'true'
+        run: |
+          ./scripts/ci/bootstrap-laravel.sh
+          # Seed ProductionSimulationSeeder so endpoints that walk lists
+          # return data. Without this schemathesis hits an empty DB and
+          # most list endpoints short-circuit to 404 — we'd fuzz almost
+          # nothing useful.
+          php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
+
+      - name: Regenerate OpenAPI snapshot
+        run: ./scripts/dump-openapi.sh
+
+      - name: Start Laravel dev server
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          CACHE_STORE: file
+          SESSION_DRIVER: file
+          DEMO_MODE: 'true'
+          PARKHUB_ADMIN_EMAIL: admin@parkhub.test
+          PARKHUB_ADMIN_PASSWORD: demo
+          PARKHUB_DISABLE_RATE_LIMITS: 'true'
+        run: |
+          php -S 127.0.0.1:8000 -t public > /tmp/parkhub-schemathesis-server.log 2>&1 &
+          echo $! > /tmp/parkhub-schemathesis-server.pid
+          ./scripts/ci/wait-for-url.sh http://127.0.0.1:8000/api/v1/health/live 30
+
+      - name: Obtain auth token (best-effort)
+        continue-on-error: true
+        run: |
+          # Best-effort: grab a Sanctum token so authenticated endpoints
+          # get exercised too. If login fails (demo seeder shape change,
+          # rate limit, etc.) we still fuzz the public surface.
+          token=$(curl -fsS -X POST http://127.0.0.1:8000/api/v1/auth/login \
+            -H 'Content-Type: application/json' \
+            -H 'Accept: application/json' \
+            -d '{"email":"admin@parkhub.test","password":"demo"}' \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("token") or d.get("data",{}).get("token") or "")' \
+            || true)
+          if [ -n "${token}" ]; then
+            echo "SCHEMATHESIS_AUTH_HEADER=Authorization: Bearer ${token}" >> "${GITHUB_ENV}"
+            echo "Auth token acquired — authenticated endpoints will be fuzzed."
+          else
+            echo "No auth token — falling back to unauthenticated fuzzing."
+          fi
+
+      - name: Run schemathesis
+        continue-on-error: true
+        run: |
+          extra_args=()
+          if [ -n "${SCHEMATHESIS_AUTH_HEADER:-}" ]; then
+            extra_args+=(--header "${SCHEMATHESIS_AUTH_HEADER}")
+          fi
+          schemathesis run docs/openapi/php.json \
+            --url http://127.0.0.1:8000 \
+            --workers 4 \
+            --checks all \
+            --max-examples 30 \
+            --max-failures 200 \
+            --continue-on-failure \
+            --request-timeout 15 \
+            --warnings off \
+            --report junit,har \
+            --report-dir schemathesis-report \
+            "${extra_args[@]}"
+
+      - name: Stop Laravel dev server
+        if: always()
+        run: |
+          if [ -f /tmp/parkhub-schemathesis-server.pid ]; then
+            kill "$(cat /tmp/parkhub-schemathesis-server.pid)" 2>/dev/null || true
+          fi
+
+      - name: Upload schemathesis report
+        if: always()
+        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: schemathesis-report
+          path: |
+            schemathesis-report/
+            /tmp/parkhub-schemathesis-server.log
+          retention-days: 14
+          if-no-files-found: warn

@@ -1,0 +1,136 @@
+name: Unlighthouse
+# Whole-site Lighthouse crawl for the parkhub-web Astro frontend backed by a
+# running Laravel API. Complements lighthouse.yaml (5 hand-picked routes,
+# gating) by walking every discovered route from a single seed URL and
+# surfacing long-tail regressions.
+#
+# Too slow for per-PR CI (~10-15 min on the full site) — daily cron + manual
+# dispatch. Soft-fail because the budgets in unlighthouse.config.ts are
+# aspirational until long-tail routes get tuned.
+#
+# License: unlighthouse is MIT (https://github.com/harlan-zw/unlighthouse).
+# Pattern lifted from fop-web-ui/.gitea/workflows/unlighthouse.yaml.
+
+on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC — well clear of npm-audit + composer-audit windows
+  workflow_dispatch:
+
+concurrency:
+  group: unlighthouse-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  PHP_VERSION: '8.3'
+  CI: 'true'
+  PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+
+jobs:
+  unlighthouse:
+    name: Unlighthouse (whole-site crawl)
+    runs-on: ubuntu-latest
+    container:
+      image: 192.168.178.250:5000/gitea/runner-images:ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true # Soft-fail — long-tail budgets still tuning.
+    steps:
+      - uses: http://192.168.178.212:3000/actions/checkout@v4
+
+      - uses: http://192.168.178.212:3000/actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: parkhub-web/package-lock.json
+
+      - name: Setup PHP
+        uses: http://192.168.178.212:3000/shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, sqlite, pdo_sqlite, intl, gd
+          tools: composer:v2
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Install Node dependencies (parkhub-web)
+        working-directory: parkhub-web
+        run: npm ci --no-audit --no-fund
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: http://192.168.178.212:3000/actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: pw-${{ runner.os }}-${{ hashFiles('parkhub-web/package-lock.json') }}
+
+      - name: Install Playwright (chromium only)
+        # Unlighthouse / Lighthouse 12+ relies on a 2026-era Chromium for INP
+        # measurement. Playwright's bundled Chromium is the most reliable
+        # way to pin that version on a Gitea runner.
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        working-directory: parkhub-web
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Prepare in-memory SQLite + key
+        run: |
+          set -euo pipefail
+          cp .env.example .env || true
+          php artisan key:generate --force
+          # Use sqlite :memory: for speed; unlighthouse only needs HTML responses.
+          php -r "file_put_contents('.env', preg_replace('/^DB_CONNECTION=.*/m','DB_CONNECTION=sqlite',file_get_contents('.env')));"
+          php -r "file_put_contents('.env', preg_replace('/^DB_DATABASE=.*/m','DB_DATABASE=:memory:',file_get_contents('.env')));"
+
+      - name: Build Astro frontend (static export)
+        working-directory: parkhub-web
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Start Laravel server
+        # `php artisan serve` listens on 127.0.0.1:8000 by default. We point
+        # unlighthouse at the same host so it walks the rendered Astro
+        # output served via Laravel's `public/` symlink.
+        run: |
+          set -euo pipefail
+          php artisan serve --host 127.0.0.1 --port 8000 &
+          npx --yes wait-on tcp:8000 --timeout 60000
+
+      - name: Run Unlighthouse CI
+        working-directory: parkhub-web
+        env:
+          # Tell Lighthouse where Playwright's Chromium lives so it picks up
+          # INP support.
+          CHROME_PATH: ${{ github.workspace }}/.cache/ms-playwright/chromium
+        run: |
+          set -euo pipefail
+          npx --no-install unlighthouse-cli ci \
+            --site http://127.0.0.1:8000 \
+            --build-static
+
+      - name: Upload Unlighthouse report
+        if: always()
+        uses: http://192.168.178.212:3000/actions/upload-artifact@v4
+        with:
+          name: unlighthouse-${{ github.run_number }}
+          path: parkhub-web/.unlighthouse/
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Unlighthouse - whole-site crawl" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f parkhub-web/.unlighthouse/ci-result.json ]; then
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat parkhub-web/.unlighthouse/ci-result.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- No ci-result.json produced (crawl may have failed early)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -d parkhub-web/.unlighthouse ]; then
+            ROUTE_COUNT=$(find parkhub-web/.unlighthouse/routes -maxdepth 1 -mindepth 1 -type d 2>/dev/null | wc -l || echo 0)
+            echo "- Routes scanned: $ROUTE_COUNT" >> "$GITHUB_STEP_SUMMARY"
+          fi

@@ -1,0 +1,238 @@
+# Mirror of .github/workflows/nightly.yml for Gitea Actions runner.
+# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Edit .github/workflows/nightly.yml as source-of-truth, then re-mirror.
+
+name: Nightly Assurance
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MYSQL_DATABASE: parkhub_test
+  MYSQL_HOST: 127.0.0.1
+  MYSQL_PASSWORD: parkhub
+  MYSQL_PORT: '3306'
+  MYSQL_USER: parkhub
+  NODE_VERSION: '22.12.0'
+  PHP_VERSION: '8.4'
+
+jobs:
+  dependency-audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # TODO(gitea-mirror): No mirror at http://192.168.178.212:3000/shivammathur/setup-php yet.
+      # Pin upstream until we mirror; revisit when Gitea mirror lands.
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js
+        uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: parkhub-web/package-lock.json
+
+      - name: Audit Composer production dependencies
+        run: composer audit --locked --no-dev
+
+      - name: Audit Astro production dependencies
+        run: npm audit --prefix parkhub-web --package-lock-only --omit=dev --audit-level=high
+
+  mysql-smoke:
+    name: MySQL smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: ${{ env.MYSQL_DATABASE }}
+          MYSQL_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_USER: ${{ env.MYSQL_USER }}
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Bootstrap Laravel for MySQL
+        run: ./scripts/ci/bootstrap-laravel.sh
+        env:
+          DB_CONNECTION: mysql
+          DB_DATABASE: ${{ env.MYSQL_DATABASE }}
+          DB_HOST: ${{ env.MYSQL_HOST }}
+          DB_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          DB_PORT: ${{ env.MYSQL_PORT }}
+          DB_USERNAME: ${{ env.MYSQL_USER }}
+
+      - name: Run health smoke tests on MySQL
+        run: php artisan test tests/Feature/HealthTest.php tests/Feature/SystemPublicTest.php
+        env:
+          DB_CONNECTION: mysql
+          DB_DATABASE: ${{ env.MYSQL_DATABASE }}
+          DB_HOST: ${{ env.MYSQL_HOST }}
+          DB_PASSWORD: ${{ env.MYSQL_PASSWORD }}
+          DB_PORT: ${{ env.MYSQL_PORT }}
+          DB_USERNAME: ${{ env.MYSQL_USER }}
+
+  full-e2e:
+    name: Full cross-browser E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    # Fan out into (project × shard) jobs so the total suite fits in the
+    # 45-minute job ceiling. Four shards × three projects = 12 parallel
+    # jobs, each seeding its own database and booting its own server.
+    # Shard 1..4 / 4 is Playwright's native partitioning — tests are
+    # deterministically split by file+title hash, so no shared state.
+    # fail-fast: false keeps one shard's failure from cancelling its
+    # siblings, which matters on a nightly where we want the full
+    # signal, not the first red light.
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [chromium, mobile-chrome, mobile-safari]
+        shard: [1, 2, 3, 4]
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Set up Node.js
+        uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            parkhub-web/package-lock.json
+
+      - name: Cache Playwright browsers
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install dependencies
+        run: |
+          composer install --prefer-dist --no-interaction --no-progress
+          npm ci
+          npm ci --prefix parkhub-web
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Build browser assets for Laravel
+        run: npm run build:php --prefix parkhub-web
+
+      - name: Run Playwright shard ${{ matrix.shard }}/4 on ${{ matrix.project }}
+        env:
+          CI: true
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          # File-based cache / session. The default SQLite-backed cache
+          # store locks under concurrent requests (Playwright fires
+          # dozens of parallel requests per test) and every
+          # ThrottleRequests hit then turns into a 500.
+          CACHE_STORE: file
+          SESSION_DRIVER: file
+          DEMO_MODE: 'true'
+          E2E_BASE_URL: http://127.0.0.1:8082
+          PARKHUB_ADMIN_EMAIL: admin@parkhub.test
+          PARKHUB_ADMIN_PASSWORD: demo
+          PARKHUB_DISABLE_RATE_LIMITS: 'true'
+          RUN_STORAGE_LINK: '1'
+        run: |
+          ./scripts/ci/bootstrap-laravel.sh
+          # Seed the ProductionSimulationSeeder explicitly — the default
+          # DatabaseSeeder is a no-op, so without this the tests hit an
+          # empty database and everything that walks a list 404s.
+          php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
+
+          php artisan serve --host=127.0.0.1 --port=8082 > "/tmp/parkhub-nightly-e2e-${{ matrix.project }}-${{ matrix.shard }}.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+
+          ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
+          npx playwright test \
+            --project="${{ matrix.project }}" \
+            --shard="${{ matrix.shard }}/4"
+
+      - name: Upload Playwright report (${{ matrix.project }} shard ${{ matrix.shard }})
+        if: always()
+        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: nightly-playwright-report-${{ matrix.project }}-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Upload Laravel server log (${{ matrix.project }} shard ${{ matrix.shard }})
+        if: always()
+        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: nightly-e2e-server-log-${{ matrix.project }}-${{ matrix.shard }}
+          path: /tmp/parkhub-nightly-e2e-${{ matrix.project }}-${{ matrix.shard }}.log
+          retention-days: 7
+          if-no-files-found: ignore

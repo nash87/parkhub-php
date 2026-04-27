@@ -1,0 +1,138 @@
+name: Accessibility Insights
+# Microsoft Accessibility Insights Action — runs FastPass + needs-review
+# checks on top of axe-core, producing the IGT (Instrumented Guided Tests)
+# WCAG 2.1 AA report that pushes axe's ~57% coverage closer to real
+# WCAG conformance. Layered on top of any axe-core Playwright job — does
+# not replace it.
+#
+# License: MIT (microsoft/accessibility-insights-action). Safe to consume.
+#
+# Compat note (Gitea runner): the upstream action is on github.com.
+# Gitea runner_act resolves `github.com` action refs natively when the
+# runner has internet egress; mirror to Gitea if air-gapped.
+#
+# Soft-fail (continue-on-error: true) for the first month while we tune
+# the static-site-dir / url config and triage IGT-only findings.
+#
+# Pattern lifted from fop-web-ui/.gitea/workflows/accessibility-insights.yaml.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'parkhub-web/**'
+      - '.gitea/workflows/accessibility-insights.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'parkhub-web/**'
+      - '.gitea/workflows/accessibility-insights.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: accessibility-insights-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '22'
+  CI: 'true'
+  PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
+
+jobs:
+  accessibility-insights:
+    name: Accessibility Insights (FastPass + needs-review)
+    runs-on: ubuntu-latest
+    container:
+      image: 192.168.178.250:5000/gitea/runner-images:ubuntu-latest
+    timeout-minutes: 30
+    continue-on-error: true # Soft-fail for first month — IGT findings still triaging.
+    defaults:
+      run:
+        working-directory: parkhub-web
+    steps:
+      - uses: http://192.168.178.212:3000/actions/checkout@v4
+
+      - uses: http://192.168.178.212:3000/actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: parkhub-web/package-lock.json
+
+      - run: npm ci --no-audit --no-fund
+
+      - name: Cache Playwright browsers
+        id: pw-cache
+        uses: http://192.168.178.212:3000/actions/cache@v4
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: pw-${{ runner.os }}-${{ hashFiles('parkhub-web/package-lock.json') }}
+
+      - name: Install Playwright Chromium
+        # Insights Action requires a Chromium binary via `chrome-path`. Use
+        # Playwright's bundled one to guarantee a 2026-era version with the
+        # full WCAG 2.1 AA rule set.
+        if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx --no-install playwright install --with-deps chromium
+
+      - name: Build Astro site
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Resolve Chromium path
+        id: chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROMIUM_BIN=$(find "${PLAYWRIGHT_BROWSERS_PATH}" -name 'chrome' -type f 2>/dev/null | head -n1 || true)
+          if [ -z "${CHROMIUM_BIN}" ]; then
+            CHROMIUM_BIN=$(find "${PLAYWRIGHT_BROWSERS_PATH}" -name 'headless_shell' -type f 2>/dev/null | head -n1 || true)
+          fi
+          if [ -z "${CHROMIUM_BIN}" ]; then
+            echo "Could not locate Playwright Chromium binary under ${PLAYWRIGHT_BROWSERS_PATH}" >&2
+            exit 1
+          fi
+          echo "path=${CHROMIUM_BIN}" >> "$GITHUB_OUTPUT"
+
+      - name: Run Accessibility Insights
+        # Reference: https://github.com/microsoft/accessibility-insights-action
+        # MIT license. v3 is the current marketplace tag.
+        uses: microsoft/accessibility-insights-action@v3
+        with:
+          # `static-site-dir` makes the action serve the built Astro output
+          # (no separate preview server needed) on a localhost port of its
+          # choosing. `single-worker: true` gives deterministic crawl
+          # ordering for stable diffs.
+          static-site-dir: parkhub-web/dist
+          static-site-url-relative-path: '/'
+          chrome-path: ${{ steps.chromium.outputs.path }}
+          output-dir: _accessibility-reports
+          max-urls: 25
+          single-worker: true
+          scan-timeout: 120000
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Accessibility Insights report
+        if: always()
+        uses: http://192.168.178.212:3000/actions/upload-artifact@v4
+        with:
+          name: accessibility-insights-${{ github.run_number }}
+          path: parkhub-web/_accessibility-reports/
+          retention-days: 30
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "## Accessibility Insights - WCAG 2.1 AA scan" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f _accessibility-reports/index.html ]; then
+            echo "- Report: _accessibility-reports/index.html (download artifact)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "- No report produced (action may have failed early)." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ -f _accessibility-reports/results.sarif ]; then
+            FAIL_COUNT=$(grep -c '"level": "error"' _accessibility-reports/results.sarif 2>/dev/null || echo 0)
+            echo "- SARIF errors: ${FAIL_COUNT}" >> "$GITHUB_STEP_SUMMARY"
+          fi

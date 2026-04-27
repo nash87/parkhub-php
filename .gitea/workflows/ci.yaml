@@ -1,0 +1,450 @@
+# Mirror of .github/workflows/ci.yml for Gitea Actions runner.
+# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Edit .github/workflows/ci.yml as source-of-truth, then re-mirror.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  PHP_VERSION: '8.4'
+  NODE_VERSION: '22.12.0'
+
+jobs:
+  workflow-hygiene:
+    name: Workflow & manifest hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Lint GitHub Actions workflows
+        uses: rhysd/actionlint@914e7df21a07ef503a81201c76d2b11c789d3fca # v1.7.12
+
+      - name: Lint YAML
+        run: |
+          python3 -m pip install --user yamllint
+          ~/.local/bin/yamllint -c .yamllint.yml .github/workflows docker-compose.yml render.yaml koyeb.yaml
+
+      - name: Validate Fly config
+        run: python3 -c "import pathlib, tomllib; tomllib.loads(pathlib.Path('fly.toml').read_text())"
+
+      - name: Set up Helm
+        uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5
+
+      - name: Validate Helm chart
+        run: |
+          helm lint ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key
+          helm template parkhub ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key > /dev/null
+          helm template parkhub ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key --set grafana.dashboardsEnabled=true > /dev/null
+          helm template parkhub ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key --set monitoring.serviceMonitor.enabled=true > /dev/null
+          helm template parkhub ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key --set monitoring.prometheusRule.enabled=true > /dev/null
+
+      - name: Validate Docker Compose
+        run: docker compose -f docker-compose.yml config -q
+
+  dependency-review:
+    name: Dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Review dependencies
+        uses: http://192.168.178.212:3000/actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0
+
+  backend-quality:
+    name: Backend quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # TODO(gitea-mirror): No mirror at http://192.168.178.212:3000/shivammathur/setup-php yet.
+      # Pin upstream until we mirror; revisit when Gitea mirror lands.
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Validate Composer metadata
+        run: composer validate --strict
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Lint PHP files
+        run: find app bootstrap config database routes tests -name '*.php' -print0 | xargs -0 -n 50 php -l > /dev/null
+
+      - name: Check Laravel Pint formatting
+        run: ./vendor/bin/pint --test
+
+  backend-tests:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Bootstrap Laravel for SQLite tests
+        run: ./scripts/ci/bootstrap-laravel.sh
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+      - name: Run Laravel test suite
+        run: composer test
+
+  frontend:
+    name: Frontend builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up Node.js
+        uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            parkhub-web/package-lock.json
+
+      - name: Install root frontend dependencies
+        run: npm ci
+
+      - name: Install Astro frontend dependencies
+        run: npm ci --prefix parkhub-web
+
+      - name: Run Astro frontend tests
+        run: npm test --prefix parkhub-web
+
+      - name: Build shared frontend
+        run: npm run build
+
+  e2e-smoke:
+    name: E2E smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Set up Node.js
+        uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            parkhub-web/package-lock.json
+
+      - name: Cache Playwright browsers
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      - name: Install backend dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Install frontend dependencies
+        run: |
+          npm ci
+          npm ci --prefix parkhub-web
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Build browser assets for Laravel
+        run: npm run build:php --prefix parkhub-web
+
+      - name: Run Playwright smoke suite
+        env:
+          CI: true
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
+          DEMO_MODE: 'true'
+          E2E_BASE_URL: http://127.0.0.1:8082
+          PARKHUB_ADMIN_EMAIL: admin@parkhub.test
+          PARKHUB_ADMIN_PASSWORD: demo
+          PARKHUB_DISABLE_RATE_LIMITS: 'true'
+          RUN_STORAGE_LINK: '1'
+        run: |
+          ./scripts/ci/bootstrap-laravel.sh
+          php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
+
+          php artisan serve --host=127.0.0.1 --port=8082 > /tmp/parkhub-e2e.log 2>&1 &
+          server_pid=$!
+          trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
+
+          ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
+          npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium
+
+      - name: Upload Playwright report
+        if: always()
+        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
+      - name: Upload Laravel server log
+        if: always()
+        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: e2e-server-log
+          path: /tmp/parkhub-e2e.log
+          retention-days: 7
+
+  docker-validate:
+    name: Docker build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
+
+      - name: Build Docker image
+        uses: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f # v7
+        with:
+          context: .
+          load: true
+          platforms: linux/amd64
+          tags: parkhub-php:ci
+          cache-from: type=gha,scope=ci-docker
+          cache-to: type=gha,scope=ci-docker,mode=max
+
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Bootstrap Laravel
+        run: ./scripts/ci/bootstrap-laravel.sh
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+      - name: Run integration tests
+        run: php artisan test --testsuite=Integration
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+
+  openapi-drift:
+    name: OpenAPI drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Create env + seed DB for scramble export
+        run: |
+          cp .env.example .env
+          php artisan key:generate --force
+          mkdir -p database
+          touch database/database.sqlite
+          php artisan migrate --graceful --force
+
+      - name: Regenerate PHP OpenAPI snapshot
+        run: ./scripts/dump-openapi.sh
+
+      - name: Fail if committed snapshot drifted from regenerated one
+        run: |
+          if ! git diff --exit-code docs/openapi/php.json; then
+            echo "::error::docs/openapi/php.json is out of sync with the code."
+            echo "Run ./scripts/dump-openapi.sh locally and commit the updated snapshot."
+            exit 1
+          fi
+          echo "PHP OpenAPI snapshot matches the current code."
+
+  static-analysis:
+    name: Static analysis (PHPStan)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: bcmath, curl, gd, intl, mbstring, pdo_mysql, pdo_sqlite, sqlite3, xml, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer downloads
+        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        with:
+          path: ~/.composer/cache
+          key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Run PHPStan
+        run: ./vendor/bin/phpstan analyse --memory-limit=512M
+
+  required:
+    name: Required checks
+    if: always()
+    needs:
+      - workflow-hygiene
+      - dependency-review
+      - backend-quality
+      - backend-tests
+      - frontend
+      - e2e-smoke
+      - docker-validate
+      - static-analysis
+      - integration
+      - openapi-drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Assert required jobs succeeded
+        env:
+          WORKFLOW_HYGIENE: ${{ needs.workflow-hygiene.result }}
+          DEPENDENCY_REVIEW: ${{ needs.dependency-review.result }}
+          BACKEND_QUALITY: ${{ needs.backend-quality.result }}
+          BACKEND_TESTS: ${{ needs.backend-tests.result }}
+          FRONTEND: ${{ needs.frontend.result }}
+          E2E_SMOKE: ${{ needs.e2e-smoke.result }}
+          DOCKER_VALIDATE: ${{ needs.docker-validate.result }}
+          STATIC_ANALYSIS: ${{ needs.static-analysis.result }}
+          INTEGRATION: ${{ needs.integration.result }}
+          OPENAPI_DRIFT: ${{ needs.openapi-drift.result }}
+        run: |
+          for check in BACKEND_TESTS DOCKER_VALIDATE WORKFLOW_HYGIENE BACKEND_QUALITY FRONTEND E2E_SMOKE STATIC_ANALYSIS INTEGRATION OPENAPI_DRIFT; do
+            if [[ "${!check}" != "success" ]]; then
+              echo "REQUIRED: ${check} failed: ${!check}"
+              exit 1
+            fi
+          done
+          if [[ "${DEPENDENCY_REVIEW}" != "success" && "${DEPENDENCY_REVIEW}" != "skipped" ]]; then
+            echo "REQUIRED: DEPENDENCY_REVIEW failed: ${DEPENDENCY_REVIEW}"
+            exit 1
+          fi
