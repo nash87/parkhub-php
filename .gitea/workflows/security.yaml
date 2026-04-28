@@ -82,7 +82,7 @@ jobs:
       - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Run Trivy filesystem scan
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         continue-on-error: true
         with:
           scan-type: fs
@@ -258,7 +258,7 @@ jobs:
           password: ${{ secrets.GITEA_TOKEN }}
 
       - name: Run Trivy image scan
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         continue-on-error: true
         with:
           image-ref: ${{ env.IMAGE_REF }}
