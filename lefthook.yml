@@ -49,6 +49,11 @@ pre-commit:
 pre-push:
   parallel: false
   commands:
-    local-ci:
-      run: make ci
-      fail_text: "Local fop CI failed. Fix before push or run `make ci-post` for the PR attestation."
+    local-ci-post:
+      # Runs the full PR gate AND posts the `fop/local-ci/pr` commit status
+      # to GitHub on success — no manual `make ci-post` follow-up required.
+      # The `local-ci-attestation` job in .github/workflows/ci.yml polls
+      # this status; with this step posting on every push, the GitHub
+      # gate clears automatically without operator intervention.
+      run: make ci-post
+      fail_text: "Local fop CI failed. Fix before push (run `make ci` to reproduce without posting status)."
