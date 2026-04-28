@@ -172,3 +172,71 @@ jobs:
           # auditor persona surfaces low-severity findings useful for hardening
           # without flooding the PR with regular-user noise.
           persona: auditor
+
+  trivy-image:
+    # SOTA-2026 image scanning — Trivy (Apache-2.0) + Grype (Apache-2.0) for a
+    # second opinion. The published image only exists after docker-publish.yml
+    # runs on main, so this job is skipped for PRs (no image to scan yet).
+    name: Trivy + Grype image scan
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read         # checkout for the .trivyignore
+      packages: read         # pull image from GHCR
+      security-events: write # upload Trivy SARIF to Security tab
+    env:
+      IMAGE_REF: ghcr.io/${{ github.repository }}:latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Log in to GHCR (read-only)
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # 0.36.0
+        continue-on-error: true
+        with:
+          image-ref: ${{ env.IMAGE_REF }}
+          scanners: vuln,misconfig,secret
+          format: sarif
+          output: trivy-image.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          trivyignores: .trivyignore
+
+      - name: Upload Trivy image SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4
+        if: always() && hashFiles('trivy-image.sarif') != ''
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-image
+
+      # Grype as a defense-in-depth second opinion. We invoke the binary
+      # directly (Apache-2.0, github.com/anchore/grype) rather than the
+      # anchore/scan-action wrapper to avoid surface area and stay
+      # commercial-license-safe.
+      - name: Install grype
+        env:
+          GRYPE_VERSION: 0.111.1
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/grype.tar.gz \
+            "https://github.com/anchore/grype/releases/download/v${GRYPE_VERSION}/grype_${GRYPE_VERSION}_linux_amd64.tar.gz"
+          tar -xzf /tmp/grype.tar.gz -C /tmp grype
+          sudo mv /tmp/grype /usr/local/bin/grype
+          grype --version
+
+      - name: Run Grype image scan (defense-in-depth)
+        continue-on-error: true
+        env:
+          IMAGE: ${{ env.IMAGE_REF }}
+        run: |
+          set -euo pipefail
+          grype "registry:${IMAGE}" --only-fixed --fail-on critical -o table
