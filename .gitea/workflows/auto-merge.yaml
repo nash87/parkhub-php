@@ -3,18 +3,34 @@
 # Edit .github/workflows/auto-merge.yml as source-of-truth, then re-mirror.
 
 name: Auto-merge on label
+
+# Justification: pull_request_target below is the documented intentional
+# pattern for label-gated auto-merge. See .github/workflows/auto-merge.yml for
+# the full safety analysis. This file is a Gitea mirror of that source-of-truth.
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] label-gated; no checkout of fork code; only flips auto-merge
     types: [labeled, synchronize]
+
+# Don't run concurrent label-merges on the same PR — keep the latest event
+# only, since each invocation is idempotent.
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Top-level permissions minimal; the merge job declares writes explicitly.
 permissions:
-  pull-requests: write
-  contents: write
+  contents: read
+
 jobs:
   enable-auto-merge:
+    name: Enable native Gitea auto-merge (squash)
     if: contains(github.event.pull_request.labels.*.name, 'auto-merge')
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # required to flip auto-merge on the PR
+      contents: write      # auto-merge persists the merge-method preference
     steps:
-      - name: Enable native GitHub auto-merge (squash)
+      - name: Enable native Gitea auto-merge (squash)
         env:
           GH_TOKEN: ${{ secrets.GITEA_TOKEN }}
           GH_REPO: ${{ github.repository }}

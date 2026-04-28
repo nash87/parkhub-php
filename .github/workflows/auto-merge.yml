@@ -1,14 +1,38 @@
 name: Auto-merge on label
+
+# Justification for pull_request_target below: this is the documented
+# intentional pattern for label-gated auto-merge. The job:
+#   * gates on `contains(github.event.pull_request.labels.*.name, 'auto-merge')`
+#     so only PRs already carrying a maintainer-applied label trigger any work
+#   * does NOT check out PR-author code, executes no untrusted scripts, runs no
+#     build/test from the fork — it only calls `gh pr merge --auto --squash`
+#   * relies on branch-protection required checks to actually gate the merge;
+#     this workflow merely flips the auto-merge bit
+# The `synchronize` trigger is kept so that re-pushed commits on a labeled PR
+# re-evaluate the label predicate (defense-in-depth if a label was removed).
 on:
-  pull_request_target:
+  pull_request_target: # zizmor: ignore[dangerous-triggers] label-gated; no checkout of fork code; only flips auto-merge
     types: [labeled, synchronize]
+
+# Don't run concurrent label-merges on the same PR — keep the latest event
+# only, since each invocation is idempotent (gh pr merge --auto).
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+# Top-level permissions are minimal; the only job that needs write scopes
+# declares them explicitly below.
 permissions:
-  pull-requests: write
-  contents: write
+  contents: read
+
 jobs:
   enable-auto-merge:
+    name: Enable native GitHub auto-merge (squash)
     if: contains(github.event.pull_request.labels.*.name, 'auto-merge')
     runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # required to call `gh pr merge --auto` on the PR
+      contents: write      # gh pr merge --auto persists the merge-method preference
     steps:
       - name: Enable native GitHub auto-merge (squash)
         env:

@@ -2,9 +2,9 @@ name: Auto-merge Dependabot PRs
 
 on: pull_request
 
+# Top-level permissions minimal; the auto-merge job declares writes explicitly.
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,8 +12,12 @@ concurrency:
 
 jobs:
   dependabot:
+    name: Auto-merge minor/patch Dependabot updates
     runs-on: ubuntu-latest
     if: github.event.pull_request.user.login == 'dependabot[bot]'
+    permissions:
+      contents: write      # gh pr merge --auto persists the merge-method preference
+      pull-requests: write # required to flip auto-merge on the PR
     steps:
       - name: Dependabot metadata
         id: metadata

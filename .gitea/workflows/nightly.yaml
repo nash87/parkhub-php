@@ -203,6 +203,10 @@ jobs:
           PARKHUB_ADMIN_PASSWORD: demo
           PARKHUB_DISABLE_RATE_LIMITS: 'true'
           RUN_STORAGE_LINK: '1'
+          # Surface the matrix axes via env so they aren't directly expanded
+          # into the run script body (zizmor: template-injection).
+          MATRIX_PROJECT: ${{ matrix.project }}
+          MATRIX_SHARD: ${{ matrix.shard }}
         run: |
           ./scripts/ci/bootstrap-laravel.sh
           # Seed the ProductionSimulationSeeder explicitly — the default
@@ -210,14 +214,14 @@ jobs:
           # empty database and everything that walks a list 404s.
           php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
 
-          php artisan serve --host=127.0.0.1 --port=8082 > "/tmp/parkhub-nightly-e2e-${{ matrix.project }}-${{ matrix.shard }}.log" 2>&1 &
+          php artisan serve --host=127.0.0.1 --port=8082 > "/tmp/parkhub-nightly-e2e-${MATRIX_PROJECT}-${MATRIX_SHARD}.log" 2>&1 &
           server_pid=$!
           trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
 
           ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
           npx playwright test \
-            --project="${{ matrix.project }}" \
-            --shard="${{ matrix.shard }}/4"
+            --project="${MATRIX_PROJECT}" \
+            --shard="${MATRIX_SHARD}/4"
 
       - name: Upload Playwright report (${{ matrix.project }} shard ${{ matrix.shard }})
         if: always()

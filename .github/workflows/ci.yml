@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
-  pull-requests: read
+  contents: read       # checkout source for all CI jobs
+  pull-requests: read  # read PR metadata for fop-local-ci status check
 
 env:
   PHP_VERSION: '8.4'
@@ -96,8 +96,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 12
     permissions:
-      contents: read
-      statuses: read
+      contents: read   # checkout source for the gate job
+      statuses: read   # read fop/local-ci/pr commit status to gate the PR
     steps:
       - name: Require fop local CI commit status
         env:

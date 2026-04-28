@@ -13,11 +13,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Top-level permissions are minimal; the job below declares its own
+# read-only scope for an explicit defense-in-depth.
+permissions:
+  contents: read
+
 jobs:
   copilot-setup-steps:
+    name: Copilot setup steps (PHP + Node + dependency install)
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: read # checkout source; setup steps install deps only, no writes
     timeout-minutes: 30
     steps:
       - name: Checkout

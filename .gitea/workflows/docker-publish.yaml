@@ -14,12 +14,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Top-level permissions are minimal (read-only). Each job declares the
+# additional scopes it actually needs.
 permissions:
-  attestations: write
   contents: read
-  id-token: write
-  packages: write
-  security-events: write
 
 env:
   IMAGE_NAME: ${{ github.repository }}
@@ -30,6 +28,13 @@ jobs:
     name: Build, scan, and publish image
     runs-on: ubuntu-latest
     timeout-minutes: 45
+
+    permissions:
+      contents: read         # checkout source
+      packages: write        # push built image to GHCR
+      id-token: write        # cosign keyless signing (Sigstore OIDC) + attest-build-provenance
+      attestations: write    # actions/attest-build-provenance writes against the image digest
+      security-events: write # Trivy scan upload to Security tab
 
     outputs:
       digest: ${{ steps.push.outputs.digest }}
@@ -122,6 +127,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions: {}
+    # Bind Render deploy secrets to a dedicated environment (see
+    # .github/workflows/docker-publish.yml for the rationale).
+    environment: demo
     env:
       RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
       RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}

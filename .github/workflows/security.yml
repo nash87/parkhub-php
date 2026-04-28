@@ -68,8 +68,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: read
-      security-events: write
+      contents: read         # checkout source for the scan
+      security-events: write # upload Trivy SARIF results to GitHub Security tab
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -97,8 +97,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
-      pull-requests: read
+      contents: read      # checkout source for the secret scan
+      pull-requests: read # read PR base/head SHAs for scoped scan range
     env:
       GITLEAKS_VERSION: 8.30.1
       GITLEAKS_SHA256: 551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb
@@ -159,8 +159,8 @@ jobs:
     # Promote findings to errors once the workflow inventory has been triaged.
     continue-on-error: true
     permissions:
-      contents: read
-      security-events: write
+      contents: read         # checkout source for the SAST scan
+      security-events: write # upload Zizmor SARIF results to GitHub Security tab
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
