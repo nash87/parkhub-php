@@ -36,10 +36,16 @@ jobs:
             build-mode: none
 
     steps:
+      - name: Local-first CodeQL skip
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && !contains(github.event.pull_request.labels.*.name, 'github-ci-full')
+        run: echo "CodeQL is covered on main/schedule/manual, or on PRs labeled github-ci-full."
+
       - name: Checkout
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || contains(github.event.pull_request.labels.*.name, 'github-ci-full')
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Initialize CodeQL
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || contains(github.event.pull_request.labels.*.name, 'github-ci-full')
         uses: github/codeql-action/init@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4
         with:
           languages: ${{ matrix.language }}
@@ -51,7 +57,7 @@ jobs:
               - '**/lang/**'
 
       - name: Set up Node.js
-        if: matrix.language == 'javascript-typescript'
+        if: matrix.language == 'javascript-typescript' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || contains(github.event.pull_request.labels.*.name, 'github-ci-full'))
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -61,13 +67,14 @@ jobs:
             parkhub-web/package-lock.json
 
       - name: Build JavaScript and TypeScript sources
-        if: matrix.language == 'javascript-typescript'
+        if: matrix.language == 'javascript-typescript' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || contains(github.event.pull_request.labels.*.name, 'github-ci-full'))
         run: |
           npm ci
           npm ci --prefix parkhub-web
           npm run build
 
       - name: Perform CodeQL analysis
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository || contains(github.event.pull_request.labels.*.name, 'github-ci-full')
         uses: github/codeql-action/analyze@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4
         with:
           category: /language:${{ matrix.language }}

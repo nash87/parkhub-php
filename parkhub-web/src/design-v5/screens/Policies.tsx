@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Card, SectionLabel, V5NamedIcon } from '../primitives';
 import { useV5Toast } from '../Toast';
 import { api, type Policy } from '../../api/client';
+import { useDraftFromActive } from '../../hooks/useDraftFromActive';
 import type { ScreenId } from '../nav';
 
 function formatWhen(iso: string): string {
@@ -16,7 +17,6 @@ export function PoliciesV5({ navigate: _navigate }: { navigate: (id: ScreenId) =
   const toast = useV5Toast();
   const qc = useQueryClient();
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [draft, setDraft] = useState('');
   const [preview, setPreview] = useState(false);
 
   const { data: policies = [], isLoading, isError } = useQuery({
@@ -35,13 +35,16 @@ export function PoliciesV5({ navigate: _navigate }: { navigate: (id: ScreenId) =
 
   const active = policies.find((p) => p.id === activeId) ?? null;
 
+  const [draftBody, setDraft, { isDirty: draftIsDirty }] = useDraftFromActive(
+    active,
+    { derive: (p: Policy) => p.body },
+  );
+  // Reset preview-mode whenever the user switches active id; the hook handles
+  // the draft itself.
   useEffect(() => {
-    const p = policies.find((x) => x.id === activeId);
-    if (p) { setDraft(p.body); setPreview(false); }
-    // Only depend on activeId: refetches produce a new policies array, which
-    // would otherwise clobber the user's in-flight draft on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setPreview(false);
   }, [activeId]);
+  const draft = draftBody ?? '';
 
   const save = useMutation({
     mutationFn: async (payload: { id: string; body: string }) => {
@@ -75,7 +78,7 @@ export function PoliciesV5({ navigate: _navigate }: { navigate: (id: ScreenId) =
     );
   }
 
-  const isDirty = active && draft !== active.body;
+  const isDirty = !!active && draftIsDirty;
 
   return (
     <div style={{ padding: 16, flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 12 }}>

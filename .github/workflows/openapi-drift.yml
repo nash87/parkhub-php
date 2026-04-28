@@ -1,16 +1,10 @@
 name: OpenAPI Drift
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'app/**'
-      - 'routes/**'
-      - 'config/scramble.php'
-      - 'docs/openapi/**'
-      - 'scripts/dump-openapi.sh'
-      - 'scripts/diff-openapi.sh'
-      - '.github/workflows/openapi-drift.yml'
+  # PR-time drift detection moved to .github/scripts/fop-local-ci.sh
+  # (profile pr) and ci.yml's `openapi-drift` job under the
+  # `github-ci-full` label gate. This workflow now only fires on main
+  # pushes (post-merge audit) and manual dispatch.
   push:
     branches: [main]
   workflow_dispatch:

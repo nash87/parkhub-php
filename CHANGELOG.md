@@ -11,6 +11,41 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [5.0.1] - 2026-04-26
+
+Patch release aligning the PHP runtime with the post-v5.0 cutting-edge
+CI/security wave and parkhub-rust v5.0.1.
+
+### Changed
+
+- **VERSION** 4.15.0 -> 5.0.1.
+- **`parkhub-web/package.json` + `parkhub-web/package-lock.json`** version 4.15.0 -> 5.0.1.
+- **README** release badge bumped to v5.0.1.
+- **OpenAPI dump bootstrap** now uses an isolated temporary SQLite database for fresh worktrees and pre-push hooks.
+- **Dependency Review** remains advisory until GitHub Dependency Graph is enabled for this repository.
+
+---
+
+## [4.15.0] - 2026-04-26
+
+Coordinated version-surface parity bump with parkhub-rust 4.15.0
+(rust parkhub-rust#420 stamping the 2026-04-25 release wave on
+`Cargo.toml`/README/CHANGELOG, and parkhub-rust#422 syncing root
+`package.json` + `parkhub-web/package.json` to 4.15.0). Per
+`docs/parity-governance.md` both runtimes publish the same version
+surface; this PR is the php sibling that puts php on 4.15.0 in
+lockstep with rust. No customer-visible product changes vs. 4.14.0
+on this runtime — see [Unreleased] above for in-flight php-internal
+work (e.g. parkhub-web Phase 4c+ tsc cleanup).
+
+### Changed
+
+- **VERSION** 4.14.0 → 4.15.0.
+- **`parkhub-web/package.json` + `parkhub-web/package-lock.json`** version 4.14.0 → 4.15.0.
+- **README** release badge bumped to v4.15.0.
+
+---
+
 ## [4.14.0] - 2026-04-25
 
 Minor bump catching up with parkhub-rust 4.14.x baseline (the parity-governance
