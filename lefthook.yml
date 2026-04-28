@@ -49,11 +49,19 @@ pre-commit:
 pre-push:
   parallel: false
   commands:
-    local-ci-post:
-      # Runs the full PR gate AND posts the `fop/local-ci/pr` commit status
-      # to GitHub on success — no manual `make ci-post` follow-up required.
-      # The `local-ci-attestation` job in .github/workflows/ci.yml polls
-      # this status; with this step posting on every push, the GitHub
-      # gate clears automatically without operator intervention.
-      run: make ci-post
-      fail_text: "Local fop CI failed. Fix before push (run `make ci` to reproduce without posting status)."
+    local-ci:
+      # Runs the full PR gate (no synchronous status post — the SHA isn't
+      # on GitHub yet at pre-push time, so a synchronous post would 422).
+      run: make ci
+      fail_text: "Local fop CI failed. Fix before push."
+
+    post-attestation:
+      # Forks a deferred poll-and-post that waits until the SHA shows up
+      # on GitHub (after `git push` transmits the commit) and then
+      # publishes fop/local-ci/pr=success. Returns immediately so
+      # lefthook isn't blocked. The local-ci-attestation gate in
+      # .github/workflows/ci.yml typically clears within ~10s of the
+      # status post — no manual follow-up needed.
+      skip:
+        - run: ! command -v gh >/dev/null 2>&1
+      run: 'bash scripts/post-attestation-deferred.sh success "Local-first attestation - lefthook pre-push gates clean (php)"'
