@@ -63,5 +63,5 @@ pre-push:
       # .github/workflows/ci.yml typically clears within ~10s of the
       # status post — no manual follow-up needed.
       skip:
-        - run: ! command -v gh >/dev/null 2>&1
+        - run: 'test ! -x "$(command -v gh 2>/dev/null)"'
       run: 'bash scripts/post-attestation-deferred.sh success "Local-first attestation - lefthook pre-push gates clean (php)"'
