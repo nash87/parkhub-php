@@ -1,6 +1,11 @@
-# Mirror of .github/workflows/ci.yml for Gitea Actions runner.
-# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
-# Edit .github/workflows/ci.yml as source-of-truth, then re-mirror.
+# Internal full CI for the Gitea Actions runner.
+# Action refs are rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+#
+# GitHub same-repo PRs are intentionally local-first: they require the
+# `fop/local-ci/pr` commit status posted by `make ci-post` and skip most heavy
+# duplicate jobs. Gitea intentionally keeps the fuller internal runner coverage
+# so packaging, e2e, Docker, and integration failures are found before GitHub is
+# used as the first real CI surface.
 
 name: CI
 

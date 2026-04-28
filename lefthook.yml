@@ -4,8 +4,8 @@
 # round-trip (15-30 min) is reserved for genuinely cross-cutting checks.
 #
 # Pre-commit runs only on staged files and stays fast (<10s typical).
-# Pre-push runs the heavier gates (PHPStan, PHPUnit unit suite, vitest,
-# OpenAPI/types drift) in parallel.
+# Pre-push runs the canonical fop-backed local PR gate. Keep this as a single
+# command so fop owns serialization, memory limits, and queue visibility.
 #
 # Bypass in emergencies with `git push --no-verify`. Logged + frowned-upon.
 # Full local replay: `lefthook run pre-push`.
@@ -47,32 +47,8 @@ pre-commit:
       fail_text: "TypeScript errors in parkhub-web. Run `npm install` at the root if typescript is missing."
 
 pre-push:
-  parallel: true
+  parallel: false
   commands:
-    phpstan:
-      run: ./vendor/bin/phpstan analyse --memory-limit=2G --no-progress
-      fail_text: "PHPStan errors. Fix violations or update phpstan-baseline.neon if intentional."
-
-    phpunit-fast:
-      # Only the Unit suite — Feature/Integration/Simulation run on CI
-      # to keep the local pre-push loop under ~30s.
-      run: ./vendor/bin/phpunit --testsuite=Unit --stop-on-failure
-      fail_text: "Unit tests failing locally. Fix before push or CI will reject."
-
-    vitest:
-      root: parkhub-web/
-      # --changed runs only tests affected by uncommitted/changed files.
-      # On a clean branch this falls back to the full suite. Skip cleanly
-      # if vitest hasn't been installed locally yet.
-      skip:
-        - run: test ! -d node_modules/vitest
-      run: npx --no-install vitest --run --changed
-      fail_text: "Frontend tests failing in parkhub-web."
-
-    openapi-drift:
-      run: scripts/check-openapi-drift.sh
-      fail_text: "OpenAPI spec drift detected. See script output."
-
-    types-drift:
-      run: scripts/check-types-drift.sh
-      fail_text: "TypeScript types drift detected. See script output."
+    local-ci:
+      run: make ci
+      fail_text: "Local fop CI failed. Fix before push or run `make ci-post` for the PR attestation."

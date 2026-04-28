@@ -1,9 +1,10 @@
 # parkhub-php — Developer Guide
 
-This doc covers the local dev loop, the local CI mirror (Makefile + pre-commit + act),
-and the GitHub Actions hardening we rely on. It is the companion to the
-`.github/workflows/*.yml` files — those workflows remain the source of truth, every
-thing here exists to reproduce them locally before `git push`.
+This doc covers the local dev loop, the local-first CI/CD gate, the Gitea
+runner mirror, and the GitHub Actions hardening we rely on. The rule is:
+run the expensive proof locally through `fop`, let Gitea run the fuller
+internal mirror, and keep GitHub as the thin external gate that checks the
+posted `fop/local-ci/pr` status.
 
 ---
 
@@ -55,19 +56,22 @@ Hooks (summary):
 | pre-commit | check-yaml, check-json, check-merge-conflict, check-added-large-files | same |
 | pre-commit | `laravel/pint@v1.29.0` (`--test`)       | upstream                             |
 | pre-commit | `composer validate --strict`            | local                                |
-| pre-push   | `vendor/bin/phpstan` (memory-limit=512M) | local                               |
+| pre-push   | `make ci` (`fop-local-ci.sh --profile pr`) | local                             |
 
 ---
 
-## 3. `make ci` — the core local gate
+## 3. `make ci` — the canonical local gate
 
-The Makefile mirrors the **reproducible local subset** of
-`.github/workflows/ci.yml`. Run **`make ci` before `git push`** for fast local
-feedback, then use `make act` when you need to execute the actual workflow
-YAML.
+The Makefile delegates to `.github/scripts/fop-local-ci.sh`, which serializes
+every non-trivial step through `fop build`. This is the local source of truth
+for same-repo PRs. GitHub branch protection expects a successful
+`fop/local-ci/pr` commit status, posted by `make ci-post`.
 
 ```bash
-make ci          # lint + static-analysis + test + frontend + drift
+make ci          # fop local PR gate, no GitHub status post
+make ci-post     # fop local PR gate + post fop/local-ci/pr
+make full        # PR gate + Schemathesis/Infection/Playwright extras
+make cd          # full + release-oriented audit/scan/smoke
 make lint        # pint --test (mirrors backend-quality job)
 make static-analysis  # phpstan (mirrors static-analysis job)
 make test        # full backend PHPUnit suite (mirrors backend-tests job)
@@ -76,14 +80,17 @@ make frontend    # npm ci + build (mirrors frontend job)
 make pre-push    # alias for make ci
 ```
 
-`make ci` intentionally covers the fast local checks: lint, static analysis,
-backend tests, frontend build/tests, and OpenAPI drift. Workflow-only jobs such
-as `workflow-hygiene`, `docker-validate`, `e2e-smoke`, and `integration` still
-run in GitHub Actions / `act`.
+`make ci` covers the blocking local PR surface: Composer metadata/audit,
+Pint, PHPStan, PHPUnit Unit+Feature, frontend install/typecheck/Vitest/build,
+OpenAPI drift, PHP-side types drift, and workflow SAST when `zizmor` is
+installed. Same-repo GitHub PRs skip the heavyweight duplicate jobs unless
+the `github-ci-full` label is present; forks and `main` pushes still run the
+full GitHub workflow.
 
-See the comment block at the top of `Makefile` — any target that claims to
-mirror a workflow job **must not diverge** from that job. If a workflow job
-changes, update the corresponding make target in the same commit.
+The lower-level make targets remain as debugging entrypoints, but they are not
+the merge gate. If a workflow job changes, update `.github/scripts/fop-local-ci.sh`,
+the Makefile help text, and the relevant GitHub/Gitea workflow in the same
+commit.
 
 Shared feature/API changes also need the cross-runtime docs kept in sync:
 [docs/parity-governance.md](docs/parity-governance.md),
@@ -92,7 +99,16 @@ Shared feature/API changes also need the cross-runtime docs kept in sync:
 
 ---
 
-## 4. `act` — run the actual workflows locally
+## 4. Gitea and `act`
+
+Gitea is the internal runner surface. The `.gitea/workflows/*` files mirror the
+GitHub workflows with action refs rewritten to the local Gitea mirror where we
+have one, but the CI workflow intentionally remains fuller than a normal
+same-repo GitHub PR. Use it to catch runner, packaging, and deploy-shape issues
+before GitHub is asked to spend minutes failing on something local or internal
+CI could have caught.
+
+`act` is still useful for local YAML execution when you need runner semantics.
 
 [`nektos/act`](https://github.com/nektos/act) executes the YAML workflows
 inside a container. This catches Actions-syntax bugs that `make ci` misses.
@@ -168,10 +184,12 @@ primitives ([docs.github.com/en/actions](https://docs.github.com/en/actions)):
   [docs.github.com/.../artifact-attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations).
 - **SBOM** — generated per build (Syft via buildx), uploaded alongside the
   provenance attestation.
-- **Branch protection** — `main` requires green `required` job
-  (aggregates: workflow-hygiene, dependency-review, backend-tests,
-  docker-validate, static-analysis, integration, openapi-drift, etc.) and 1
-  review. Set in GitHub Settings → Branches.
+- **Local-first branch protection** — same-repo PRs require the `required` job,
+  which in turn requires `fop local CI attestation`. That job only accepts a
+  successful `fop/local-ci/pr` commit status from `make ci-post`.
+- **Full fallback** — fork PRs, `main` pushes, and PRs labelled `github-ci-full`
+  run the heavy GitHub jobs directly. This keeps external contributions honest
+  while avoiding duplicate GitHub failures for local branches.
 - **Environments** — not wired yet (no external deploy targets on GitHub — we
   deploy from Gitea via Flux). When we do wire them, use GitHub
   [Environments](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment)

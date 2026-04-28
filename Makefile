@@ -1,13 +1,16 @@
-# parkhub-php — Local CI/CD mirror
+# parkhub-php — Local-first CI/CD entrypoints
 #
-# These targets mirror the reproducible local subset of .github/workflows/*.yml.
-# NEVER let them drift from the workflow jobs they claim to mirror: if a
-# workflow job changes, update the matching make target in the same commit.
-# The GitHub workflows remain the source of truth; use `make ci` for the fast
-# local core gate and `make act` when you need to execute the actual YAML.
+# `make ci` is the canonical PR gate. It runs through fop so local work gets
+# the same serialization, memory limits, and GitHub commit-status attestation
+# path as the protected PR check. GitHub same-repo PRs should mostly verify
+# the posted `fop/local-ci/pr` status; Gitea can run the fuller internal
+# workflow mirror.
 #
 # Usage:
-#   make ci         # core local gate: lint + static-analysis + tests + frontend + drift
+#   make ci         # fop local PR gate (no GitHub status post)
+#   make ci-post    # fop local PR gate + post fop/local-ci/pr for GitHub
+#   make full       # fop full profile: PR gate + mutation/e2e extras
+#   make cd         # fop CD profile: full + release-oriented scans/smoke
 #   make lint       # pint --test + phpstan (backend-quality + static-analysis jobs)
 #   make test       # full backend PHPUnit suite — mirrors backend-tests
 #   make drift      # bootstrap sqlite + regenerate openapi + fail on diff — mirrors openapi-drift.yml
@@ -20,12 +23,15 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 MAKEFLAGS += --no-print-directory
 
-.PHONY: help ci lint test static-analysis drift frontend act pre-push clean
+.PHONY: help ci ci-post full cd lint test static-analysis drift frontend act pre-push clean
 
 help:
-	@echo "parkhub-php local CI mirror (see .github/workflows/*.yml)"
+	@echo "parkhub-php local-first CI/CD"
 	@echo ""
-	@echo "  make ci         — lint + static-analysis + test + frontend + drift"
+	@echo "  make ci         — fop local PR gate"
+	@echo "  make ci-post    — fop local PR gate + post fop/local-ci/pr"
+	@echo "  make full       — fop full profile"
+	@echo "  make cd         — fop CD profile"
 	@echo "  make lint       — pint --test (backend-quality)"
 	@echo "  make static-analysis — phpstan (static-analysis job)"
 	@echo "  make test       — full backend PHPUnit suite (backend-tests)"
@@ -71,10 +77,18 @@ drift:
 	fi
 	@echo "OpenAPI snapshot in sync."
 
-## Core local CI — fast, reproducible subset of the blocking GitHub checks
-ci: lint static-analysis test frontend drift
-	@echo ""
-	@echo "Core local gate passed. Run 'make act' for the full workflow YAML."
+## Canonical local PR gate. GitHub branch protection expects ci-post on PR heads.
+ci:
+	.github/scripts/fop-local-ci.sh --profile pr
+
+ci-post:
+	.github/scripts/fop-local-ci.sh --profile pr --post-status
+
+full:
+	.github/scripts/fop-local-ci.sh --profile full
+
+cd:
+	.github/scripts/fop-local-ci.sh --profile cd
 
 pre-push: ci
 
