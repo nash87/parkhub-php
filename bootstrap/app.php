@@ -17,6 +17,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
@@ -31,6 +32,11 @@ return Application::configure(basePath: dirname(__DIR__))
         channels: __DIR__.'/../routes/channels.php',
         health: '/up',
         apiPrefix: 'api',
+        then: function (): void {
+            Route::middleware('api')
+                ->prefix('api')
+                ->group(base_path('routes/api/observability.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         // Request correlation ID — mirrors the rust server's x-request-id

@@ -34,6 +34,9 @@ class ObservabilityControllerTest extends TestCase
     public function test_accepts_valid_web_vitals_beacon(): void
     {
         Log::spy();
+        Log::shouldReceive('channel')
+            ->with(config('logging.web_vitals_channel', 'stack'))
+            ->andReturnSelf();
 
         $response = $this->postJson('/api/observability/web-vitals', [
             'name' => 'LCP',
@@ -50,6 +53,12 @@ class ObservabilityControllerTest extends TestCase
 
         $response->assertStatus(204);
         Log::shouldHaveReceived('channel')->atLeast()->once();
+        Log::shouldHaveReceived('info')->withArgs(
+            fn (string $message, array $context): bool => $message === 'rum.web_vitals'
+                && $context['metric'] === 'LCP'
+                && $context['value'] === 1234.5
+                && $context['path'] === '/dashboard'
+        )->once();
     }
 
     public function test_rejects_unknown_metric_name(): void

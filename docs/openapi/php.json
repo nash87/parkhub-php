@@ -9370,6 +9370,137 @@
         ]
       }
     },
+    "/observability/web-vitals": {
+      "post": {
+        "description": "Accepts a single Web Vitals metric payload. Validated, rate-limited per\nIP, and emitted to the `web-vitals` log channel as structured JSON.",
+        "operationId": "observability.webVitals",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "delta": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "id": {
+                    "maxLength": 128,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "name": {
+                    "enum": [
+                      "CLS",
+                      "FCP",
+                      "INP",
+                      "LCP",
+                      "TTFB",
+                      "FID"
+                    ],
+                    "type": "string"
+                  },
+                  "navigationType": {
+                    "maxLength": 32,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "path": {
+                    "maxLength": 512,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "rating": {
+                    "enum": [
+                      "good",
+                      "needs-improvement",
+                      "poor"
+                    ],
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "timestamp": {
+                    "maxLength": 64,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "userAgent": {
+                    "maxLength": 512,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "value": {
+                    "type": "number"
+                  },
+                  "visibilityState": {
+                    "maxLength": 32,
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "name",
+                  "value"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "204 — beacon contract: no body, no caching. `sendBeacon()` ignores\nthe response anyway, but keep it minimal for the fetch fallback.\n\n\n\nNo content"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "error": {
+                      "const": "RATE_LIMITED",
+                      "type": "string"
+                    },
+                    "message": {
+                      "const": "Too many beacons. Try again later.",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error",
+                    "message"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "POST /api/observability/web-vitals",
+        "tags": [
+          "Observability"
+        ]
+      }
+    },
     "/public/display": {
       "get": {
         "operationId": "public.display_0",

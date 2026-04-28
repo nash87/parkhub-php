@@ -230,7 +230,7 @@ run_step "frontend npm install" "npm ci && npm ci --prefix parkhub-web"
 # still chipping away at hundreds of inherited TS errors. Run the gate
 # as advisory until phase 4 lands; the diff that makes it strict will
 # be a separate PR.
-run_step "frontend typecheck (advisory until tsc-phase4 lands)" "cd parkhub-web && ./node_modules/.bin/tsc --noEmit || echo 'tsc errors present (advisory while phase4 is in flight)'"
+run_step_heavy "frontend typecheck (advisory until tsc-phase4 lands)" "cd parkhub-web && NODE_OPTIONS=\"\${NODE_OPTIONS:-} --max-old-space-size=4096\" ./node_modules/.bin/tsc --noEmit || echo 'tsc errors present (advisory while phase4 is in flight)'"
 
 run_step "frontend vitest" "cd parkhub-web && npm test"
 

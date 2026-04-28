@@ -834,34 +834,28 @@ describe('AdminLotsPage', () => {
       success: true,
       data: { enabled: true, base_price: 2.5, surge_multiplier: 1.5, discount_multiplier: 0.8, surge_threshold: 80, discount_threshold: 20 },
     });
-    const user = userEvent.setup();
     render(<AdminLotsPage />);
     await waitFor(() => expect(screen.getByText('DP Edit')).toBeInTheDocument());
-    await user.click(screen.getByLabelText(/Edit lot DP Edit/i));
+    fireEvent.click(screen.getByLabelText(/Edit lot DP Edit/i));
     await waitFor(() => expect(document.getElementById('dp-base-price')).toBeInTheDocument());
 
     // Edit each dynamic pricing field
     const basePriceInput = document.getElementById('dp-base-price') as HTMLInputElement;
-    await user.clear(basePriceInput);
-    await user.type(basePriceInput, '3.5');
+    fireEvent.change(basePriceInput, { target: { value: '3.5' } });
 
     // Surge multiplier (label includes desc text — find by id)
     const surgeMultInput = document.getElementById('dp-surge-mult') as HTMLInputElement;
     expect(surgeMultInput).toBeTruthy();
-    await user.clear(surgeMultInput);
-    await user.type(surgeMultInput, '2.0');
+    fireEvent.change(surgeMultInput, { target: { value: '2.0' } });
 
     const discountMultInput = document.getElementById('dp-discount-mult') as HTMLInputElement;
-    await user.clear(discountMultInput);
-    await user.type(discountMultInput, '0.5');
+    fireEvent.change(discountMultInput, { target: { value: '0.5' } });
 
     const surgeThreshInput = document.getElementById('dp-surge-thresh') as HTMLInputElement;
-    await user.clear(surgeThreshInput);
-    await user.type(surgeThreshInput, '90');
+    fireEvent.change(surgeThreshInput, { target: { value: '90' } });
 
     const discountThreshInput = document.getElementById('dp-discount-thresh') as HTMLInputElement;
-    await user.clear(discountThreshInput);
-    await user.type(discountThreshInput, '10');
+    fireEvent.change(discountThreshInput, { target: { value: '10' } });
   });
 
   it('updates operating hours day fields via onChange handlers', async () => {

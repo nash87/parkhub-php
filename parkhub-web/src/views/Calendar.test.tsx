@@ -646,7 +646,6 @@ describe('CalendarPage', () => {
   });
 
   it('drag-and-drop reschedule cancel', async () => {
-    const user = userEvent.setup();
     const now = new Date();
     const testDate = new Date(now.getFullYear(), now.getMonth(), 11);
     const isoKey = testDate.toISOString().slice(0, 10);
@@ -684,7 +683,7 @@ describe('CalendarPage', () => {
     });
 
     // Click cancel
-    await user.click(screen.getByText('Cancel'));
+    fireEvent.click(screen.getByText('Cancel'));
     await waitFor(() => {
       expect(screen.queryByTestId('reschedule-confirm')).not.toBeInTheDocument();
     });

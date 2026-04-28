@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\RateLimiter;
 
@@ -28,19 +29,12 @@ use Illuminate\Support\Facades\RateLimiter;
 class ObservabilityController extends Controller
 {
     /**
-     * Allowed Web Vitals metric names. Anything outside this set is rejected
-     * to keep the log stream clean and prevent abuse of the unauthenticated
-     * endpoint as a free string-logger.
-     */
-    private const ALLOWED_METRICS = ['CLS', 'FCP', 'INP', 'LCP', 'TTFB', 'FID'];
-
-    /**
      * POST /api/observability/web-vitals
      *
      * Accepts a single Web Vitals metric payload. Validated, rate-limited per
      * IP, and emitted to the `web-vitals` log channel as structured JSON.
      */
-    public function webVitals(Request $request): JsonResponse
+    public function webVitals(Request $request): JsonResponse|Response
     {
         // 60 beacons/min per IP — comfortably above the 5 core metrics +
         // re-fires triggered by SPA route changes, but tight enough to stop
@@ -55,7 +49,7 @@ class ObservabilityController extends Controller
         RateLimiter::hit($key, decaySeconds: 60);
 
         $validated = $request->validate([
-            'name' => 'required|string|in:'.implode(',', self::ALLOWED_METRICS),
+            'name' => 'required|string|in:CLS,FCP,INP,LCP,TTFB,FID',
             'value' => 'required|numeric',
             'rating' => 'nullable|string|in:good,needs-improvement,poor',
             'delta' => 'nullable|numeric',
@@ -86,6 +80,6 @@ class ObservabilityController extends Controller
 
         // 204 — beacon contract: no body, no caching. `sendBeacon()` ignores
         // the response anyway, but keep it minimal for the fetch fallback.
-        return response()->json(null, 204);
+        return response()->noContent();
     }
 }
