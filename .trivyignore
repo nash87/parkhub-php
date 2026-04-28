@@ -1,0 +1,10 @@
+# Trivy ignore file
+# Documented exceptions for the parkhub-php repo. Each entry must carry
+# an explicit justification — review on every workflow refresh.
+
+# DS-0002: "Image user should not be 'root'" (Dockerfile)
+# Standard php:apache pattern — Apache master starts as root, then
+# privilege-drops to www-data for worker processes. The entrypoint also
+# needs root briefly for migrations and storage-permission setup. Already
+# dismissed upstream as "won't fix" on GitHub Security tab (alert #1617).
+DS-0002
