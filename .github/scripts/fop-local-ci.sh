@@ -324,7 +324,9 @@ fi
 # Advisory mode: known transitive advisories are tolerated; OSV-Scanner
 # findings are surfaced informationally and do NOT fail the gate.
 if command -v osv-scanner >/dev/null 2>&1; then
-  run_step "osv-scanner (supply-chain, advisory)" "osv-scanner scan source --recursive --no-config . 2>&1 | tail -50 || echo 'osv-scanner found vulns (advisory)'"
+  # osv-scanner.toml at repo root tracks documented exceptions, so this step
+  # is now gating (failure = real new vuln, not a known one).
+  run_step "osv-scanner (supply-chain)" "osv-scanner scan source --recursive --config=osv-scanner.toml ."
 else
   skip_step "osv-scanner" "osv-scanner not on PATH (install: https://google.github.io/osv-scanner/installation/)"
 fi

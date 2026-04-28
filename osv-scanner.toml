@@ -1,0 +1,9 @@
+# OSV-Scanner ignore configuration for parkhub-php.
+# Allows promoting OSV-Scanner from advisory to gating without breaking
+# on already-documented transitive advisories.
+#
+# Format: https://google.github.io/osv-scanner/configuration/
+
+[[IgnoredVulns]]
+id = "GHSA-48c2-rrv3-qjmp"
+reason = "yaml dev-dep CVE on parkhub-web; non-prod only; bumping in next dependabot wave"
