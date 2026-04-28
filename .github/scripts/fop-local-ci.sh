@@ -248,10 +248,15 @@ run_step "openapi drift" "scripts/check-openapi-drift.sh"
 # nobody mistakes the always-pass for a real drift signal.
 run_step "types drift (no-op in php; gated by parkhub-rust)" "scripts/check-types-drift.sh"
 
-# ---------------- Optional security linters ---------------------------------
-# zizmor (GHA SAST, MIT-licensed Rust). Run if installed; skip cleanly
-# otherwise so fresh clones do not block on a missing tool.
-run_step "zizmor (gha lint)" "if command -v zizmor >/dev/null 2>&1; then zizmor .github/workflows; else echo 'zizmor not installed; skipping'; fi"
+# ---------------- Local OSS security mirror ---------------------------------
+# Mirrors the GitHub/Gitea security + workflow hygiene jobs with local
+# open-source tools. Missing optional tools are surfaced but do not block the
+# standard PR gate; run `make ci-security` for the strict local toolchain check.
+security_profile="pr"
+if [[ "$profile" == "cd" ]]; then
+  security_profile="cd"
+fi
+run_step "local security audit (${security_profile} mirror)" "scripts/ci/local-security-audit.sh --profile ${security_profile}"
 
 # `cd` profile is documented as `full + cd-specific steps`, so the full
 # block runs for both `full` and `cd`. Without this, `cd` would skip
@@ -274,12 +279,6 @@ if [[ "$profile" == "full" || "$profile" == "cd" ]]; then
 fi
 
 if [[ "$profile" == "cd" ]]; then
-  run_step "composer audit (prod-only, strict)" "composer audit --no-dev --no-interaction"
-
-  # Trivy filesystem scan when available (MIT-licensed). Skip cleanly
-  # if not installed so cd profile remains runnable from a fresh clone.
-  run_step "trivy filesystem scan" "if command -v trivy >/dev/null 2>&1; then trivy fs --severity HIGH,CRITICAL --exit-code 1 --skip-dirs vendor,node_modules,parkhub-web/node_modules .; else echo 'trivy not installed; skipping'; fi"
-
   run_step "release smoke (php artisan test --testsuite=Feature)" "./scripts/ci/bootstrap-laravel.sh && php artisan test --testsuite=Feature"
 fi
 

@@ -31,6 +31,7 @@ Every push must go through the local CI mirror first — it runs the same jobs a
 ```sh
 make ci             # mandatory local PR gate through fop
 make ci-post        # same gate + posts fop/local-ci/pr for GitHub PRs
+make ci-security    # strict local OSS mirror of GitHub/Gitea security gates
 make cd             # release-oriented local preflight
 make act            # optional: run the actual workflow files locally via nektos/act (.actrc preconfigured)
 ```

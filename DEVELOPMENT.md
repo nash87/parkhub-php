@@ -72,6 +72,7 @@ make ci          # fop local PR gate, no GitHub status post
 make ci-post     # fop local PR gate + post fop/local-ci/pr
 make full        # PR gate + Schemathesis/Infection/Playwright extras
 make cd          # full + release-oriented audit/scan/smoke
+make ci-security # strict local OSS security/workflow mirror
 make lint        # pint --test (mirrors backend-quality job)
 make static-analysis  # phpstan (mirrors static-analysis job)
 make test        # full backend PHPUnit suite (mirrors backend-tests job)
@@ -86,6 +87,13 @@ OpenAPI drift, PHP-side types drift, and workflow SAST when `zizmor` is
 installed. Same-repo GitHub PRs skip the heavyweight duplicate jobs unless
 the `github-ci-full` label is present; forks and `main` pushes still run the
 full GitHub workflow.
+
+`make ci-security` is the stricter local OSS pendant for the GitHub/Gitea
+security and workflow jobs. It runs Composer and npm production audits,
+gitleaks, actionlint, yamllint, Helm/Docker manifest validation, Zizmor, Typos,
+and Trivy filesystem scanning locally. Default `make ci` uses the same script in
+GitHub-mode so fresh clones report missing optional tools instead of failing;
+`make ci-security` adds `--strict-tools --fail-advisory` for release cleanup.
 
 The lower-level make targets remain as debugging entrypoints, but they are not
 the merge gate. If a workflow job changes, update `.github/scripts/fop-local-ci.sh`,
@@ -176,8 +184,9 @@ primitives ([docs.github.com/en/actions](https://docs.github.com/en/actions)):
 - **Dependency review** — PRs run `actions/dependency-review-action`, and the
   result is now folded into the main `required` gate in `ci.yml`.
 - **Secret scan** — `gitleaks` (MIT) binary direct in `security.yml` on every
-  PR over the full git history; replaced trufflehog (AGPL) on 2026-04-25 (#365).
-  Composer audit weekly; Trivy FS + image scan on every Dockerfile change.
+  PR over the PR diff range; replaced trufflehog (AGPL) on 2026-04-25 (#365).
+  Composer audit, npm audit, Zizmor, Typos, workflow hygiene, and Trivy are
+  mirrored locally by `scripts/ci/local-security-audit.sh` / `make ci-security`.
 - **Artifact attestations** — `docker/build-push-action@v7` chains
   `actions/attest-build-provenance@v4` to publish SLSA v1 provenance for every
   pushed image. See
