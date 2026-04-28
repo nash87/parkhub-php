@@ -22,7 +22,9 @@ concurrency:
 
 env:
   NODE_VERSION: '22'
-  PHP_VERSION: '8.3'
+  # composer.json requires php ^8.4; aligning here so `composer install`
+  # resolves under the same constraint as the rest of the CI matrix.
+  PHP_VERSION: '8.4'
   CI: 'true'
   PLAYWRIGHT_BROWSERS_PATH: ${{ github.workspace }}/.cache/ms-playwright
 
@@ -92,20 +94,44 @@ jobs:
         # `php artisan serve` listens on 127.0.0.1:8000 by default. We point
         # unlighthouse at the same host so it walks the rendered Astro
         # output served via Laravel's `public/` symlink.
+        # `wait-on` is in parkhub-web devDeps — `--no-install` keeps it
+        # reproducible and avoids fetching whatever floats on npm at runtime.
+        working-directory: parkhub-web
         run: |
           set -euo pipefail
-          php artisan serve --host 127.0.0.1 --port 8000 &
-          npx --yes wait-on tcp:8000 --timeout 60000
+          (cd .. && php artisan serve --host 127.0.0.1 --port 8000 &)
+          npx --no-install wait-on tcp:8000 --timeout 60000
+
+      - name: Resolve Chromium path
+        # Playwright installs chromium under versioned subdirectories
+        # (chromium-*/chrome-linux/chrome). Resolve the actual binary so
+        # CHROME_PATH points at an executable, mirroring the find pattern
+        # in accessibility-insights.yaml.
+        id: chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          CHROMIUM_BIN=$(find "${PLAYWRIGHT_BROWSERS_PATH}" -name 'chrome' -type f 2>/dev/null | head -n1 || true)
+          if [ -z "${CHROMIUM_BIN}" ]; then
+            CHROMIUM_BIN=$(find "${PLAYWRIGHT_BROWSERS_PATH}" -name 'headless_shell' -type f 2>/dev/null | head -n1 || true)
+          fi
+          if [ -z "${CHROMIUM_BIN}" ]; then
+            echo "Could not locate Playwright Chromium binary under ${PLAYWRIGHT_BROWSERS_PATH}" >&2
+            exit 1
+          fi
+          echo "path=${CHROMIUM_BIN}" >> "$GITHUB_OUTPUT"
 
       - name: Run Unlighthouse CI
         working-directory: parkhub-web
         env:
           # Tell Lighthouse where Playwright's Chromium lives so it picks up
           # INP support.
-          CHROME_PATH: ${{ github.workspace }}/.cache/ms-playwright/chromium
+          CHROME_PATH: ${{ steps.chromium.outputs.path }}
         run: |
           set -euo pipefail
-          npx --no-install unlighthouse-cli ci \
+          # unlighthouse-cli is not a devDep — pin a specific version with
+          # --yes so the CLI is reproducible without polluting package.json.
+          npx --yes unlighthouse-cli@0.16.6 ci \
             --site http://127.0.0.1:8000 \
             --build-static
 

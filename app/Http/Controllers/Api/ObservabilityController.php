@@ -61,18 +61,25 @@ class ObservabilityController extends Controller
             'timestamp' => 'nullable|string|max:64',
         ]);
 
-        // Strip any client-controlled UA/path values down to log-safe shape.
+        // Strip control chars (incl. CR/LF) from client-controlled fields
+        // before logging — even though Laravel's structured logger escapes
+        // them, line-oriented tail tools and grep pipelines still see raw
+        // bytes, and embedded \r\n could forge log lines.
+        $sanitize = static fn (?string $value): ?string => $value === null
+            ? null
+            : preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $value);
+
         Log::channel(config('logging.web_vitals_channel', 'stack'))->info('rum.web_vitals', [
             'metric' => $validated['name'],
             'value' => $validated['value'],
             'rating' => $validated['rating'] ?? null,
             'delta' => $validated['delta'] ?? null,
-            'id' => $validated['id'] ?? null,
-            'navigation_type' => $validated['navigationType'] ?? null,
-            'path' => $validated['path'] ?? null,
-            'visibility_state' => $validated['visibilityState'] ?? null,
-            'user_agent' => $validated['userAgent'] ?? $request->userAgent(),
-            'client_timestamp' => $validated['timestamp'] ?? null,
+            'id' => $sanitize($validated['id'] ?? null),
+            'navigation_type' => $sanitize($validated['navigationType'] ?? null),
+            'path' => $sanitize($validated['path'] ?? null),
+            'visibility_state' => $sanitize($validated['visibilityState'] ?? null),
+            'user_agent' => $sanitize($validated['userAgent'] ?? $request->userAgent()),
+            'client_timestamp' => $sanitize($validated['timestamp'] ?? null),
             'server_timestamp' => now()->toIso8601String(),
             'ip' => $request->ip(),
             'request_id' => $request->headers->get('x-request-id'),

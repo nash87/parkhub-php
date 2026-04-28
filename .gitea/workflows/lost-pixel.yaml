@@ -41,6 +41,11 @@ jobs:
       options: --add-host=gitea.test:192.168.178.212
     timeout-minutes: 30
     continue-on-error: true # Diffs surface as artefacts, never block.
+    # Gated until lostpixel.config.ts lands at repo root and the
+    # lost-pixel devDep + baseline snapshots are committed (T-22XX
+    # follow-up). Without the config, `npx lost-pixel` exits with a
+    # config-not-found error on every run.
+    if: vars.LOST_PIXEL_ENABLED == 'true'
     defaults:
       run:
         working-directory: parkhub-web
@@ -70,18 +75,21 @@ jobs:
 
       - name: Start preview server
         # `astro preview` defaults to :4321. Backgrounded so the next step
-        # (lost-pixel) can crawl it. `wait-on` blocks until the port is
-        # accepting connections so we don't race the server.
+        # (lost-pixel) can crawl it. `wait-on` is in parkhub-web devDeps —
+        # `--no-install` keeps it reproducible and avoids fetching whatever
+        # floats on npm at runtime.
         run: |
           set -euo pipefail
           npm run preview -- --host 127.0.0.1 --port 4321 &
-          npx --yes wait-on tcp:4321 --timeout 60000
+          npx --no-install wait-on tcp:4321 --timeout 60000
 
       - name: Run Lost Pixel
         # Config lives at repo root (../lostpixel.config.ts) and references
         # parkhub-web/storybook-static + the running preview on :4321.
+        # lost-pixel is not a devDep — pin a specific version with --yes
+        # so the CLI is reproducible without polluting package.json.
         working-directory: ${{ github.workspace }}
-        run: npx --no-install lost-pixel
+        run: npx --yes lost-pixel@3.20.0
 
       - name: Upload diffs
         if: always()

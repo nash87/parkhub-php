@@ -13,8 +13,11 @@ concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+# Per-job permissions are set below. Keep top-level minimal so validate-tag
+# and test cannot push tags or rewrite contents — only the `release` job
+# (which calls action-gh-release) gets `contents: write`.
 permissions:
-  contents: write
+  contents: read
 
 env:
   PHP_VERSION: '8.4'
@@ -83,13 +86,13 @@ jobs:
           tools: composer:v2
 
       - name: Set up Node.js
+        # No `cache: npm` — release tags must not consume or populate caches
+        # that PR runs can write to, or a malicious PR could poison a tag
+        # build via the shared cache key. Cold install is acceptable on the
+        # release path.
         uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            parkhub-web/package-lock.json
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
@@ -102,6 +105,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: [validate-tag, test]
     if: startsWith(github.ref, 'refs/tags/')
+    # contents: write is required for action-gh-release to publish the
+    # GitHub Release object + upload assets to the v* tag. Scoped to this
+    # job only — validate-tag/test inherit the top-level read.
+    permissions:
+      contents: write
 
     steps:
       - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
