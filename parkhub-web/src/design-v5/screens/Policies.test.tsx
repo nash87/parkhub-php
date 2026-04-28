@@ -66,6 +66,7 @@ describe('PoliciesV5', () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('policies-editor')).toBeInTheDocument());
     fireEvent.change(screen.getByTestId('policies-editor'), { target: { value: 'Neu' } });
+    await waitFor(() => expect(screen.getByTestId('policies-save')).not.toBeDisabled());
     fireEvent.click(screen.getByTestId('policies-save'));
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalledWith('p1', 'Neu');
@@ -79,6 +80,7 @@ describe('PoliciesV5', () => {
     renderScreen();
     await waitFor(() => expect(screen.getByTestId('policies-editor')).toBeInTheDocument());
     fireEvent.change(screen.getByTestId('policies-editor'), { target: { value: 'Neu' } });
+    await waitFor(() => expect(screen.getByTestId('policies-save')).not.toBeDisabled());
     fireEvent.click(screen.getByTestId('policies-save'));
     await waitFor(() => expect(mockToast).toHaveBeenCalledWith('denied', 'error'));
   });
