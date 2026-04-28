@@ -1712,13 +1712,13 @@
           },
           "daily_max": {
             "type": [
-              "string",
+              "number",
               "null"
             ]
           },
           "hourly_rate": {
             "type": [
-              "string",
+              "number",
               "null"
             ]
           },
@@ -1734,7 +1734,7 @@
           },
           "monthly_pass": {
             "type": [
-              "string",
+              "number",
               "null"
             ]
           },
