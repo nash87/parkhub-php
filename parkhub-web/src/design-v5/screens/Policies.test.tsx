@@ -64,7 +64,7 @@ describe('PoliciesV5', () => {
     mockList.mockResolvedValue({ success: true, data: [P1] });
     mockUpdate.mockResolvedValue({ success: true, data: { ...P1, body: 'Neu' } });
     renderScreen();
-    await waitFor(() => expect(screen.getByTestId('policies-editor')).toBeInTheDocument());
+    await waitFor(() => expect((screen.getByTestId('policies-editor') as HTMLTextAreaElement).value).toBe('Alter Text'));
     fireEvent.change(screen.getByTestId('policies-editor'), { target: { value: 'Neu' } });
     await waitFor(() => expect(screen.getByTestId('policies-save')).not.toBeDisabled());
     fireEvent.click(screen.getByTestId('policies-save'));
@@ -78,7 +78,7 @@ describe('PoliciesV5', () => {
     mockList.mockResolvedValue({ success: true, data: [P1] });
     mockUpdate.mockResolvedValue({ success: false, data: null, error: { code: 'X', message: 'denied' } });
     renderScreen();
-    await waitFor(() => expect(screen.getByTestId('policies-editor')).toBeInTheDocument());
+    await waitFor(() => expect((screen.getByTestId('policies-editor') as HTMLTextAreaElement).value).toBe('Alter Text'));
     fireEvent.change(screen.getByTestId('policies-editor'), { target: { value: 'Neu' } });
     await waitFor(() => expect(screen.getByTestId('policies-save')).not.toBeDisabled());
     fireEvent.click(screen.getByTestId('policies-save'));
