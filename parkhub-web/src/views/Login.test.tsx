@@ -87,7 +87,7 @@ import { LoginPage } from './Login';
 describe('LoginPage', () => {
   beforeEach(() => {
     mockNavigate.mockClear();
-    mockLogin.mockClear();
+    mockLogin.mockReset();
   });
 
   afterEach(() => {
@@ -183,6 +183,34 @@ describe('LoginPage', () => {
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Invalid credentials');
     });
+  });
+
+  it('links two-factor server errors to the code input', async () => {
+    mockLogin
+      .mockResolvedValueOnce({ success: false, requires2fa: true })
+      .mockResolvedValueOnce({ success: false, error: 'Invalid two-factor code' });
+    const user = userEvent.setup();
+
+    render(<LoginPage />);
+
+    await user.type(screen.getByLabelText('Email'), 'admin');
+    await user.type(screen.getByLabelText('Password'), 'demo');
+    await user.click(screen.getByRole('button', { name: 'Sign In' }));
+
+    const codeInput = await screen.findByLabelText('Two-factor authentication code');
+    expect(codeInput).toHaveAttribute('aria-describedby', 'two-factor-hint');
+    expect(codeInput).not.toHaveAttribute('aria-errormessage');
+
+    await user.type(codeInput, '123456');
+    await user.click(screen.getByRole('button', { name: 'Verify code' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent('Invalid two-factor code');
+    });
+
+    expect(codeInput).toHaveAttribute('aria-invalid', 'true');
+    expect(codeInput).toHaveAttribute('aria-describedby', 'two-factor-hint two-factor-error');
+    expect(codeInput).toHaveAttribute('aria-errormessage', 'two-factor-error');
   });
 
   it('falls back to translated error when login returns no error string', async () => {
