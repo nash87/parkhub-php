@@ -217,7 +217,9 @@ export function LoginPage() {
                   onChange={(e) => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
                   className="input"
                   placeholder="123456"
-                  aria-describedby="two-factor-hint"
+                  aria-invalid={!!serverError}
+                  aria-describedby={serverError ? 'two-factor-hint two-factor-error' : 'two-factor-hint'}
+                  aria-errormessage={serverError ? 'two-factor-error' : undefined}
                 />
                 <p id="two-factor-hint" className="text-xs text-surface-500 dark:text-surface-400">
                   {t('auth.twoFactorHint', 'Enter the 6-digit code from your authenticator app.')}
@@ -227,6 +229,7 @@ export function LoginPage() {
 
             {serverError && (
               <motion.p
+                id="two-factor-error"
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="text-sm text-red-600 dark:text-red-400"
