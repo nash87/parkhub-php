@@ -1,7 +1,7 @@
 {
   "name": "parkhub-web",
   "type": "module",
-  "version": "5.0.2",
+  "version": "5.0.3",
   "engines": {
     "node": ">=22.12.0"
   },
@@ -11,7 +11,7 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "build:php": "VITE_API_URL= astro build && cp -r dist/* ../public/",
+    "build:php": "VITE_API_URL= astro build && rm -rf ../public/_astro && cp -r dist/* ../public/",
     "build:rust": "VITE_API_URL= astro build && rm -rf ../parkhub-rust/parkhub-web/dist && cp -r dist ../parkhub-rust/parkhub-web/dist",
     "preview": "astro preview",
     "astro": "astro",
