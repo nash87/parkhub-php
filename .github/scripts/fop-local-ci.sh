@@ -209,6 +209,17 @@ run_direct() {
   bash -euo pipefail -c "$command"
 }
 
+# `skip_step` records a skipped optional gate (advisory; tool not on PATH).
+# Used by Trivy/zizmor/OSV-Scanner/Grype branches when contributors don't
+# have the binary installed locally. Without this, calling skip_step blew
+# up with `command not found` → exit 127 → make: Error 127 → release-yml
+# Pre-release tests failure.
+skip_step() {
+  local name="$1"
+  local reason="${2:-skipped}"
+  printf '\n==> %s (skipped)\n%s\n' "$name" "$reason"
+}
+
 mark_failure() {
   local line="$1"
   # Best-effort report + status post: never let the failure handler
