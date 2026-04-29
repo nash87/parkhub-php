@@ -97,15 +97,24 @@ jobs:
     timeout-minutes: 12
     permissions:
       contents: read   # checkout source for the gate job
+      pull-requests: read  # resolve the live PR head SHA on reruns
       statuses: read   # read fop/local-ci/pr commit status to gate the PR
     steps:
       - name: Require fop local CI commit status
         env:
           GH_TOKEN: ${{ github.token }}
           SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
           CONTEXT: fop/local-ci/pr
         run: |
+          live_sha="$(
+            gh pr view "${PR_NUMBER}" --repo "${REPO}" --json headRefOid --jq .headRefOid 2>/dev/null || true
+          )"
+          if [[ "${live_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+            SHA="${live_sha}"
+          fi
+
           status=""
           attempts=30
           for attempt in $(seq 1 "${attempts}"); do
