@@ -98,7 +98,7 @@ jobs:
     permissions:
       contents: read   # checkout source for the gate job
       pull-requests: read  # resolve the live PR head SHA on reruns
-      statuses: read   # read fop/local-ci/pr commit status to gate the PR
+      statuses: write  # read+write status — write scope needed for cross-token visibility per https://github.com/orgs/community/discussions/40769
     steps:
       - name: Require fop local CI commit status
         env:
@@ -117,12 +117,35 @@ jobs:
 
           status=""
           attempts=30
+          # Capture rate-limit + 4xx/5xx errors that previously got swallowed
+          # by `$(... | head -n 1)` returning empty. Emit them as warnings so
+          # operators can see when token visibility is the issue vs. a real
+          # missing-status. Fall back to GraphQL statusCheckRollup — it uses
+          # a different read path and has been observed to surface PAT-posted
+          # statuses that the REST commit-status endpoint hides for the
+          # workflow-installation token.
           for attempt in $(seq 1 "${attempts}"); do
+            api_err=""
             status="$(
               gh api "repos/${REPO}/commits/${SHA}/status" \
                 --jq ".statuses[] | select(.context == \"${CONTEXT}\") | .state" \
+                2> >(while read -r line ; do
+                  printf '::warning::commits/status fallback: %s\n' "$line"
+                  api_err="$line"
+                done) \
                 | head -n 1
             )"
+            # GraphQL fallback if REST returned nothing
+            if [[ -z "$status" ]]; then
+              status="$(
+                gh api graphql \
+                  -f query='query($oid:GitObjectID!,$owner:String!,$name:String!){repository(owner:$owner,name:$name){object(oid:$oid){...on Commit{statusCheckRollup{contexts(first:50){nodes{...on StatusContext{context state}}}}}}}}' \
+                  -F oid="${SHA}" -F owner="$(echo "${REPO}" | cut -d/ -f1)" -F name="$(echo "${REPO}" | cut -d/ -f2)" \
+                  --jq '.data.repository.object.statusCheckRollup.contexts.nodes[]? | select(.context == "'"${CONTEXT}"'") | .state' 2>/dev/null \
+                  | head -n 1 \
+                  | tr 'A-Z' 'a-z'
+              )"
+            fi
             if [[ "$status" == "success" ]]; then
               break
             fi
