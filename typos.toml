@@ -1,0 +1,31 @@
+# typos repo config (MIT/Apache-2.0, crate-ci/typos).
+#
+# Default rules + project-specific allow-list.
+
+[default]
+locale = "en"
+
+[default.extend-words]
+parkhub = "parkhub"
+
+[files]
+extend-exclude = [
+    "composer.lock",
+    "package-lock.json",
+    "*.min.js",
+    "*.min.css",
+    "vendor/**",
+    "node_modules/**",
+    "parkhub-web/dist/**",
+    "parkhub-web/.astro/**",
+    "parkhub-web/node_modules/**",
+    "public/_astro/**",
+    "storage/**",
+    "bootstrap/cache/**",
+    "*.svg",
+    "*.ico",
+    "*.png",
+    "*.jpg",
+    "*.jpeg",
+    "*.webp",
+]

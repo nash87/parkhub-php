@@ -1,0 +1,35 @@
+# mise toolchain pin — SOTA-2026 polyglot version manager (MIT, jdx/mise).
+#
+# One-command bootstrap:
+#
+#     mise install
+#
+# direnv (.envrc → `use mise`) auto-activates these tools when you cd
+# into the repo. Otherwise: `mise activate bash` in your shell rc.
+
+[tools]
+# PHP 8.4 — composer.json pins `"php": "^8.4"`. Match the major.minor.
+php = "8.4"
+
+# Composer — vendor PHP package manager, MIT.
+composer = "latest"
+
+# Node — parkhub-web/package.json engines pins ">=22.12.0".
+node = "22.12.0"
+
+# Local CI gate binaries — match what lefthook.yml expects on PATH.
+lefthook = "latest"
+typos = "latest"
+gitleaks = "latest"
+zizmor = "latest"
+osv-scanner = "latest"
+trivy = "latest"
+
+# Unified non-PHP formatter (md/json/yml/toml). MIT (dprint/dprint).
+dprint = "latest"
+
+[settings]
+# Use legacy version files (composer.json `php` constraint, .nvmrc, etc.)
+# so this repo stays compatible with non-mise users.
+legacy_version_file = true
+trust_check = true
