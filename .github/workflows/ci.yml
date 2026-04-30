@@ -108,6 +108,10 @@ jobs:
           REPO: ${{ github.repository }}
           CONTEXT: fop/local-ci/pr
         run: |
+          # shellcheck disable=SC2016
+          # Single-quoted GraphQL queries pass $oid/$owner/$name to the gh api
+          # CLI as GraphQL variables (substituted via -F flags), not shell vars.
+          # SC2016 falsely flags these as missed shell expansions.
           live_sha="$(
             gh pr view "${PR_NUMBER}" --repo "${REPO}" --json headRefOid --jq .headRefOid 2>/dev/null || true
           )"
