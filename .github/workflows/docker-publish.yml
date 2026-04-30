@@ -112,7 +112,6 @@ jobs:
 
       - name: Sign container image (keyless OIDC)
         env:
-          COSIGN_EXPERIMENTAL: 'true'
           IMAGE_DIGEST: ${{ steps.push.outputs.digest }}
           IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
@@ -145,7 +144,6 @@ jobs:
 
       - name: Attach SBOM as cosign attestation (keyless OIDC)
         env:
-          COSIGN_EXPERIMENTAL: 'true'
           IMAGE_DIGEST: ${{ steps.push.outputs.digest }}
           IMAGE_REF: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         run: |
