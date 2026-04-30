@@ -66,10 +66,20 @@ jobs:
           # Skip cleanly when no image has been published yet (first PR on a
           # fresh repo): cosign verify against a missing tag would otherwise
           # block the PR with a confusing "manifest unknown" error.
-          if ! digest=$(docker buildx imagetools inspect --format '{{json .Manifest.Digest}}' "${IMAGE}" 2>/dev/null | tr -d '"'); then
-            echo "::notice::No image at ${IMAGE} yet — skipping cosign verify."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-            exit 0
+          err_file="$(mktemp)"
+          trap 'rm -f "${err_file}"' EXIT
+          if ! digest=$(docker buildx imagetools inspect --format '{{json .Manifest.Digest}}' "${IMAGE}" 2>"${err_file}" | tr -d '"'); then
+            err_output="$(cat "${err_file}")"
+            if printf '%s' "${err_output}" | grep -Eiq 'manifest unknown|no such manifest|not found|name unknown'; then
+              echo "::notice::No image at ${IMAGE} yet — skipping cosign verify."
+              echo "skip=true" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::Failed to resolve digest for ${IMAGE}."
+            if [ -n "${err_output}" ]; then
+              printf '%s\n' "${err_output}"
+            fi
+            exit 1
           fi
           if [ -z "${digest}" ] || [ "${digest}" = "null" ]; then
             echo "::notice::Could not resolve digest for ${IMAGE} — skipping cosign verify."
@@ -82,7 +92,6 @@ jobs:
       - name: Verify cosign signature (keyless)
         if: steps.digest.outputs.skip != 'true'
         env:
-          COSIGN_EXPERIMENTAL: 'true'
           IMAGE: ${{ env.IMAGE_REF }}
           DIGEST: ${{ steps.digest.outputs.digest }}
           IDENTITY_REGEX: ${{ env.EXPECTED_IDENTITY_REGEX }}
@@ -96,17 +105,15 @@ jobs:
             --certificate-oidc-issuer "${ISSUER}" \
             "${repo}@${DIGEST}"
 
-      - name: Verify SPDX SBOM attestation (keyless, advisory until first signed)
-        # Advisory: the SBOM attestation step in docker-publish.yml was only
-        # added in this PR — the existing :latest image was published before
-        # SBOM signing was wired, so the attestation won't exist on the
-        # current image. Once a fresh image is built post-merge with SBOM
-        # signing enabled, this step will start passing and can be promoted
-        # to required (drop continue-on-error).
+      - name: Verify SPDX SBOM attestation (keyless)
+        # Require an SPDX SBOM attestation for any resolved image digest.
+        # docker-publish.yml is expected to generate and attach this
+        # attestation, so verification should fail if an existing image
+        # lacks a matching keyless attestation from the expected workflow
+        # identity. The `skip` guard above still handles the no-image-yet
+        # case without failing the job.
         if: steps.digest.outputs.skip != 'true'
-        continue-on-error: true
         env:
-          COSIGN_EXPERIMENTAL: 'true'
           IMAGE: ${{ env.IMAGE_REF }}
           DIGEST: ${{ steps.digest.outputs.digest }}
           IDENTITY_REGEX: ${{ env.EXPECTED_IDENTITY_REGEX }}
@@ -114,10 +121,8 @@ jobs:
         run: |
           set -euo pipefail
           repo="${IMAGE%:*}"
-          if ! cosign verify-attestation \
+          cosign verify-attestation \
             --type spdxjson \
             --certificate-identity-regexp "${IDENTITY_REGEX}" \
             --certificate-oidc-issuer "${ISSUER}" \
-            "${repo}@${DIGEST}" 2>&1; then
-            echo "::notice::SBOM attestation not yet present (advisory). First image built after merge will produce it."
-          fi
+            "${repo}@${DIGEST}"
