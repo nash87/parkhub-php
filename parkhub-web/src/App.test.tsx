@@ -421,9 +421,13 @@ describe('App', () => {
 
     render(<App />);
 
+    // Theme fetch is deferred via requestIdleCallback (~1500ms setTimeout
+    // fallback in jsdom + 2500ms idle-timeout) for PUBLIC_ENTRY_ROUTES,
+    // including the default "/" route this test renders on. Bump waitFor
+    // past that envelope so the dataset assignment has time to land.
     await waitFor(() => {
       expect(document.documentElement.dataset.usecase).toBe('corporate');
-    });
+    }, { timeout: 4500 });
 
     // Cleanup
     delete document.documentElement.dataset.usecase;
@@ -440,7 +444,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalledWith('/api/v1/theme', expect.objectContaining({ credentials: 'include' }));
-    });
+    }, { timeout: 4500 });
     // Should not crash — no dataset.usecase set when no key returned
     // The dataset may or may not still be set from a prior test in same process,
     // but the key should NOT have been set by this response
@@ -457,7 +461,7 @@ describe('App', () => {
 
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalled();
-    });
+    }, { timeout: 4500 });
   });
 
   it('handles theme API network failure gracefully', async () => {
