@@ -1,0 +1,43 @@
+# GitHub native release-notes generator config.
+# Pairs with .github/labeler.yml + the generate_release_notes flow.
+changelog:
+  exclude:
+    labels:
+      - skip-changelog
+      - dependencies-internal
+    authors:
+      - dependabot
+
+  categories:
+    - title: 🚀 Added
+      labels: [feature, enhancement, feat]
+
+    - title: 🐛 Fixed
+      labels: [fix, bug]
+
+    - title: ⚡ Performance
+      labels: [perf, performance]
+
+    - title: 🔄 Changed
+      labels: [refactor, changed]
+
+    - title: 🔒 Security
+      labels: [security]
+
+    - title: 📚 Documentation
+      labels: [docs, documentation]
+
+    - title: 🧪 Tests
+      labels: [test, tests]
+
+    - title: 🤖 CI
+      labels: [ci, build]
+
+    - title: 📦 Dependencies
+      labels: [dependencies, deps]
+
+    - title: 🧹 Chore
+      labels: [chore]
+
+    - title: Other Changes
+      labels: ["*"]

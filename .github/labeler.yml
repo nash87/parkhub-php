@@ -1,0 +1,51 @@
+# actions/labeler v6 config — auto-tag PRs by changed paths.
+
+php:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'app/**'
+      - 'config/**'
+      - 'database/**'
+      - 'routes/**'
+      - 'resources/**'
+      - 'tests/**'
+      - 'composer.json'
+      - 'composer.lock'
+
+web:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'parkhub-web/**'
+
+ci:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/workflows/**'
+      - '.github/actions/**'
+      - '.github/scripts/**'
+      - 'lefthook.yml'
+      - 'Justfile'
+      - 'scripts/**'
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'composer.lock'
+      - 'parkhub-web/package-lock.json'
+      - 'package-lock.json'
+
+docs:
+  - changed-files:
+    - any-glob-to-any-file:
+      - 'docs/**'
+      - 'README.md'
+      - 'CHANGELOG.md'
+      - 'dev/**'
+      - '**/*.md'
+
+security:
+  - changed-files:
+    - any-glob-to-any-file:
+      - '.github/workflows/security.yml'
+      - 'scripts/ci/local-security-audit.sh'
+      - '.trivyignore'
