@@ -196,6 +196,14 @@ run_step_heavy() {
   fop build --backend local --resource-profile batch-medium . --preset custom -- bash -euo pipefail -c "$command"
 }
 
+run_advisory_step_heavy() {
+  local name="$1"
+  local command="$2"
+  if ! run_step_heavy "$name" "$command"; then
+    echo "$name returned non-zero (advisory; continuing)"
+  fi
+}
+
 # `run_direct` is for instantaneous shell checks (git diff, etc.) that
 # would be pure overhead inside the fop queue.
 run_direct() {
@@ -254,16 +262,16 @@ run_step "phpunit unit + feature" "./vendor/bin/phpunit --testsuite=Unit --no-co
 # ---------------- Frontend (Astro 5 + React 19 + Vitest 3) ------------------
 run_step "frontend npm install" "npm ci && npm ci --prefix parkhub-web"
 
-# tsc --noEmit on parkhub-web is not yet green on main as of 4.15.0 —
-# the `chore/web-tsc-phase4c-*` series (PRs #379..#382 and ongoing) is
-# still chipping away at hundreds of inherited TS errors. Run the gate
-# as advisory until phase 4 lands; the diff that makes it strict will
-# be a separate PR.
-run_step_heavy "frontend typecheck (advisory until tsc-phase4 lands)" "cd parkhub-web && NODE_OPTIONS=\"\${NODE_OPTIONS:-} --max-old-space-size=4096\" ./node_modules/.bin/tsc --noEmit || echo 'tsc errors present (advisory while phase4 is in flight)'"
-
 run_step "frontend vitest" "cd parkhub-web && npm test"
 
 run_step "frontend build" "cd parkhub-web && npm run build && cd .. && npm run build"
+
+# tsc --noEmit on parkhub-web is not yet green on main as of 4.15.0 —
+# the `chore/web-tsc-phase4c-*` series (PRs #379..#382 and ongoing) is
+# still chipping away at hundreds of inherited TS errors. Keep this after
+# hard frontend gates and make the fop wrapper advisory too, so host pressure
+# cannot fail the PR gate before the intentionally non-gating check completes.
+run_advisory_step_heavy "frontend typecheck (advisory until tsc-phase4 lands)" "cd parkhub-web && NODE_OPTIONS=\"\${NODE_OPTIONS:-} --max-old-space-size=4096\" ./node_modules/.bin/tsc --noEmit || echo 'tsc errors present (advisory while phase4 is in flight)'"
 
 # ---------------- Drift gates -----------------------------------------------
 # Both scripts already follow the same pattern as the rust side: they
