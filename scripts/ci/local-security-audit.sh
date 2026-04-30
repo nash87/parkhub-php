@@ -197,6 +197,7 @@ run_advisory_if_available typos "typos" typos .
 # delivers the equivalent multi-ecosystem secure-supply-chain signal.
 run_advisory_if_available osv-scanner "osv-scanner (multi-ecosystem SCA)" \
   osv-scanner scan source \
+    --config=osv-scanner.toml \
     -L composer.lock \
     -L package-lock.json \
     -L parkhub-web/package-lock.json
