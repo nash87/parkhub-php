@@ -3,6 +3,7 @@
 namespace Tests\Integration;
 
 use App\Models\Booking;
+use App\Models\Vehicle;
 
 class ApiContractTest extends IntegrationTestCase
 {
@@ -34,6 +35,99 @@ class ApiContractTest extends IntegrationTestCase
         $body = $response->json();
         $this->assertArrayHasKey('data', $body);
         $this->assertIsArray($body['data']);
+    }
+
+    public function test_bookings_co2_summary_returns_rust_compatible_shape(): void
+    {
+        $lot = $this->createLotWithSlots(2);
+        $slots = $lot->slots;
+        Vehicle::create([
+            'user_id' => $this->regularUser->id,
+            'plate' => 'EV-CO2',
+            'vehicle_type' => 'electric',
+            'is_default' => true,
+        ]);
+
+        Booking::create([
+            'user_id' => $this->regularUser->id,
+            'lot_id' => $lot->id,
+            'slot_id' => $slots[0]->id,
+            'vehicle_plate' => 'EV-CO2',
+            'start_time' => now()->subDay()->setHour(9)->setMinute(0)->setSecond(0),
+            'end_time' => now()->subDay()->setHour(17)->setMinute(0)->setSecond(0),
+            'booking_type' => 'single',
+            'status' => 'confirmed',
+        ]);
+        Booking::create([
+            'user_id' => $this->regularUser->id,
+            'lot_id' => $lot->id,
+            'slot_id' => $slots[1]->id,
+            'vehicle_plate' => 'EV-CO2',
+            'start_time' => now()->subDay()->setHour(9)->setMinute(15)->setSecond(0),
+            'end_time' => now()->subDay()->setHour(17)->setMinute(0)->setSecond(0),
+            'booking_type' => 'single',
+            'status' => 'confirmed',
+        ]);
+
+        $response = $this->withHeaders($this->userHeaders())
+            ->getJson('/api/v1/bookings/co2-summary');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.bookings_counted', 2)
+            ->assertJsonStructure([
+                'data' => [
+                    'from',
+                    'to',
+                    'bookings_counted',
+                    'total_km',
+                    'emitted_g',
+                    'counterfactual_g',
+                    'saved_g',
+                    'carpool_saved_g',
+                    'saved_kg',
+                ],
+            ]);
+
+        $this->assertIsNumeric($response->json('data.saved_kg'));
+        $this->assertGreaterThan(0, $response->json('data.saved_g'));
+        $this->assertGreaterThan(0, $response->json('data.carpool_saved_g'));
+        $this->assertLessThan($response->json('data.counterfactual_g'), $response->json('data.emitted_g'));
+    }
+
+    public function test_bookings_co2_summary_rejects_invalid_query_params(): void
+    {
+        $response = $this->withHeaders($this->userHeaders())
+            ->getJson('/api/v1/bookings/co2-summary?from=not-a-date&lot_id=not-a-uuid');
+
+        $response->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
+    }
+
+    public function test_bookings_ical_route_is_not_captured_by_booking_id_route(): void
+    {
+        $lot = $this->createLotWithSlots(1);
+        $slot = $lot->slots()->first();
+
+        Booking::create([
+            'user_id' => $this->regularUser->id,
+            'lot_id' => $lot->id,
+            'slot_id' => $slot->id,
+            'lot_name' => $lot->name,
+            'slot_number' => $slot->slot_number,
+            'start_time' => now()->addDay()->setHour(9),
+            'end_time' => now()->addDay()->setHour(17),
+            'booking_type' => 'single',
+            'status' => 'confirmed',
+        ]);
+
+        $response = $this->withHeaders($this->userHeaders())
+            ->get('/api/v1/bookings/ical');
+
+        $response->assertStatus(200);
+        $this->assertStringContainsString('text/calendar', $response->headers->get('Content-Type'));
+        $this->assertStringContainsString('BEGIN:VCALENDAR', $response->getContent());
     }
 
     public function test_admin_users_list_returns_data_array(): void

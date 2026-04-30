@@ -25,6 +25,8 @@ Route::middleware(['module:bookings', 'auth:sanctum', 'throttle:api'])->group(fu
     Route::post('/bookings/guest', [GuestBookingController::class, 'guestBooking']);
     Route::delete('/bookings/guest/{id}', [GuestBookingController::class, 'deleteGuestBooking']);
     Route::post('/bookings/quick', [BookingController::class, 'quickBook']);
+    Route::get('/bookings/co2-summary', [BookingController::class, 'co2Summary']);
+    Route::get('/bookings/ical', [BookingCalendarController::class, 'ical']);
     Route::get('/bookings', [BookingController::class, 'index']);
     Route::post('/bookings', [BookingController::class, 'store']);
     // Tier-2 item 9 — single-booking .ics download.
@@ -44,9 +46,6 @@ Route::middleware(['module:bookings', 'auth:sanctum', 'throttle:api'])->group(fu
     Route::get('/bookings/{id}/invoice', [BookingInvoiceController::class, 'show']);
     Route::get('/bookings/{id}/invoice.pdf', [BookingInvoiceController::class, 'pdf']);
     Route::get('/bookings/{id}/invoice/pdf', [BookingInvoiceController::class, 'pdf']);
-
-    // iCal feed
-    Route::get('/bookings/ical', [BookingCalendarController::class, 'ical']);
 
     // Admin bookings
     Route::middleware('admin')->prefix('admin')->group(function () {

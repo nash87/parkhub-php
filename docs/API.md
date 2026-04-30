@@ -533,6 +533,19 @@ One-tap booking. Auto-assigns the best available slot in a lot.
 
 Request: `{ "lot_id": "uuid", "start_time": "...", "end_time": "..." }`
 
+### GET /api/v1/bookings/co2-summary
+
+Return the authenticated user's CO2 impact summary for dashboard parity with
+the Rust backend.
+
+Optional query parameters:
+- `?from=2026-03-01` — include bookings starting on or after this date
+- `?to=2026-03-31` — include bookings up to this date
+- `?lot_id=LOT_UUID` — limit the summary to one parking lot
+
+Response `data` includes `bookings_counted`, `total_km`, `emitted_g`,
+`counterfactual_g`, `saved_g`, `carpool_saved_g`, and rounded `saved_kg`.
+
 ### PATCH /api/v1/bookings/:id
 
 Update booking fields (vehicle_plate, notes).
@@ -796,7 +809,7 @@ curl -s -X PUT https://parking.example.com/api/v1/user/preferences \
   }'
 ```
 
-`push` is the canonical public preference key. Legacy clients may still send
+`push` is the canonical public preference key. Compatibility clients may still send
 `push_notifications`, but responses normalize back to `push`.
 
 ### GET /api/v1/user/stats
@@ -893,7 +906,7 @@ Remove all push subscriptions for the authenticated user.
 
 ## Modules
 
-*Added in v4.13.0 (v1 + v2 + v3).*
+*Current in v5.0.1.*
 
 The Modular UX platform exposes the full installed module registry over REST. See [FEATURES.md § Modular UX Platform](FEATURES.md#modular-ux-platform) for the product overview, and the OpenAPI snapshot at [`docs/openapi/php.json`](openapi/php.json) for the canonical schema.
 
@@ -931,17 +944,17 @@ Response:
       "config_keys": ["announcement.max_active"],
       "depends_on": [],
       "ui_route": "/announcements",
-      "version": "4.13.0",
+      "version": "5.0.1",
       "config_schema": { "type": "object", "properties": { "...": {} } }
     }
   ],
-  "version": "4.13.0"
+  "version": "5.0.1"
 }
 ```
 
 `runtime_enabled` reflects the effective state after applying any admin override. For rows with `runtime_toggleable = false`, it always equals `enabled`.
 
-Legacy alias lookups on `GET /api/v1/modules/{name}` remain compatible: `/modules/broadcasting` and `/modules/websocket` both resolve to the canonical `realtime` module, while `/modules/push_notifications` and `/modules/web_push` resolve to `push`.
+Compatibility alias lookups on `GET /api/v1/modules/{name}` remain supported: `/modules/broadcasting` and `/modules/websocket` both resolve to the canonical `realtime` module, while `/modules/push_notifications` and `/modules/web_push` resolve to `push`.
 
 ### GET /api/v1/modules/{name}
 

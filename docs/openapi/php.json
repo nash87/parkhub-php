@@ -23321,6 +23321,181 @@
         ]
       }
     },
+    "/v1/bookings/co2-summary": {
+      "get": {
+        "operationId": "booking.co2Summary",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "format": "date-time",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "lot_id",
+            "schema": {
+              "format": "uuid",
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "bookings_counted": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "carpool_saved_g": {
+                          "type": "string"
+                        },
+                        "counterfactual_g": {
+                          "type": "string"
+                        },
+                        "emitted_g": {
+                          "type": "string"
+                        },
+                        "from": {
+                          "type": "string"
+                        },
+                        "saved_g": {
+                          "type": [
+                            "object",
+                            "null"
+                          ]
+                        },
+                        "saved_kg": {
+                          "type": "number"
+                        },
+                        "to": {
+                          "type": "string"
+                        },
+                        "total_km": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "from",
+                        "to",
+                        "bookings_counted",
+                        "total_km",
+                        "emitted_g",
+                        "counterfactual_g",
+                        "saved_g",
+                        "carpool_saved_g",
+                        "saved_kg"
+                      ],
+                      "type": "object"
+                    },
+                    "error": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "type": "null"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error",
+                    "meta"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "const": "VALIDATION_ERROR",
+                          "type": "string"
+                        },
+                        "details": {
+                          "additionalProperties": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          },
+                          "type": "object"
+                        },
+                        "message": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "details"
+                      ],
+                      "type": "object"
+                    },
+                    "meta": {
+                      "type": "null"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error",
+                    "meta"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "Booking"
+        ]
+      }
+    },
     "/v1/bookings/guest": {
       "get": {
         "description": "The GuestPass page calls this on mount to render its booking table.\nWithout the endpoint the request 404'd and the list sat empty — the\npage still \"worked\" (create flow was unaffected) but users couldn't\nsee or cancel their own guest passes.",

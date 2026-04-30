@@ -19,6 +19,7 @@ use App\Models\Notification;
 use App\Models\ParkingLot;
 use App\Models\ParkingSlot;
 use App\Models\Setting;
+use App\Models\Vehicle;
 use App\Models\WaitlistEntry;
 use App\Models\Webhook;
 use App\Services\Booking\BookingCreationService;
@@ -26,6 +27,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 
 /**
  * Core booking CRUD: list / show / create / modify / cancel plus the
@@ -257,6 +259,139 @@ class BookingController extends Controller
         }
 
         return BookingResource::make($booking)->response()->setStatusCode(200);
+    }
+
+    public function co2Summary(Request $request)
+    {
+        $validator = Validator::make($request->query(), [
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+            'lot_id' => ['nullable', 'uuid'],
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'VALIDATION_ERROR',
+                    'message' => $validator->errors()->first(),
+                    'details' => $validator->errors()->toArray(),
+                ],
+                'meta' => null,
+            ], 422);
+        }
+
+        $to = $request->query('to') ? Carbon::parse($request->query('to')) : now();
+        $from = $request->query('from') ? Carbon::parse($request->query('from')) : $to->copy()->subDays(30);
+
+        $query = Booking::query()
+            ->where('user_id', $request->user()->id)
+            ->whereBetween('start_time', [$from, $to]);
+
+        if ($request->filled('lot_id')) {
+            $query->where('lot_id', $request->query('lot_id'));
+        }
+
+        $bookings = $query->get();
+        $bookingsCounted = $bookings->count();
+        $kmPerBooking = 24.0;
+        $baselineGPerKm = 210.0;
+        $totalKm = $bookingsCounted * $kmPerBooking;
+        $counterfactualG = $bookingsCounted * $baselineGPerKm * $kmPerBooking;
+        $vehicleTypesByPlate = $this->vehicleTypesByPlate($request->user()->id, $bookings->pluck('vehicle_plate')->filter()->all());
+        $emittedG = $bookings->sum(function (Booking $booking) use ($kmPerBooking, $vehicleTypesByPlate): float {
+            $plate = $booking->vehicle_plate ? strtoupper(trim($booking->vehicle_plate)) : null;
+            $vehicleType = $plate ? ($vehicleTypesByPlate[$plate] ?? null) : null;
+
+            return $this->co2EmissionFactor($vehicleType) * $kmPerBooking;
+        });
+
+        $slotTimes = [];
+        foreach ($bookings as $booking) {
+            $bucket = intdiv($booking->start_time->timestamp, 1800);
+            $key = "{$booking->lot_id}:{$bucket}";
+            $slotTimes[$key] = ($slotTimes[$key] ?? 0) + 1;
+        }
+        $carpoolTripsSaved = array_sum(array_map(
+            fn (int $count): int => max($count - 1, 0),
+            $slotTimes,
+        ));
+        $savedG = max($counterfactualG - $emittedG, 0.0);
+        $carpoolSavedG = $carpoolTripsSaved * $baselineGPerKm * $kmPerBooking;
+        $totalSavedG = $savedG + $carpoolSavedG;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'from' => $from->toJSON(),
+                'to' => $to->toJSON(),
+                'bookings_counted' => $bookingsCounted,
+                'total_km' => $totalKm,
+                'emitted_g' => $emittedG,
+                'counterfactual_g' => $counterfactualG,
+                'saved_g' => $savedG,
+                'carpool_saved_g' => $carpoolSavedG,
+                'saved_kg' => round($totalSavedG / 1000, 2),
+            ],
+            'error' => null,
+            'meta' => null,
+        ]);
+    }
+
+    /**
+     * @param  array<int, string>  $plates
+     * @return array<string, string>
+     */
+    private function vehicleTypesByPlate(string $userId, array $plates): array
+    {
+        $normalizedPlates = collect($plates)
+            ->map(fn (string $plate): string => strtoupper(trim($plate)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($normalizedPlates->isEmpty()) {
+            return [];
+        }
+
+        $vehicles = Vehicle::query()
+            ->where('user_id', $userId)
+            ->where(function ($query) use ($normalizedPlates) {
+                $query->whereIn('plate', $normalizedPlates)
+                    ->orWhereIn('license_plate', $normalizedPlates);
+            })
+            ->get();
+
+        $types = [];
+        foreach ($vehicles as $vehicle) {
+            foreach ([$vehicle->plate, $vehicle->license_plate] as $plate) {
+                if ($plate && $vehicle->vehicle_type) {
+                    $types[strtoupper(trim($plate))] = $vehicle->vehicle_type;
+                }
+            }
+        }
+
+        return $types;
+    }
+
+    private function co2EmissionFactor(?string $vehicleType): float
+    {
+        $type = strtolower(str_replace([' ', '-'], '_', $vehicleType ?? ''));
+        $suvMultiplier = str_contains($type, 'suv') || str_contains($type, 'truck') || str_contains($type, 'van')
+            ? 1.30
+            : 1.00;
+
+        $base = match (true) {
+            str_contains($type, 'electric'), $type === 'ev' => 50.0,
+            str_contains($type, 'hydrogen') => 95.0,
+            str_contains($type, 'plugin_hybrid'), str_contains($type, 'plug_in_hybrid') => 95.0,
+            str_contains($type, 'hybrid') => 130.0,
+            str_contains($type, 'diesel') => 180.0,
+            default => 210.0,
+        };
+
+        return $base * $suvMultiplier;
     }
 
     public function updateNotes(UpdateBookingNotesRequest $request, string $id)
