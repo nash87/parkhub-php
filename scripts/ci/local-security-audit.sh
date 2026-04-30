@@ -184,6 +184,23 @@ fi
 run_advisory_if_available zizmor "zizmor (gha sast audit-mode)" zizmor "${zizmor_args[@]}" .github/workflows
 run_advisory_if_available typos "typos" typos .
 
+# ─── OSV-Scanner (Apache-2.0, github.com/google/osv-scanner) ────────────────
+# Multi-ecosystem SCA against the OSV.dev database. Covers composer.lock,
+# package-lock.json, parkhub-web/package-lock.json in one pass and surfaces
+# CVEs that may not yet have a Composer/npm advisory ID. Advisory-only — the
+# composer-audit + npm-audit gates above remain the required posture.
+#
+# Why OSV-Scanner instead of Bearer for "SAST coverage": Bearer is licensed
+# under Elastic License 2.0 (source-available, banned per the platform's
+# commercial-license-safe doctrine, same family as BSL/SSPL/FSL). Semgrep is
+# LGPL-2.1 (also banned). OSV-Scanner is Google-maintained Apache-2.0 and
+# delivers the equivalent multi-ecosystem secure-supply-chain signal.
+run_advisory_if_available osv-scanner "osv-scanner (multi-ecosystem SCA)" \
+  osv-scanner scan source \
+    -L composer.lock \
+    -L package-lock.json \
+    -L parkhub-web/package-lock.json
+
 if [[ "$profile" == "cd" ]]; then
   run_if_available trivy "trivy filesystem scan" trivy fs --severity HIGH,CRITICAL --exit-code 1 --skip-dirs vendor,node_modules,parkhub-web/node_modules .
 fi

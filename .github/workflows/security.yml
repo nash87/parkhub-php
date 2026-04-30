@@ -173,6 +173,63 @@ jobs:
           # without flooding the PR with regular-user noise.
           persona: auditor
 
+  osv-scanner:
+    # Multi-ecosystem SCA via Google's osv-scanner against the OSV.dev DB.
+    # Apache-2.0 (github.com/google/osv-scanner). We invoke the binary directly
+    # (same posture as gitleaks/grype) rather than the google/osv-scanner-action
+    # wrapper to keep the action surface minimal and license-auditable. All
+    # workflow inputs come from controlled `env:` constants — there is no use
+    # of github.event.* untrusted strings (no injection surface).
+    #
+    # Why osv-scanner instead of Bearer/Semgrep: Bearer is Elastic License 2.0
+    # (source-available, banned per platform commercial-safe doctrine alongside
+    # BSL/SSPL/FSL). Semgrep is LGPL-2.1 (also banned). osv-scanner delivers
+    # the equivalent multi-ecosystem secure-supply-chain signal under Apache-2.0.
+    name: OSV-Scanner (multi-ecosystem SCA, advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Advisory until the open-finding inventory hits zero; mirror the typos +
+    # zizmor posture. Promote to required after triage.
+    continue-on-error: true
+    permissions:
+      contents: read         # checkout source + lockfiles for SCA
+      security-events: write # upload OSV-Scanner SARIF to GitHub Security tab
+    env:
+      OSV_SCANNER_VERSION: 2.3.5
+      OSV_SCANNER_SHA256: bb30c580afe5e757d3e959f4afd08a4795ea505ef84c46962b9a738aa573b41b
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+
+      - name: Install osv-scanner
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/osv-scanner \
+            "https://github.com/google/osv-scanner/releases/download/v${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
+          echo "${OSV_SCANNER_SHA256}  /tmp/osv-scanner" | sha256sum -c -
+          chmod +x /tmp/osv-scanner
+          sudo mv /tmp/osv-scanner /usr/local/bin/osv-scanner
+          osv-scanner --version
+
+      - name: Scan composer + npm lockfiles (SARIF)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          osv-scanner scan source \
+            -L composer.lock \
+            -L package-lock.json \
+            -L parkhub-web/package-lock.json \
+            --format=sarif \
+            --output=osv-scanner.sarif || true
+
+      - name: Upload OSV-Scanner SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@95e58e9a2cdfd71adc6e0353d5c52f41a045d225 # v4
+        if: always() && hashFiles('osv-scanner.sarif') != ''
+        with:
+          sarif_file: osv-scanner.sarif
+          category: osv-scanner
+
   trivy-image:
     # SOTA-2026 image scanning — Trivy (Apache-2.0) + Grype (Apache-2.0) for a
     # second opinion. The published image only exists after docker-publish.yml
