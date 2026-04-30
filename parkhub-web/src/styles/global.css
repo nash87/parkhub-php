@@ -448,6 +448,16 @@ p { line-height: 1.6; }
   outline-offset: 2px;
 }
 
+/* Explicit focus-ring utility — apply to interactive elements (links,
+   buttons, sidebar items, top-nav, primary CTAs) when the global
+   *:focus-visible default isn't loud enough or is blocked by other
+   outline rules. Mirrors the parkhub-rust pattern. */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
 /* Mobile touch target minimum */
 @media (max-width: 640px) {
   .btn-icon {
@@ -737,4 +747,83 @@ body {
 
 .density-rows > * + * {
   margin-top: var(--density-row-gap);
+}
+
+/* ── Welcome page animations — pure CSS (replaces framer-motion) ─────
+   Removing framer-motion from /welcome saves ~50KB on the public-route
+   bundle. These keyframes recreate the original entrance animations:
+   - welcome-fade-in: opacity 0→1
+   - welcome-fade-in-left: opacity + translateX
+   - welcome-fade-in-up: opacity + translateY
+   - welcome-greeting-enter: opacity + translateY (re-fires on key change)
+   - welcome-press: subtle hover/active scale (was framer's whileTap)
+   - welcome-collapse: grid-rows 0fr↔1fr trick for animated height: auto
+   `prefers-reduced-motion: reduce` zeroes durations via the global rule
+   already in this file (line ~460).
+   ──────────────────────────────────────────────────────────────────── */
+
+@keyframes welcome-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes welcome-fade-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes welcome-fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes welcome-greeting-enter {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.welcome-fade-in {
+  animation: welcome-fade-in 400ms ease-out both;
+}
+
+.welcome-fade-in-left {
+  animation: welcome-fade-in-left 400ms ease-out both;
+}
+
+.welcome-fade-in-up {
+  animation: welcome-fade-in-up 500ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.welcome-greeting-enter {
+  animation: welcome-greeting-enter 350ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.welcome-delay-200 { animation-delay: 200ms; }
+.welcome-delay-400 { animation-delay: 400ms; }
+.welcome-delay-600 { animation-delay: 600ms; }
+
+.welcome-press {
+  transition: transform 120ms ease;
+}
+.welcome-press:hover { transform: scale(1.03); }
+.welcome-press:active { transform: scale(0.97); }
+
+/* Animated height: auto via grid-rows 0fr↔1fr — replaces framer-motion's
+   exit/enter height collapse. Inner wrapper handles overflow-hidden. */
+.welcome-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 250ms cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 200ms ease;
+}
+
+.welcome-collapse-open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.welcome-collapse-inner {
+  overflow: hidden;
+  min-height: 0;
 }
