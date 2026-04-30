@@ -355,18 +355,10 @@ else
 fi
 
 # ─── OSV-Scanner (supply-chain via OSV database) ────────────────────────────
-# OSV-Scanner v2 (Apache-2.0, Google) reads composer.lock + package-lock.json
-# and matches against the OSV database (broader than RUSTSEC alone: also
-# catches GHSA + CVE entries). Complements composer audit + npm audit.
-# Advisory mode: known transitive advisories are tolerated; OSV-Scanner
-# findings are surfaced informationally and do NOT fail the gate.
-if command -v osv-scanner >/dev/null 2>&1; then
-  # osv-scanner.toml at repo root tracks documented exceptions, so this step
-  # is now gating (failure = real new vuln, not a known one).
-  run_step "osv-scanner (supply-chain)" "osv-scanner scan source --recursive --config=osv-scanner.toml ."
-else
-  skip_step "osv-scanner" "osv-scanner not on PATH (install: https://google.github.io/osv-scanner/installation/)"
-fi
+# OSV-Scanner is invoked once via scripts/ci/local-security-audit.sh above
+# (composer.lock + package-lock.json + parkhub-web/package-lock.json with
+# osv-scanner.toml ignore config). Dedup'd here to avoid running the same
+# scan twice per fop-local-ci invocation — addresses #409 review.
 
 # ─── Grype (vuln scanner, defense-in-depth) ─────────────────────────────────
 # Grype (Apache-2.0, Anchore) is a complementary vuln scanner to Trivy.
