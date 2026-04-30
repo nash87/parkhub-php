@@ -129,13 +129,11 @@ jobs:
           # statuses that the REST commit-status endpoint hides for the
           # workflow-installation token.
           for attempt in $(seq 1 "${attempts}"); do
-            api_err=""
             status="$(
               gh api "repos/${REPO}/commits/${SHA}/status" \
                 --jq ".statuses[] | select(.context == \"${CONTEXT}\") | .state" \
                 2> >(while read -r line ; do
                   printf '::warning::commits/status fallback: %s\n' "$line"
-                  api_err="$line"
                 done) \
                 | head -n 1
             )"
@@ -147,7 +145,7 @@ jobs:
                   -F oid="${SHA}" -F owner="$(echo "${REPO}" | cut -d/ -f1)" -F name="$(echo "${REPO}" | cut -d/ -f2)" \
                   --jq '.data.repository.object.statusCheckRollup.contexts.nodes[]? | select(.context == "'"${CONTEXT}"'") | .state' 2>/dev/null \
                   | head -n 1 \
-                  | tr 'A-Z' 'a-z'
+                  | tr '[:upper:]' '[:lower:]'
               )"
             fi
             if [[ "$status" == "success" ]]; then
