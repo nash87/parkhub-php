@@ -137,6 +137,9 @@ jobs:
             )"
             # GraphQL fallback if REST returned nothing
             if [[ -z "$status" ]]; then
+              # shellcheck disable=SC2016
+              # Single-quoted GraphQL query: $oid/$owner/$name are GraphQL
+              # variable references substituted by gh -F flags, not shell vars.
               status="$(
                 gh api graphql \
                   -f query='query($oid:GitObjectID!,$owner:String!,$name:String!){repository(owner:$owner,name:$name){object(oid:$oid){...on Commit{statusCheckRollup{contexts(first:50){nodes{...on StatusContext{context state}}}}}}}}' \
