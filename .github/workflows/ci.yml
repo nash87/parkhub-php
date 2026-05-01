@@ -82,19 +82,19 @@ jobs:
     # by `.github/scripts/fop-local-ci.sh --profile pr --post-status`,
     # which runs the full PR gate locally through the fop build queue.
     #
-    # Polling window: up to 45 attempts with adaptive backoff
-    # (5s, 10s, then 20s steady-state) — ~15 min total. Wider than the
+    # Polling window: up to 90 attempts with adaptive backoff
+    # (5s, 10s, then 20s steady-state) — ~30 min total. Wider than the
     # parkhub-rust pilot (18 × 10s = 3 min) because PHP local runs
     # include Pint + PHPStan + PHPUnit Unit+Feature + Vitest + Astro
     # build + drift gates, all serialized through fop's single-build
     # queue. Authors typically push first, then run the local script —
     # the window must comfortably cover that round-trip on a busy
-    # desktop. If the gate stalls beyond 15 min, fail loudly so the
+    # desktop. If the gate stalls beyond 30 min, fail loudly so the
     # author can rerun locally rather than have GHA spin indefinitely.
     name: fop local CI attestation
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 35
     permissions:
       contents: read   # checkout source for the gate job
       pull-requests: read  # resolve the live PR head SHA on reruns
@@ -120,7 +120,7 @@ jobs:
           fi
 
           status=""
-          attempts=45
+          attempts=90
           # Capture rate-limit + 4xx/5xx errors that previously got swallowed
           # by `$(... | head -n 1)` returning empty. Emit them as warnings so
           # operators can see when token visibility is the issue vs. a real
@@ -131,11 +131,10 @@ jobs:
           for attempt in $(seq 1 "${attempts}"); do
             status="$(
               gh api "repos/${REPO}/commits/${SHA}/status" \
-                --jq ".statuses[] | select(.context == \"${CONTEXT}\") | .state" \
+                --jq "([.statuses[] | select(.context == \"${CONTEXT}\")] | sort_by(.created_at) | reverse | .[0].state) // \"\"" \
                 2> >(while read -r line ; do
                   printf '::warning::commits/status fallback: %s\n' "$line"
-                done) \
-                | head -n 1
+                done)
             )"
             # GraphQL fallback if REST returned nothing
             if [[ -z "$status" ]]; then
@@ -161,12 +160,14 @@ jobs:
               exit 1
             fi
             echo "Waiting for ${CONTEXT} status on ${SHA} (${attempt}/${attempts})..."
-            if [[ "$attempt" -le 1 ]]; then
-              sleep 5
-            elif [[ "$attempt" -le 2 ]]; then
-              sleep 10
-            else
-              sleep 20
+            if [[ "$attempt" -lt "${attempts}" ]]; then
+              if [[ "$attempt" -le 1 ]]; then
+                sleep 5
+              elif [[ "$attempt" -le 2 ]]; then
+                sleep 10
+              else
+                sleep 20
+              fi
             fi
           done
           if [[ "$status" != "success" ]]; then
