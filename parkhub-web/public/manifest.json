@@ -4,8 +4,8 @@
   "description": "Smart Parking Management — Book, manage, and optimize parking for your organization",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0d9488",
+  "background_color": "#0f0f0f",
+  "theme_color": "#dc2626",
   "orientation": "any",
   "scope": "/",
   "id": "/",
@@ -34,22 +34,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/icons/screenshot-wide.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "ParkHub Dashboard — Overview of your parking bookings and availability"
-    },
-    {
-      "src": "/icons/screenshot-mobile.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "ParkHub Mobile — Quick booking from your phone"
     }
   ],
   "shortcuts": [
