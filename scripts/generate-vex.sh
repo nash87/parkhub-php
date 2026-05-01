@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # generate-vex.sh — Generate VEX (Vulnerability Exploitability eXchange)
-# from cargo-audit / Trivy / Grype findings, marking known false-positives
-# and accepted risks so downstream SBOM consumers can filter noise.
+# from the accepted-risk baseline below, so downstream SBOM consumers can
+# filter known non-exploitable or accepted findings.
 #
 # Usage:
-#   bash scripts/generate-vex.sh [cargo-audit|trivy|grype] <input.json> > vex.csaf.json
+#   bash scripts/generate-vex.sh > vex.csaf.json
 #
 # Integrates with:
 #   - Syft SBOM (add --vex vex.csaf.json to syft scan)
@@ -13,8 +13,11 @@
 
 set -euo pipefail
 
-TOOL="${1:-cargo-audit}"
-INPUT="${2:-/dev/stdin}"
+if [[ $# -ne 0 ]]; then
+  echo "usage: bash scripts/generate-vex.sh > vex.csaf.json" >&2
+  exit 2
+fi
+
 DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 REPO_URL="${GITHUB_SERVER_URL:-https://gitea.test}/${GITHUB_REPOSITORY:-parkhub-php}"
 COMMIT="${GITHUB_SHA:-unknown}"
