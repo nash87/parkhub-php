@@ -170,6 +170,7 @@ vi.mock('./views/EVCharging', () => ({ EVChargingPage: stub('ev-charging'), Admi
 vi.mock('./views/ParkingHistory', () => ({ ParkingHistoryPage: stub('history') }));
 vi.mock('./views/AbsenceApproval', () => ({ AbsenceApprovalPage: stub('absence-approval') }));
 vi.mock('./views/AdminDashboard', () => ({ AdminDashboardPage: stub('admin-widgets') }));
+vi.mock('./views/AdminModules', () => ({ AdminModulesPage: stub('admin-modules') }));
 vi.mock('./views/AdminPlugins', () => ({ AdminPluginsPage: stub('admin-plugins') }));
 vi.mock('./views/AdminCompliance', () => ({ AdminCompliancePage: stub('admin-compliance') }));
 vi.mock('./views/AdminSSO', () => ({ AdminSSOPage: stub('admin-sso') }));
@@ -177,6 +178,7 @@ vi.mock('./views/AdminWebhooks', () => ({ AdminWebhooksPage: stub('admin-webhook
 vi.mock('./views/AdminRoles', () => ({ AdminRolesPage: stub('admin-roles') }));
 vi.mock('./views/AdminZones', () => ({ AdminZonesPage: stub('admin-zones') }));
 vi.mock('./views/AdminUpdates', () => ({ AdminUpdatesPage: stub('admin-updates') }));
+vi.mock('./views/AdminScheduledReports', () => ({ AdminScheduledReportsPage: stub('admin-scheduled-reports') }));
 vi.mock('./views/SwapRequests', () => ({ SwapRequestsPage: stub('swap-requests') }));
 vi.mock('./views/QRCheckIn', () => ({ QRCheckInPage: stub('checkin') }));
 vi.mock('./views/GuestPass', () => ({ GuestPassPage: stub('guest-pass') }));
@@ -525,6 +527,7 @@ describe('App', () => {
     ['/leaderboard', 'page-leaderboard'],
     ['/predict', 'page-predict'],
     ['/translations', 'page-translations'],
+    ['/settings', 'page-settings'],
   ];
   for (const [route, testid] of userRoutes) {
     it(`mounts user route ${route}`, async () => {
@@ -549,6 +552,7 @@ describe('App', () => {
     ['/admin/analytics', 'page-admin-analytics'],
     ['/admin/rate-limits', 'page-admin-rate-limits'],
     ['/admin/tenants', 'page-admin-tenants'],
+    ['/admin/modules', 'page-admin-modules'],
     ['/admin/audit-log', 'page-admin-audit-log'],
     ['/admin/data', 'page-admin-data'],
     ['/admin/fleet', 'page-admin-fleet'],
@@ -566,6 +570,7 @@ describe('App', () => {
     ['/admin/zones', 'page-admin-zones'],
     ['/admin/updates', 'page-admin-updates'],
     ['/admin/heatmap', 'page-admin-heatmap'],
+    ['/admin/scheduled-reports', 'page-admin-scheduled-reports'],
   ];
   for (const [route, testid] of adminRoutes) {
     it(`mounts admin route ${route}`, async () => {

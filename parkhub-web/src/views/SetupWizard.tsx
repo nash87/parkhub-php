@@ -171,10 +171,11 @@ export function SetupWizardPage() {
             <div className="space-y-4" data-testid="wizard-step-1">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{t('setup.step1', 'Company Info')}</h2>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                <label htmlFor="setup-company-name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   {t('setup.companyName', 'Company Name')}
                 </label>
                 <input
+                  id="setup-company-name"
                   type="text"
                   value={companyName}
                   onChange={e => setCompanyName(e.target.value)}

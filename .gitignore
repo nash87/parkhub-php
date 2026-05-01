@@ -40,6 +40,7 @@ resources/js/src.bak/
 # Astro build output — Dockerfile builds parkhub-web/ and copies dist/ -> public/
 /public/_astro/
 /public/index.html
+/public/v5/
 /public/manifest.json
 /public/sw.js
 /public/offline.html

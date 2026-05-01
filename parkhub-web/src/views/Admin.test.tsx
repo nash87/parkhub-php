@@ -29,6 +29,7 @@ vi.mock('react-i18next', () => ({
         'admin.translations': 'Translations',
         'admin.rateLimits': 'Rate Limits',
         'admin.tenants': 'Tenants',
+        'admin.modules.title': 'Modules',
       };
       return map[key] || key;
     },
@@ -96,6 +97,7 @@ describe('AdminPage', () => {
     expect(within(nav).getByText('Analytics')).toBeInTheDocument();
     expect(within(nav).getByText('Rate Limits')).toBeInTheDocument();
     expect(within(nav).getByText('Tenants')).toBeInTheDocument();
+    expect(within(nav).getByText('Modules')).toBeInTheDocument();
   });
 
   it('renders tab links with correct paths', () => {
@@ -111,10 +113,17 @@ describe('AdminPage', () => {
     expect(within(nav).getByText('Analytics').closest('a')).toHaveAttribute('href', '/admin/analytics');
     expect(within(nav).getByText('Rate Limits').closest('a')).toHaveAttribute('href', '/admin/rate-limits');
     expect(within(nav).getByText('Tenants').closest('a')).toHaveAttribute('href', '/admin/tenants');
+    expect(within(nav).getByText('Modules').closest('a')).toHaveAttribute('href', '/admin/modules');
   });
 
   it('renders the outlet for child routes', () => {
     render(<AdminPage />);
     expect(screen.getByTestId('outlet')).toBeInTheDocument();
+  });
+
+  it('does not render nested i18n object errors for the modules nav item', () => {
+    render(<AdminPage />);
+    expect(screen.queryByText(/returned an object instead of string/i)).toBeNull();
+    expect(screen.getAllByRole('link', { name: /^Modules$/ }).length).toBeGreaterThan(0);
   });
 });

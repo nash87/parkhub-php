@@ -4,6 +4,7 @@ import { Lightning, Play, Stop, Question, Clock, BatteryCharging } from '@phosph
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { useTheme } from '../context/ThemeContext';
+import { getInMemoryToken } from '../api/client';
 
 interface EvCharger {
   id: string;
@@ -55,6 +56,16 @@ const connectorLabels: Record<string, string> = {
 
 function getSurfaceTone(designTheme: string): 'marble' | 'void' {
   return designTheme === 'void' ? 'void' : 'marble';
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getInMemoryToken();
+  return {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
 }
 
 export function EVChargingPage() {
@@ -354,17 +365,29 @@ export function AdminChargersPage() {
   const { designTheme } = useTheme();
   const [stats, setStats] = useState<ChargerStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const surfaceTone = getSurfaceTone(designTheme);
   const isVoid = surfaceTone === 'void';
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/v1/admin/chargers').then(r => r.json()).then(res => {
-      if (res.success) setStats(res.data);
+    setError(null);
+    fetch('/api/v1/admin/chargers', {
+      headers: authHeaders(),
+      credentials: 'include',
+    }).then(r => r.json()).then(res => {
+      if (res.success && res.data) {
+        setStats(res.data);
+      } else {
+        setError(res.error?.message || t('evCharging.adminLoadFailed', 'Could not load charger statistics.'));
+      }
       setLoading(false);
-    }).catch(() => setLoading(false));
-  }, []);
+    }).catch(() => {
+      setError(t('evCharging.adminLoadFailed', 'Could not load charger statistics.'));
+      setLoading(false);
+    });
+  }, [t]);
 
   return (
     <motion.div
@@ -446,8 +469,12 @@ export function AdminChargersPage() {
         </motion.div>
       )}
 
-      {loading || !stats ? (
+      {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
+      ) : error || !stats ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-300" data-testid="admin-chargers-error">
+          {error || t('evCharging.adminLoadFailed', 'Could not load charger statistics.')}
+        </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {[

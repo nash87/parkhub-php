@@ -37,6 +37,7 @@ function AdminNav() {
     { name: t('admin.billing', 'Billing'), path: '/admin/billing', icon: CurrencyDollar },
     { name: t('admin.visitors', 'Visitors'), path: '/admin/visitors', icon: UserPlus },
     { name: t('admin.chargers', 'EV Chargers'), path: '/admin/chargers', icon: Lightning },
+    { name: t('admin.modules.title', 'Modules'), path: '/admin/modules', icon: PuzzlePiece },
     { name: t('admin.plugins', 'Plugins'), path: '/admin/plugins', icon: PuzzlePiece },
     { name: t('compliance.title', 'Compliance'), path: '/admin/compliance', icon: ShieldCheck },
     { name: t('rbac.title', 'Roles'), path: '/admin/roles', icon: LockKey },
