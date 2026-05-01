@@ -64,21 +64,19 @@ Run this to reproduce: `diff -rq /var/home/florian/dev/parkhub-rust/parkhub-web 
 
 Side note: parkhub-rust uses `manifest.webmanifest` (proper W3C MIME type `application/manifest+json`) while parkhub-php uses `manifest.json` (works but technically less correct). Convergence target: both ship `manifest.webmanifest` referenced by the HTML `<link rel="manifest">`. Rust already does this; php still references `manifest.json` (need to grep `<link rel="manifest"` to confirm).
 
-## Theme color drift (intentional? document)
+## Theme/background color alignment
 
-Both manifests define a `theme_color`:
+Both manifests now define the same install-surface colors after PR #423:
 
-- parkhub-rust: `#dc2626` (red-600 — matches v5 design system)
-- parkhub-php: `#0d9488` (teal-600 — older v4 brand)
+- `theme_color`: `#dc2626` (red-600 — matches v5 design system)
+- `background_color`: `#0f0f0f`
 
-This is a **real customer-visible difference** in the OS-level chrome color of the installed PWA on Android. Per `parity-governance.md`, this should be either:
+Historical note: parkhub-php previously used `#0d9488` (teal-600 — older v4 brand) for `theme_color`. That was a **real customer-visible difference** in the OS-level chrome color of the installed PWA on Android. Per `parity-governance.md`, runtime-visible manifest colors must be either:
 
 1. Aligned (pick one), or
 2. Explicitly documented as runtime-sensitive in this audit + the openapi-parity.md companion.
 
 Completed in PR #423: php now aligns to `#dc2626` (rust = v5 source of truth per governance).
-
-Background color also aligned in PR #423: php now uses rust's `#0f0f0f`.
 
 ## Closure plan
 
