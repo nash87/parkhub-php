@@ -49,17 +49,17 @@ Run this to reproduce: `diff -rq /var/home/florian/dev/parkhub-rust/parkhub-web 
 | `package.json` | version field obviously, also dep versions | Sync deps; version handled by release-tag |
 | `playwright.config.ts` | test parallelism, browsers, baseURL | Diff + reconcile |
 | `public/manifest.json` (php) vs `public/manifest.webmanifest` (rust) | Different file names AND shapes — see below | Pick one canonical name |
-| `README.md` (parkhub-web) | docs drift | Sync |
+| `README.md` (parkhub-web) | runtime-sensitive packaging docs: Rust embeds the SPA with `rust-embed`; PHP copies it into Laravel `public/` | No sync needed |
 | `scripts/capture-screenshots.mjs` | tooling drift | Diff + reconcile |
 | `src/api/client.test.ts` | API client tests | Diff (likely API surface drift between runtimes — could be legitimate) |
 | `.gitignore` | tooling artifacts | Sync (low impact) |
 
 ### Manifest.json broken-references (parkhub-php side)
 
-`parkhub-web/public/manifest.json` references PWA assets that **do not exist on disk**:
+`parkhub-web/public/manifest.json` previously referenced PWA assets that **did not exist on disk**:
 
-- `/icons/screenshot-wide.png` (manifest line 29) — missing
-- `/icons/screenshot-mobile.png` (manifest line 36) — missing
+- `/icons/screenshot-wide.png` — removed in PR #423
+- `/icons/screenshot-mobile.png` — removed in PR #423
 - 3× `shortcut` icon refs to `/favicon.svg` — exist (no fix needed)
 
 Side note: parkhub-rust uses `manifest.webmanifest` (proper W3C MIME type `application/manifest+json`) while parkhub-php uses `manifest.json` (works but technically less correct). Convergence target: both ship `manifest.webmanifest` referenced by the HTML `<link rel="manifest">`. Rust already does this; php still references `manifest.json` (need to grep `<link rel="manifest"` to confirm).
@@ -76,20 +76,20 @@ This is a **real customer-visible difference** in the OS-level chrome color of t
 1. Aligned (pick one), or
 2. Explicitly documented as runtime-sensitive in this audit + the openapi-parity.md companion.
 
-Recommended action: align to `#dc2626` (rust = v5 source of truth per governance), document the change in CHANGELOG.
+Completed in PR #423: php now aligns to `#dc2626` (rust = v5 source of truth per governance).
 
-Background color also drifts: rust `#0f0f0f` vs php `#0a0a0a`. Same recommendation.
+Background color also aligned in PR #423: php now uses rust's `#0f0f0f`.
 
 ## Closure plan
 
 | Slice | Scope | Estimated PRs | Risk |
 |---|---|---|---|
 | 1 (DONE) | PR #421 — port icon-192 + icon-512 PNGs + manifest entries | 1 | low |
-| 2 | Fix broken `screenshots` entries in manifest.json (remove or generate) | 1 | low |
-| 3 | Align theme_color + background_color on php to match rust v5 | 1 | medium (visible UI change) |
+| 2 (DONE) | PR #423 — remove broken `screenshots` entries from manifest.json | 1 | low |
+| 3 (DONE) | PR #423 — align theme_color + background_color on php to match rust v5 | 1 | medium (visible UI change) |
 | 4 | Port `e2e/v5-*` and `e2e/design-*` specs from rust to php | 1-2 | medium (php-specific baselines need regen) |
 | 5 | Sync `astro.config.mjs`, `biome.json`, `playwright.config.ts` | 1 | low |
-| 6 | Sync `parkhub-web/README.md` + `scripts/capture-screenshots.mjs` + `scripts/spa-preview.mjs` | 1 | low |
+| 6 (NO-SYNC README) | `parkhub-web/README.md` differs for allowed runtime-sensitive packaging reasons; keep `scripts/capture-screenshots.mjs` + `scripts/spa-preview.mjs` as tooling parity candidates | 1 | low |
 | 7 | Audit `src/api/client.test.ts` for legitimate vs. drift differences | 1 (audit only, may yield no fix) | low |
 | 8 | Coordinated release: cut both at v5.0.9 (rust patch from v5.0.8 + php cluster catch-up) | tag-only | low |
 
