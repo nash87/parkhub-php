@@ -16,15 +16,14 @@ set -euo pipefail
 TOOL="${1:-cargo-audit}"
 INPUT="${2:-/dev/stdin}"
 DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-REPO_URL="${GITHUB_SERVER_URL:-https://gitea.test}/${GITHUB_REPOSITORY:-parkhub-rust}"
+REPO_URL="${GITHUB_SERVER_URL:-https://gitea.test}/${GITHUB_REPOSITORY:-parkhub-php}"
 COMMIT="${GITHUB_SHA:-unknown}"
 
 # ── Known accepted vulnerabilities (edit as baseline changes) ──
 declare -A ACCEPTED_RISKS=(
-  # Format: [RUSTSEC-ID]="justification|impact_statement"
-  ["RUSTSEC-2024-0370"]="Wontfix|Transitive dev-dependency only; not reachable in production"
-  ["RUSTSEC-2023-0071"]="Wontfix|Legacy crypto in test fixtures; production uses ring"
-  ["RUSTSEC-2025-0057"]="Wontfix|Windows-only path traversal; we target Linux musl"
+  # Format: [CVE-YYYY-NNNN]="justification|impact_statement"
+  # Keep PHP/Composer/npm accepted risks here. Do not copy RustSec IDs from
+  # parkhub-rust; they describe a different package graph.
 )
 
 cat <<EOF
@@ -50,13 +49,13 @@ cat <<EOF
     "branches": [
       {
         "category": "product_name",
-        "name": "parkhub-rust",
+        "name": "parkhub-php",
         "branches": [
           {
             "category": "product_version",
             "name": "${COMMIT:0:8}",
             "product": {
-              "product_id": "parkhub-rust:${COMMIT:0:8}"
+              "product_id": "parkhub-php:${COMMIT:0:8}"
             }
           }
         ]
@@ -77,7 +76,7 @@ for id in "${!ACCEPTED_RISKS[@]}"; do
     {
       "cve": "${id}",
       "product_status": {
-        "known_not_affected": ["parkhub-rust:${COMMIT:0:8}"]
+        "known_not_affected": ["parkhub-php:${COMMIT:0:8}"]
       },
       "threats": [
         {

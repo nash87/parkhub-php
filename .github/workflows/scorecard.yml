@@ -6,7 +6,7 @@ name: OpenSSF Scorecard
 #
 # Local run (requires PAT with repo:read):
 #   docker run -e GITHUB_AUTH_TOKEN=$PAT gcr.io/openssf/scorecard:stable \
-#     --repo=github.com/<org>/parkhub-rust --format json
+#     --repo=github.com/<org>/parkhub-php --format json
 
 on:
   push:

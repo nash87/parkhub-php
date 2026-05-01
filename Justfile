@@ -141,6 +141,12 @@ release-tag VERSION:
       echo "working tree not clean — commit or stash first" >&2
       exit 1
     fi
+    echo "▶ running release preflight (make release-preflight)"
+    make release-preflight
+    if [[ -n "$(git status --porcelain)" ]]; then
+      echo "working tree changed during release preflight — review before tagging" >&2
+      exit 1
+    fi
     echo "▶ bumping versions to {{VERSION}}"
     echo "{{VERSION}}" > VERSION
     jq '.version = "{{VERSION}}"' parkhub-web/package.json > parkhub-web/package.json.tmp && mv parkhub-web/package.json.tmp parkhub-web/package.json
@@ -149,8 +155,8 @@ release-tag VERSION:
     git add VERSION parkhub-web/package.json CHANGELOG.md
     git commit -m "chore(release): v{{VERSION}}"
     git tag -a v{{VERSION}} -m "Release v{{VERSION}}"
-    @echo "✓ tagged v{{VERSION}}. Review: git show v{{VERSION}}"
-    @echo "  Push when ready: git push github main && git push github v{{VERSION}}"
+    echo "✓ tagged v{{VERSION}}. Review: git show v{{VERSION}}"
+    echo "  Push when ready: git push github main && git push github v{{VERSION}}"
 
 # ---------------------------------------------------------------------------
 # Cleanup

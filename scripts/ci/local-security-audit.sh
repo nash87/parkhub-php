@@ -168,7 +168,7 @@ else
   echo "gitleaks not installed; skipping"
 fi
 
-run_if_available actionlint "workflow lint (actionlint)" actionlint .github/workflows
+run_if_available actionlint "workflow lint (actionlint)" bash -euo pipefail -c "find .github/workflows -maxdepth 1 -type f \\( -name '*.yml' -o -name '*.yaml' \\) -print0 | xargs -0 actionlint"
 run_if_available yamllint "yaml lint" yamllint -c .yamllint.yml .github/workflows .gitea/workflows docker-compose.yml render.yaml koyeb.yaml
 run_required "fly config parse" python3 -c "import pathlib, tomllib; tomllib.loads(pathlib.Path('fly.toml').read_text())"
 run_if_available helm "helm chart render" bash -euo pipefail -c "helm lint ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key && helm template parkhub ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key >/dev/null && helm template parkhub ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key --set grafana.dashboardsEnabled=true >/dev/null && helm template parkhub ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key --set monitoring.serviceMonitor.enabled=true >/dev/null && helm template parkhub ./helm/parkhub --set config.appKey=base64:ci-dummy-app-key --set monitoring.prometheusRule.enabled=true >/dev/null"

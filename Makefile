@@ -11,6 +11,7 @@
 #   make ci-post    # fop local PR gate + post fop/local-ci/pr for GitHub
 #   make full       # fop full profile: PR gate + mutation/e2e extras
 #   make cd         # fop CD profile: full + release-oriented scans/smoke
+#   make release-preflight # required gate before cutting/publishing a release
 #   make ci-security # strict local OSS mirror of GitHub/Gitea security gates
 #   make lint       # pint --test + phpstan (backend-quality + static-analysis jobs)
 #   make test       # full backend PHPUnit suite — mirrors backend-tests
@@ -24,7 +25,7 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 MAKEFLAGS += --no-print-directory
 
-.PHONY: help ci ci-post full cd ci-security lint test static-analysis drift frontend act pre-push clean
+.PHONY: help ci ci-post full cd release-preflight ci-security lint test static-analysis drift frontend act pre-push clean
 
 help:
 	@echo "parkhub-php local-first CI/CD"
@@ -33,6 +34,7 @@ help:
 	@echo "  make ci-post    — fop local PR gate + post fop/local-ci/pr"
 	@echo "  make full       — fop full profile"
 	@echo "  make cd         — fop CD profile"
+	@echo "  make release-preflight — required release gate (CD profile)"
 	@echo "  make ci-security — strict local OSS security/workflow mirror"
 	@echo "  make lint       — pint --test (backend-quality)"
 	@echo "  make static-analysis — phpstan (static-analysis job)"
@@ -91,6 +93,8 @@ full:
 
 cd:
 	.github/scripts/fop-local-ci.sh --profile cd
+
+release-preflight: cd
 
 ci-security:
 	.github/scripts/fop-local-ci.sh --profile pr --dry-run >/dev/null
