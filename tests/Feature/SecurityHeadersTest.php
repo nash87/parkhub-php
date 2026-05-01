@@ -32,6 +32,17 @@ class SecurityHeadersTest extends TestCase
         $this->assertStringContainsString('interest-cohort=()', $permissionsPolicy);
     }
 
+    public function test_spa_csp_allows_map_tile_images(): void
+    {
+        $response = $this->get('/');
+
+        $csp = $response->headers->get('Content-Security-Policy');
+        $this->assertNotNull($csp);
+        $this->assertStringContainsString('https://a.tile.openstreetmap.org', $csp);
+        $this->assertStringContainsString('https://b.tile.openstreetmap.org', $csp);
+        $this->assertStringContainsString('https://c.tile.openstreetmap.org', $csp);
+    }
+
     public function test_hsts_header_absent_by_default(): void
     {
         $response = $this->getJson('/api/v1/health');

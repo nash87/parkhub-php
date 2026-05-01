@@ -148,8 +148,8 @@ class SecurityHeaders
             "script-src 'self' 'unsafe-inline'",
             // Styles: self + unsafe-inline for Tailwind + framer-motion inline styles
             "style-src 'self' 'unsafe-inline'",
-            // Images: self, data URIs (base64 avatars/QR), blob URIs
-            "img-src 'self' data: blob:",
+            // Images: self, data URIs (base64 avatars/QR), blob URIs, and map tiles
+            "img-src 'self' data: blob: https://a.tile.openstreetmap.org https://b.tile.openstreetmap.org https://c.tile.openstreetmap.org",
             // Fonts: self + data URIs + Bunny Fonts CDN
             "font-src 'self' data: https://fonts.bunny.net",
             // API connections: self + configured app URL + Vite HMR websocket in dev
