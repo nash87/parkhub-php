@@ -94,6 +94,14 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-interaction --no-progress
 
+      - name: Install Node dependencies for CD preflight
+        run: |
+          npm ci
+          npm ci --prefix parkhub-web
+
+      - name: Install Playwright Chromium for CD preflight
+        run: npx playwright install --with-deps chromium
+
       - name: Run CD pre-release gate
         run: make release-preflight
 

@@ -19,7 +19,8 @@
 #   make act        # run the actual .github/workflows locally via nektos/act
 #   make pre-push   # alias for ci; run before `git push origin/github`
 #
-# Requires: php 8.4, composer v2, node 22, npm. `act` is optional.
+# Requires: php 8.4, composer v2, node 22, npm. CD/release-preflight also
+# requires Trivy and Playwright Chromium. `act` is optional.
 
 SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
