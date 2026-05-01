@@ -126,10 +126,19 @@ jobs:
         run: |
           set -euo pipefail
           repo="${IMAGE%:*}"
+          attestation_output="$(mktemp)"
+          trap 'rm -f "${attestation_output}"' EXIT
           CI_TIMEOUT_LABEL="Verify SPDX SBOM attestation for ${repo}@${DIGEST}" \
             bash scripts/ci/run-with-timeout.sh 180s \
               cosign verify-attestation \
                 --type spdxjson \
                 --certificate-identity-regexp "${IDENTITY_REGEX}" \
                 --certificate-oidc-issuer "${ISSUER}" \
-                "${repo}@${DIGEST}"
+                "${repo}@${DIGEST}" > "${attestation_output}"
+          if ! grep -q '"payloadType":"application/vnd.in-toto+json"' "${attestation_output}"; then
+            echo "::error::Cosign attestation verification succeeded but did not return an in-toto payload."
+            sed -n '1,80p' "${attestation_output}"
+            exit 1
+          fi
+          attestation_bytes="$(wc -c < "${attestation_output}")"
+          echo "Verified SPDX SBOM attestation for ${repo}@${DIGEST} (${attestation_bytes} bytes suppressed from CI logs)."
