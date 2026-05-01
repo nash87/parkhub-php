@@ -177,8 +177,14 @@ jobs:
         uses: zizmorcore/zizmor-action@b1d7e1fb5de872772f31590499237e7cce841e8e # v0.5.3
         with:
           # auditor persona surfaces low-severity findings useful for hardening
-          # without flooding the PR with regular-user noise.
+          # without flooding the PR with regular-user noise. Keep this aligned
+          # with .github/scripts/fop-local-ci.sh: offline, high-severity-only,
+          # and scoped to workflow manifests so PR audits cannot hang on live
+          # GitHub API checks.
+          inputs: .github/workflows .gitea/workflows
           persona: auditor
+          online-audits: false
+          min-severity: high
 
   osv-scanner:
     # Multi-ecosystem SCA via Google's osv-scanner against the OSV.dev DB.
