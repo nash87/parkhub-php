@@ -68,7 +68,10 @@ jobs:
           # block the PR with a confusing "manifest unknown" error.
           err_file="$(mktemp)"
           trap 'rm -f "${err_file}"' EXIT
-          if ! digest=$(docker buildx imagetools inspect --format '{{json .Manifest.Digest}}' "${IMAGE}" 2>"${err_file}" | tr -d '"'); then
+          if ! digest=$(CI_TIMEOUT_LABEL="Resolve image digest for ${IMAGE}" \
+              bash scripts/ci/run-with-timeout.sh 90s \
+                docker buildx imagetools inspect --format '{{json .Manifest.Digest}}' "${IMAGE}" \
+                2>"${err_file}" | tr -d '"'); then
             err_output="$(cat "${err_file}")"
             if printf '%s' "${err_output}" | grep -Eiq 'manifest unknown|no such manifest|not found|name unknown'; then
               echo "::notice::No image at ${IMAGE} yet — skipping cosign verify."
@@ -100,10 +103,12 @@ jobs:
           set -euo pipefail
           # Strip image tag (we pin to the resolved digest below).
           repo="${IMAGE%:*}"
-          cosign verify \
-            --certificate-identity-regexp "${IDENTITY_REGEX}" \
-            --certificate-oidc-issuer "${ISSUER}" \
-            "${repo}@${DIGEST}"
+          CI_TIMEOUT_LABEL="Verify cosign signature for ${repo}@${DIGEST}" \
+            bash scripts/ci/run-with-timeout.sh 120s \
+              cosign verify \
+                --certificate-identity-regexp "${IDENTITY_REGEX}" \
+                --certificate-oidc-issuer "${ISSUER}" \
+                "${repo}@${DIGEST}"
 
       - name: Verify SPDX SBOM attestation (keyless)
         # Require an SPDX SBOM attestation for any resolved image digest.
@@ -121,8 +126,10 @@ jobs:
         run: |
           set -euo pipefail
           repo="${IMAGE%:*}"
-          cosign verify-attestation \
-            --type spdxjson \
-            --certificate-identity-regexp "${IDENTITY_REGEX}" \
-            --certificate-oidc-issuer "${ISSUER}" \
-            "${repo}@${DIGEST}"
+          CI_TIMEOUT_LABEL="Verify SPDX SBOM attestation for ${repo}@${DIGEST}" \
+            bash scripts/ci/run-with-timeout.sh 180s \
+              cosign verify-attestation \
+                --type spdxjson \
+                --certificate-identity-regexp "${IDENTITY_REGEX}" \
+                --certificate-oidc-issuer "${ISSUER}" \
+                "${repo}@${DIGEST}"

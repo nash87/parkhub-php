@@ -182,7 +182,10 @@ jobs:
           npm ci --prefix parkhub-web
 
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium webkit
+        run: |
+          CI_TIMEOUT_LABEL="Install Playwright browsers for nightly E2E" \
+            bash scripts/ci/run-with-timeout.sh 12m \
+              npx playwright install --with-deps chromium webkit
 
       - name: Build browser assets for Laravel
         run: npm run build:php --prefix parkhub-web
@@ -220,9 +223,21 @@ jobs:
           trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
 
           ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60
-          npx playwright test \
+          set +e
+          CI_TIMEOUT_LABEL="Run Playwright ${MATRIX_PROJECT} shard ${MATRIX_SHARD}/4" \
+            bash scripts/ci/run-with-timeout.sh 18m \
+              npx playwright test \
             --project="${MATRIX_PROJECT}" \
             --shard="${MATRIX_SHARD}/4"
+          test_status=$?
+          set -e
+
+          if [ "${test_status}" -ne 0 ]; then
+            echo "::group::Laravel server log (${MATRIX_PROJECT} shard ${MATRIX_SHARD})"
+            tail -n 200 "/tmp/parkhub-nightly-e2e-${MATRIX_PROJECT}-${MATRIX_SHARD}.log" || true
+            echo "::endgroup::"
+            exit "${test_status}"
+          fi
 
       - name: Upload Playwright report (${{ matrix.project }} shard ${{ matrix.shard }})
         if: always()
