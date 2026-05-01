@@ -50,7 +50,7 @@ jobs:
         run: |
           CI_TIMEOUT_LABEL="Install Playwright chromium for Storybook" \
             bash ../scripts/ci/run-with-timeout.sh 10m \
-              npx playwright install --with-deps chromium
+              npx --no-install playwright install --with-deps chromium
 
       - name: Build Storybook static site
         working-directory: parkhub-web
@@ -71,7 +71,7 @@ jobs:
         run: |
           CI_TIMEOUT_LABEL="Run Storybook browser tests" \
             bash ../scripts/ci/run-with-timeout.sh 8m \
-              npx test-storybook --url http://127.0.0.1:6006 --browsers chromium --maxWorkers=2
+              npx --no-install test-storybook --url http://127.0.0.1:6006 --browsers chromium --maxWorkers=2
 
       - name: Upload Storybook static build
         if: always()

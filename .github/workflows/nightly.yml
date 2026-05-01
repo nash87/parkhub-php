@@ -185,7 +185,7 @@ jobs:
         run: |
           CI_TIMEOUT_LABEL="Install Playwright browsers for nightly E2E" \
             bash scripts/ci/run-with-timeout.sh 12m \
-              npx playwright install --with-deps chromium webkit
+              npx --no-install playwright install --with-deps chromium webkit
 
       - name: Build browser assets for Laravel
         run: npm run build:php --prefix parkhub-web
@@ -226,7 +226,7 @@ jobs:
           set +e
           CI_TIMEOUT_LABEL="Run Playwright ${MATRIX_PROJECT} shard ${MATRIX_SHARD}/4" \
             bash scripts/ci/run-with-timeout.sh 18m \
-              npx playwright test \
+              npx --no-install playwright test \
             --project="${MATRIX_PROJECT}" \
             --shard="${MATRIX_SHARD}/4"
           test_status=$?
