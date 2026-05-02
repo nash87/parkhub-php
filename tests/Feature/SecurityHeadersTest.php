@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -36,11 +37,20 @@ class SecurityHeadersTest extends TestCase
     {
         $response = $this->get('/');
 
+        $response->assertOk();
+        $this->assertStringContainsString('text/html', $response->headers->get('Content-Type', ''));
+
         $csp = $response->headers->get('Content-Security-Policy');
         $this->assertNotNull($csp);
-        $this->assertStringContainsString('https://a.tile.openstreetmap.org', $csp);
-        $this->assertStringContainsString('https://b.tile.openstreetmap.org', $csp);
-        $this->assertStringContainsString('https://c.tile.openstreetmap.org', $csp);
+
+        $imgSrc = collect(explode(';', $csp))
+            ->map(fn (string $directive): string => trim($directive))
+            ->first(fn (string $directive): bool => str_starts_with($directive, 'img-src '));
+
+        $this->assertNotNull($imgSrc);
+        foreach (SecurityHeaders::OPENSTREETMAP_TILE_HOSTS as $host) {
+            $this->assertStringContainsString($host, $imgSrc);
+        }
     }
 
     public function test_hsts_header_absent_by_default(): void
