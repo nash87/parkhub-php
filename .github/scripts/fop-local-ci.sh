@@ -254,7 +254,7 @@ run_step "composer install (sync)" "composer install --prefer-dist --no-interact
 
 run_step "pint format check" "./vendor/bin/pint --test"
 
-run_step "phpstan level 5" "./vendor/bin/phpstan analyse --memory-limit=2G --no-progress"
+run_step "phpstan level 5" "./vendor/bin/phpstan analyse --memory-limit=512M --no-progress"
 
 run_step "phpunit unit + feature" "./vendor/bin/phpunit --testsuite=Unit --no-coverage && ./vendor/bin/phpunit --testsuite=Feature --no-coverage"
 
@@ -313,7 +313,7 @@ if [[ "$profile" == "full" || "$profile" == "cd" ]]; then
 
   run_step_heavy "playwright chromium browser install" "npx playwright install --with-deps chromium"
 
-  run_step_heavy "playwright chromium e2e" "e2e_db=\"\${FOP_LOCAL_CI_E2E_DB:-/tmp/parkhub-e2e-\$\$.sqlite}\"; rm -f \"\$e2e_db\"; export DB_CONNECTION=sqlite DB_DATABASE=\"\$e2e_db\" DEMO_MODE=true PARKHUB_ADMIN_PASSWORD=demo PARKHUB_DISABLE_RATE_LIMITS=true; ./scripts/ci/bootstrap-laravel.sh && php artisan migrate:fresh --seed --force --no-interaction && npm run build:php --prefix parkhub-web && pid=''; cleanup() { if [[ -n \"\${pid:-}\" ]]; then kill \"\$pid\" 2>/dev/null || true; fi; rm -f \"\$e2e_db\"; }; trap cleanup EXIT; { php artisan serve --host=127.0.0.1 --port=8082 >/tmp/parkhub-e2e.log 2>&1 & pid=\$!; }; ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60 && npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium"
+  run_step_heavy "playwright chromium e2e" "e2e_db=\"\${FOP_LOCAL_CI_E2E_DB:-/tmp/parkhub-e2e-\$\$.sqlite}\"; rm -f \"\$e2e_db\"; export DB_CONNECTION=sqlite DB_DATABASE=\"\$e2e_db\" DEMO_MODE=true PARKHUB_ADMIN_PASSWORD=demo PARKHUB_DISABLE_RATE_LIMITS=true; ./scripts/ci/bootstrap-laravel.sh && php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force --no-interaction && npm run build:php --prefix parkhub-web && pid=''; cleanup() { if [[ -n \"\${pid:-}\" ]]; then kill \"\$pid\" 2>/dev/null || true; fi; rm -f \"\$e2e_db\"; }; trap cleanup EXIT; { php artisan serve --host=127.0.0.1 --port=8082 >/tmp/parkhub-e2e.log 2>&1 & pid=\$!; }; ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60 && npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium"
 fi
 
 if [[ "$profile" == "cd" ]]; then
