@@ -30839,6 +30839,65 @@
         ]
       }
     },
+    "/v1/modules/info": {
+      "get": {
+        "description": "Legacy Rust-compatible alias consumed by older shared parkhub-web\nbuilds. It keeps `modules` / `module_info` at the top level while also\nexposing `data` as the ModuleInfo array for the shared React view.",
+        "operationId": "module.info",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {},
+                      "type": "array"
+                    },
+                    "error": {
+                      "type": "null"
+                    },
+                    "meta": {
+                      "type": "null"
+                    },
+                    "module_info": {
+                      "items": {},
+                      "type": "array"
+                    },
+                    "modules": {
+                      "additionalProperties": {
+                        "type": "boolean"
+                      },
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "modules",
+                    "module_info",
+                    "version",
+                    "error",
+                    "meta"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "GET /api/v1/modules/info",
+        "tags": [
+          "Module"
+        ]
+      }
+    },
     "/v1/modules/{name}": {
       "get": {
         "description": "Returns the single ModuleInfo-shaped record or a 404 when the\nslug is unknown.",

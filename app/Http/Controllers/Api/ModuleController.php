@@ -65,6 +65,28 @@ class ModuleController extends Controller
     }
 
     /**
+     * GET /api/v1/modules/info
+     *
+     * Legacy Rust-compatible alias consumed by older shared parkhub-web
+     * builds. It keeps `modules` / `module_info` at the top level while also
+     * exposing `data` as the ModuleInfo array for the shared React view.
+     */
+    public function info(): JsonResponse
+    {
+        $moduleInfo = ModuleRegistry::all();
+
+        return response()->json([
+            'success' => true,
+            'data' => $moduleInfo,
+            'modules' => ModuleRegistry::enabledMap(),
+            'module_info' => $moduleInfo,
+            'version' => SystemController::appVersion(),
+            'error' => null,
+            'meta' => null,
+        ]);
+    }
+
+    /**
      * GET /api/v1/modules/{name}
      *
      * Returns the single ModuleInfo-shaped record or a 404 when the

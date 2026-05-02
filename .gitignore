@@ -47,6 +47,7 @@ resources/js/src.bak/
 /public/og-image.svg
 /public/favicon.ico
 /public/favicon.svg
+/public/icons/icon-*.png
 
 # Claude Code
 /.claude/

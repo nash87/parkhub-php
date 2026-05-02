@@ -143,6 +143,26 @@ describe('AdminModulesPage', () => {
     expect(screen.getByText(/2\s*\/\s*3\s*active/)).toBeInTheDocument();
   });
 
+  it('normalizes PHP title-case category values before grouping', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: [
+          mkModule({ name: 'bookings', category: 'Core' }),
+          mkModule({ name: 'absences', category: 'Booking' }),
+          mkModule({ name: 'stripe', category: 'Payment' }),
+        ],
+      }),
+    });
+
+    renderPage();
+
+    expect(await screen.findByTestId('module-card-bookings')).toBeInTheDocument();
+    expect(screen.getByTestId('module-card-absences')).toBeInTheDocument();
+    expect(screen.getByTestId('module-card-stripe')).toBeInTheDocument();
+    expect(screen.queryByText('No modules match your filters.')).not.toBeInTheDocument();
+  });
+
   it('surfaces fetch errors without crashing', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 500 });
     renderPage();

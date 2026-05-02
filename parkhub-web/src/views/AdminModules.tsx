@@ -43,6 +43,10 @@ function categoryLabel(t: (k: string, d?: string) => string, cat: string): strin
   return t(`admin.modules.category.${cat}`, cat.charAt(0).toUpperCase() + cat.slice(1));
 }
 
+function categoryKey(category: string): string {
+  return category.trim().toLowerCase();
+}
+
 /** Status pill reflects runtime_enabled (green), runtime off (amber), or compile-time off (gray). */
 function StatusDot({ m }: { m: ModuleInfo }) {
   const runtime = m.runtime_enabled ?? m.enabled;
@@ -258,7 +262,7 @@ export function AdminModulesPage() {
     if (!modules) return [];
     const q = query.trim().toLowerCase();
     return modules.filter((m) => {
-      if (filter !== 'all' && m.category !== filter) return false;
+      if (filter !== 'all' && categoryKey(m.category) !== filter) return false;
       if (hideDisabled && !(m.runtime_enabled ?? m.enabled)) return false;
       if (!q) return true;
       return (
@@ -272,8 +276,9 @@ export function AdminModulesPage() {
   const grouped = useMemo(() => {
     const by = new Map<string, ModuleInfo[]>();
     for (const m of filtered) {
-      if (!by.has(m.category)) by.set(m.category, []);
-      by.get(m.category)!.push(m);
+      const cat = categoryKey(m.category);
+      if (!by.has(cat)) by.set(cat, []);
+      by.get(cat)!.push(m);
     }
     return CATEGORY_ORDER.map((c) => ({ cat: c, mods: by.get(c) ?? [] })).filter(
       (g) => g.mods.length > 0,
