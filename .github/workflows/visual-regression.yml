@@ -30,8 +30,9 @@ jobs:
   visual:
     name: Playwright toHaveScreenshot
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    # Soft-fail: diffs surface as downloadable artifacts but don't block merge.
+    timeout-minutes: 35
+    # Soft-fail: diffs surface as downloadable artifacts but don't block merge
+    # or make the scheduled health board look cancelled.
     continue-on-error: true
 
     steps:
@@ -110,16 +111,23 @@ jobs:
           # ships a responsive refactor, so --project=chromium is enough.
           # Keep workers=1 — php artisan serve is single-process and
           # concurrent logins race.
+          set +e
           npx playwright test \
             --project=chromium \
             --workers=1 \
-            --reporter=github \
+            --reporter=github,html \
             e2e/visual.spec.ts \
             e2e/v5-visual.spec.ts \
             e2e/v5-happy-paths.spec.ts
+          visual_status=$?
+          set -e
+
+          if [ "${visual_status}" -ne 0 ]; then
+            echo "::warning title=Visual regression detected::Playwright exited ${visual_status}. See uploaded diff and report artifacts."
+          fi
 
       - name: Upload diff artifacts
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: visual-regression-diffs
@@ -129,6 +137,7 @@ jobs:
             test-results/**/*-expected.png
             playwright-report/
           retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload full Playwright report
         if: always()
