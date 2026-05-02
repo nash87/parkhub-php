@@ -112,11 +112,29 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
       contents: write # action-gh-release publishes the GitHub Release + asset uploads to the v* tag
+      actions: read   # required for wait-for-check to poll the sibling docker-publish workflow
 
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
+
+      # Wait for the sibling docker-publish workflow to complete BEFORE
+      # publishing release notes. Without this, the GitHub Release ships
+      # with a download link for an image that isn't yet in GHCR — users
+      # see "image not found" errors for ~5 min after every release.
+      #
+      # Cross-workflow `needs:` is not supported in GitHub Actions, so we
+      # poll for the docker-publish job's check status on the same ref.
+      - name: Wait for container image publish
+        uses: fountainhead/action-wait-for-check@5a908a24814494009c4bb27c242ea38c93c593be # v1.2.0
+        timeout-minutes: 35
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          checkName: 'Build, scan, and publish image'
+          ref: ${{ github.sha }}
+          intervalSeconds: 20
+          timeoutSeconds: 1800
 
       - name: Create release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
