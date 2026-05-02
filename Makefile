@@ -97,6 +97,29 @@ cd:
 
 release-preflight: cd
 
+## Lighthouse perf gate (CI/CD audit gap #2). GHA-only previously, missing
+## locally — added so `make lighthouse` matches what GHA enforces. Skipped
+## cleanly when @lhci/cli isn't installed (advisory like grype/zizmor).
+lighthouse:
+	@if ! command -v npx >/dev/null 2>&1; then \
+		echo "npx not on PATH; skipping Lighthouse (advisory)."; \
+		exit 0; \
+	fi
+	npm run build --prefix parkhub-web
+	npx --no-install @lhci/cli@latest autorun --config=lighthouserc.json || \
+		echo "@lhci/cli not installed; install with 'npm install -g @lhci/cli@latest' (advisory)."
+
+## Mutation testing gate (CI/CD audit gap #3). Infection runs nightly on GHA
+## but never locally — added so `make mutants` is callable from `make full`/`cd`
+## or directly. Soft-gate (advisory) like infection.yml's continue-on-error.
+mutants:
+	@if [[ ! -x ./vendor/bin/infection ]]; then \
+		echo "./vendor/bin/infection missing; run 'composer install' (advisory)."; \
+		exit 0; \
+	fi
+	./vendor/bin/infection --threads=4 --no-progress || \
+		echo "infection returned non-zero (advisory)."
+
 ci-security:
 	.github/scripts/fop-local-ci.sh --profile pr --dry-run >/dev/null
 	scripts/ci/local-security-audit.sh --profile cd --strict-tools --fail-advisory
