@@ -6,928 +6,2204 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
-
-## [Unreleased]
-
----
-
-## [5.0.1] - 2026-04-26
-
-Patch release aligning the PHP runtime with the post-v5.0 cutting-edge
-CI/security wave and parkhub-rust v5.0.1.
-
-### Changed
-
-- **VERSION** 4.15.0 -> 5.0.1.
-- **`parkhub-web/package.json` + `parkhub-web/package-lock.json`** version 4.15.0 -> 5.0.1.
-- **README** release badge bumped to v5.0.1.
-- **OpenAPI dump bootstrap** now uses an isolated temporary SQLite database for fresh worktrees and pre-push hooks.
-- **Dependency Review** remains advisory until GitHub Dependency Graph is enabled for this repository.
-
----
-
-## [4.15.0] - 2026-04-26
-
-Coordinated version-surface parity bump with parkhub-rust 4.15.0
-(rust parkhub-rust#420 stamping the 2026-04-25 release wave on
-`Cargo.toml`/README/CHANGELOG, and parkhub-rust#422 syncing root
-`package.json` + `parkhub-web/package.json` to 4.15.0). Per
-`docs/parity-governance.md` both runtimes publish the same version
-surface; this PR is the php sibling that puts php on 4.15.0 in
-lockstep with rust. No customer-visible product changes vs. 4.14.0
-on this runtime — see [Unreleased] above for in-flight php-internal
-work (e.g. parkhub-web Phase 4c+ tsc cleanup).
-
-### Changed
-
-- **VERSION** 4.14.0 → 4.15.0.
-- **`parkhub-web/package.json` + `parkhub-web/package-lock.json`** version 4.14.0 → 4.15.0.
-- **README** release badge bumped to v4.15.0.
-
----
-
-## [4.14.0] - 2026-04-25
-
-Minor bump catching up with parkhub-rust 4.14.x baseline (the parity-governance
-target — both runtimes should publish the same version surface). Ships the
-v5 customization framework, branding alignment, and a wide CI/security/test-
-infrastructure cleanup pass on top of the 4.13 patch series.
-
-### Changed
-
-- **Design v5 rollout complete**: all 26 navigation screens ship as real v5 components; the `<PlaceholderV5>` fallback has been retired and `SCREENS` is typed as a total `Record<ScreenId, …>` so regressions become compile-time errors.
+## [5.0.4] - 2026-05-03
 
 ### Added
 
-- **Playwright `mobile-chrome` project**: `parkhub-web/playwright.config.ts` now registers a Pixel-5 viewport project so v5 specs can opt into mobile runs via `--project=mobile-chrome`, matching the parkhub-rust config.
-- **Customization Framework v5** — settings, sidebar variants, density, fonts, feature toggles, `deepLinking` gate (#353).
-- **Branding alignment** — user-facing v5 strings switched from "KI"/"AI" to "Assistent" (#355).
-- **CI security swap** — trufflehog (AGPL) replaced by gitleaks binary direct (MIT) (#365).
-- **CodeQL** — actions language analysis split into its own job (#364).
-- **uuid override** — pinned to ^14 to close GHSA-w5hq-g745-h8pq (#367).
-- **Deps** — tailwind pinned past 4.2.4 vite regression (#366); Dependabot cooldown 5/10/15-day defaults (#371).
-- **Policies fix** — `Policies.tsx` draft effect re-keyed on `activeId` only; previous dependency on the `active` object reference clobbered in-flight edits on every render (#370).
-- **Analytics test fix** — wait for lazy `UPlotChart` canvases before counting (#376).
-- **typescript devDep + @astrojs/check** installed so `npx tsc` / `astro check` actually run instead of silently passing on missing tools (#374, lefthook hardening #378).
-- **Phase 1–4b tsc cleanup** — typed `firstCall`/`nthCall` helpers in `client.test.ts` (#375), `wsAt` helper in `useWebSocket.test.ts` (#377), plus admin/EV view-test pattern cleanup (#379, #380). Drives the parkhub-web tsc baseline from 546 → ~370 errors.
-- **parity-governance.md** aligned with rust canonical text (#372 docs cleanup; broader sync via parkhub-rust#413).
+- Port PNG icons + manifest entries from parkhub-rust (parity) (#421) ([#421](https://github.com/nash87/parkhub-php/pull/421))
+- Add CO2 summary endpoint to /api/v1/bookings (#412) ([#412](https://github.com/nash87/parkhub-php/pull/412))
 
----
 
-## [4.13.0] - 2026-04-17
+### Build
 
-Major release: the Modular UX platform — admins can see, toggle, and
-configure every compiled-in module through the web UI. Shipped alongside
-a broad security hardening pass, a testing-infrastructure expansion, and
-the authz Policy rollout.
+- Bump the npm-deps group across 1 directory with 16 updates (#404) ([#404](https://github.com/nash87/parkhub-php/pull/404))
+- Bump the npm-tooling-deps group across 1 directory with 4 updates (#403) ([#403](https://github.com/nash87/parkhub-php/pull/403))
 
-### Added
 
-#### Modular UX platform (v1 + v2 + v3)
+### CI
 
-- **`GET /api/v1/modules` returns enriched ModuleInfo**: 68 modules across 11 categories (Core, Booking, Vehicle, Admin, Payment, Integration, Analytics, Compliance, Notification, Enterprise, Experimental) with `{name, category, description, enabled, runtime_toggleable, runtime_enabled, config_keys, ui_route, depends_on, version, config_schema}`. Response envelope keeps the legacy flat `{modules: {name: bool}}` map so existing callers don't break.
-- **`GET /api/v1/modules/{name}`**: single-module detail endpoint.
-- **`PATCH /api/v1/admin/modules/{name}`** (admin-only): flip `runtime_enabled` on runtime-toggleable modules without redeploying. 13 safe modules flagged toggleable in v1 (matching the parkhub-rust allow-list): `widgets`, `themes`, `favorites`, `lobby-display`, `accessible`, `calendar-drag`, `ev-charging`, `maintenance`, `geofence`, `map`, `graphql`, `api-docs`, `setup-wizard`. Security-sensitive modules (auth, payments, rbac, webhooks, audit-export, multi-tenant, notifications) keep `runtime_toggleable = false`.
-- **`GET /api/v1/admin/modules/{name}/config`** + **`PATCH /api/v1/admin/modules/{name}/config`** (admin-only, v3): per-module JSON Schema config editor. Five modules now ship a declared `config_schema`: `themes`, `announcements`, `notifications`, `email-templates`, `widgets`. PATCH validates body against the schema via `opis/json-schema` 2.6.0 and persists each key as a Setting. Every write emits an `AuditLog` entry with `action='module_config_updated'`.
-- **`ModuleGate` middleware** (`App\Http\Middleware\ModuleGate`): runtime-disabled modules return `404 MODULE_DISABLED`. Applied to ~5 representative routes as a proof of concept.
-- **Frontend `ModulesDashboard`** (`/admin/modules`), **`CommandPalette` (Cmd+K)**, `CommandPaletteProvider`, `ConfigEditor` + `ConfigEditorModal`: byte-identical with parkhub-rust across all 14 shared `parkhub-web/` files (verified via `diff -q`). Hand-rolled JSON Schema form renderer for 6 field shapes (string, enum, email, time, integer min/max, boolean); zero external runtime deps. All 10 locales updated (en / de / es / fr / it / ja / pl / pt / tr / zh).
+- Local make targets for Lighthouse + Infection (audit gaps #2 + #3) (#436) ([#436](https://github.com/nash87/parkhub-php/pull/436))
+- Keep visual regression soft green (#432) ([#432](https://github.com/nash87/parkhub-php/pull/432))
+- Keep changelog workflow green without bot token (#429) ([#429](https://github.com/nash87/parkhub-php/pull/429))
+- Open changelog regeneration PRs (#428) ([#428](https://github.com/nash87/parkhub-php/pull/428))
+- Repin git-cliff changelog action (#427) ([#427](https://github.com/nash87/parkhub-php/pull/427))
+- Bound external workflow steps (#425) ([#425](https://github.com/nash87/parkhub-php/pull/425))
+- Require CD preflight before publish (#420) ([#420](https://github.com/nash87/parkhub-php/pull/420))
+- Add cosign-verify workflow for PR/push parity with parkhub-rust (#407) ([#407](https://github.com/nash87/parkhub-php/pull/407))
+- Add OSV-Scanner SCA gate (T-2268, Apache-2.0 Bearer alternative) (#409) ([#409](https://github.com/nash87/parkhub-php/pull/409))
+- Dormant deploy.yml (render + fly + koyeb, T-2272 Phase B mirror) (#402) ([#402](https://github.com/nash87/parkhub-php/pull/402))
 
-#### Authz — Laravel Policies
 
-- **8 new Policy classes** — `VehiclePolicy`, `WebhookPolicy`, `NotificationPolicy`, `FavoritePolicy`, `TenantPolicy`, `AnnouncementPolicy`, `AuditLogPolicy`, `WidgetPolicy` — registered in `AppServiceProvider::boot()` via `Gate::policy()` (explicit, grep-able). Coverage moves from 3/77 controllers (≈ 4 %) to 11/77 (≈ 14 %). `AdminAnnouncementController` now delegates to `AnnouncementPolicy` via `$this->authorize(...)`; the inline `requireAdmin()` helper was removed.
-- **70 new Policy unit tests** (1231 → 1701 total unit+feature).
+### Chore
 
-#### Testing infrastructure (full 6 items shipped on the PHP side too)
+- SOTA-2026 local dev kit (mise + just + dprint + typos) (#418) ([#418](https://github.com/nash87/parkhub-php/pull/418))
+- Remove tracked Astro build artifacts (#411) ([#411](https://github.com/nash87/parkhub-php/pull/411))
+- Drop COSIGN_EXPERIMENTAL=true (no-op since cosign 3.x) (#408) ([#408](https://github.com/nash87/parkhub-php/pull/408))
 
-- **`infection/infection` 0.32.6 mutation testing** scoped to `app/Rules` + `app/Http/Middleware`. Nightly workflow at `.github/workflows/infection.yml` (05:00 UTC, soft-fail).
-- **`schemathesis` 4.15.2 nightly contract fuzzing** against `docs/openapi/php.json`. Local smoke surfaced 48 contract violations across 5 categories (server errors, schema-violating accepts, schema-compliant rejects, undocumented status, unsupported methods) — follow-up triage backlog. Workflow at `.github/workflows/schemathesis.yml` (06:00 UTC, soft-fail, 20-min cap).
 
-#### Observability / security
+### Documentation
 
-- **Session absolute lifetime middleware** `App\Http\Middleware\EnforceAbsoluteSessionLifetime`: reads `config('session.absolute_lifetime')` (default 1440 min). Invalidates + 401s with JSON error on lifetime expiry.
-- **Audit log purge job** `App\Jobs\PurgeAuditLogsJob` (admin purge, not a security Policy): scheduled daily at 03:15 UTC via `bootstrap/app.php` with `onOneServer` + `withoutOverlapping`. Retention default 90 days (`AUDIT_RETENTION_DAYS` env), 1000-row chunks via `chunkById`.
-- **CSP + NEL reporting endpoints**: `POST /api/v1/security/csp-report` + `POST /api/v1/security/nel-report` surface browser-reported violations. Payload is browser-defined (intentionally not FormRequest-validated).
+- Mark README drift no-sync (#424) ([#424](https://github.com/nash87/parkhub-php/pull/424))
+- Parkhub-web divergence audit + 8-slice closure plan (#422) ([#422](https://github.com/nash87/parkhub-php/pull/422))
 
-### Changed
-
-#### Multi-tenancy enforcement (part 1)
-
-- **`AdminAnalyticsController`** — every Booking/User/ParkingLot query pins an explicit `->when(TenantScope::currentId(), fn ($q, $id) => $q->where('tenant_id', $id))` predicate on top of the existing `BelongsToTenant` global scope; join predicates qualify `bookings.tenant_id` so siblings can't leak through join seams.
-- **`AdminReportController`** — `stats`, `heatmap`, `reports`, `dashboardCharts`, `revenue`, `occupancy`, `usersReport`, `exportBookingsCsv`, `exportUsersCsv` all filter on the builder BEFORE `->cursor()`; `parking_slots` + `absences` (no `tenant_id` column) scoped transitively via `whereHas('lot'|'user')`.
-- **Rate-limit cache keys** are now tenant-namespaced (`AppServiceProvider`): `t:{$tenantId}:login:...`, `host:tenant-a.example.com:...` pre-auth, `default:...` flag-off. Tenant A can no longer exhaust Tenant B's quota.
-- Formalised `TenantScope::isPlatformAdmin()` + `TenantScope::rateLimitKey()` + `User::isPlatformAdmin()` (`role === 'superadmin' && empty($tenant_id)`).
-
-#### Admin N+1 elimination
-
-- **`ParkingHistoryController::history`** adds `->with(['lot', 'slot'])`; the `map()` fallback now reads the canonical `$b->lot?->name` / `$b->slot?->slot_number` instead of the alias methods that fired one query per row. `/api/v1/bookings/history?per_page=10` went from 12 → 4 queries.
-- **`TranslationController::proposals`** pre-loads the current user's votes via `whereIn()->pluck('vote', 'proposal_id')`, replacing the per-row `TranslationVote::where()->first()` O(page) loop.
-- New `tests/Feature/AdminQueryCountTest.php` with 3 regression tests asserting `count(DB::getQueryLog()) < N` on representative routes.
-
-#### Validation hardening
-
-- **HTTP outbound calls gain 15 s timeouts + per-host circuit breaker**: hand-rolled `App\Services\CircuitBreaker` (no new composer dep) backed by Laravel Cache. Keys `cb:{host}:state|failures|opened_at`. Trips at 5 failures/60 s → OPEN, 30 s → HALF_OPEN, success → CLOSED. Wired in `SendWebhookJob::handle` via method injection.
-- **FormRequest migration complete**: 98 FormRequest classes, 0/91 → 93/91 inline `$request->validate(...)` calls migrated, 6 remaining carry `// intentional:` annotations with rationale (browser-defined payloads, private step helpers, wizard dispatch).
-- `dump-openapi.sh` now swaps in `.env.example` before running scramble so the snapshot always matches CI's fresh baseline; memory-limit raised to 1 GB so fresh clones don't OOM (drift-fix follow-up commits `254c559` + `04848de`).
-
-### Security
-
-- **SVG removed from branding logo upload mimes**. `UploadBrandingLogoRequest` accepted `svg`, which can carry inline `<script>` or `javascript:` refs → stored XSS on the served logo. Matches the Rust side which already magic-byte-checks only JPEG/PNG/GIF/WebP.
-- **Cross-tenant admin write guards** (parity with the Rust side). Admin mutation handlers load the target user and check `matches_tenant` before mutating; cross-tenant targets return 404 (no existence leak); platform-admin override preserved.
-- **JWT handling** (via Sanctum 4) kept parity with Rust's family-rotation + Redis-revocation story; PHP relies on Sanctum token hashes + single-session enforcement.
 
 ### Fixed
 
-- **Mobile-Safari / WebKit cookie race in e2e tests**: `loginViaUi()` now polls `page.context().cookies()` for `laravel_session` / `XSRF-TOKEN` / `parkhub_token` after `waitForURL` returns. Prevents the race where the caller's `page.goto('/protected-route')` ran before `Set-Cookie` committed.
-- **`MultiTenantTest` username collision** with `BookingSimulation` seeder: integration admin/user now use deterministic `integration-admin-{uniqid}` / `integration-user-{uniqid}` usernames that cannot collide with faker-generated word usernames.
-- **Webhook job test DI** (circuit-breaker follow-up): `SendWebhookJobTest` passes `app(CircuitBreaker::class)` to `handle(...)` so unit tests match the method-injection signature (`dispatch()` uses container resolution; direct unit calls don't).
-- **Dashboard test alignment**: `Dashboard.test.tsx` KpiCard mock now honours `data-testid`; missing `Leaf` phosphor-icon mock export fixed.
+- Release waits for docker-publish before publishing GitHub Release (#435) ([#435](https://github.com/nash87/parkhub-php/pull/435))
+- Align local-ci with GHA — phpstan memory + e2e seeder (#434) ([#434](https://github.com/nash87/parkhub-php/pull/434))
+- Make release preflight self-contained — install Composer + Node + Playwright (#433) ([#433](https://github.com/nash87/parkhub-php/pull/433))
+- Restore PHP modules info alias (#431) ([#431](https://github.com/nash87/parkhub-php/pull/431))
+- Allow OpenStreetMap tiles in CSP (#430) ([#430](https://github.com/nash87/parkhub-php/pull/430))
+- Align theme_color + remove broken screenshots (parity slices 2+3) (#423) ([#423](https://github.com/nash87/parkhub-php/pull/423))
+- Scope SC2016 disable directive correctly (#417) ([#417](https://github.com/nash87/parkhub-php/pull/417))
+- Shellcheck SC2016+SC2018+SC2019+SC2034 cleanup on attestation (#416) ([#416](https://github.com/nash87/parkhub-php/pull/416))
+- Attestation gate — bump statuses to write + GraphQL fallback (#414) ([#414](https://github.com/nash87/parkhub-php/pull/414))
+- Skip helm/ in trivy-fs scan — chart appKey required at deploy time (#413) ([#413](https://github.com/nash87/parkhub-php/pull/413))
+- Bump waitFor timeout for deferred theme fetch (post-#406) — green main (#410) ([#410](https://github.com/nash87/parkhub-php/pull/410))
+- Drop framer-motion from /welcome, focus-ring utility, defer theme on public routes (#406) ([#406](https://github.com/nash87/parkhub-php/pull/406))
+- Wire aria-invalid + aria-describedby on 2FA failure (#405) ([#405](https://github.com/nash87/parkhub-php/pull/405))
+
 
 ### Tests
 
-- Feature + Unit test count: **1231 → 1701** (policy coverage) → **1709** (N+1 regression + toggle + config tests) per agent reports across the cycle.
-- Dashboard frontend vitest: 2055 tests (both copies of `parkhub-web/` byte-identical on v1/v2/v3-touched files).
+- Cover admin route load regressions (#426) ([#426](https://github.com/nash87/parkhub-php/pull/426))
+
+
+## [5.0.3] - 2026-04-29
+
+### Fixed
+
+- Define skip_step in fop-local-ci.sh (was undefined → exit 127 on GHA) (#401) ([#401](https://github.com/nash87/parkhub-php/pull/401))
+- Fop-local-ci.sh auto-fallback to direct mode when fop missing (#399) ([#399](https://github.com/nash87/parkhub-php/pull/399))
+
+
+## [5.0.2] - 2026-04-29
+
+### CI
+
+- SOTA-2026 pipeline + Phase-4c tsc cleanup + zizmor ERROR fixes (#396) ([#396](https://github.com/nash87/parkhub-php/pull/396))
+
+
+### Fixed
+
+- Hourly_rate.toFixed is not a function on user-created lots (#393) ([#393](https://github.com/nash87/parkhub-php/pull/393))
+
+
+## [5.0.1] - 2026-04-26
+
+### Added
+
+- Lokal badge + Vorschläge eyebrow + privacy footer (#354) ([#354](https://github.com/nash87/parkhub-php/pull/354))
+- Full customization framework — settings + sidebar variants + density + fonts + feature toggles (#353) ([#353](https://github.com/nash87/parkhub-php/pull/353))
+- Tier-2 polish — conflict check, iCal, PDF export, undo, filter persist (#348) ([#348](https://github.com/nash87/parkhub-php/pull/348))
+- Local-first CI workflow (Lefthook + drift gates + Biome) (#356) ([#356](https://github.com/nash87/parkhub-php/pull/356))
+- Tier-1 2026 UX quick-wins (T-1977) (#347) ([#347](https://github.com/nash87/parkhub-php/pull/347))
+- Upgrade Analytics bar chart to uPlot canvas (#339) ([#339](https://github.com/nash87/parkhub-php/pull/339))
+- Wave 4+5 — final 11 admin screens (26/26 parity) (#337) ([#337](https://github.com/nash87/parkhub-php/pull/337))
+- Wave 3 — port 7 Fleet screens (#333) ([#333](https://github.com/nash87/parkhub-php/pull/333))
+- Wave 2 — port Buchen/Kalender/Karte/Profil main screens (#331) ([#331](https://github.com/nash87/parkhub-php/pull/331))
+- V5 user-core screens (#329) ([#329](https://github.com/nash87/parkhub-php/pull/329))
+- V5 follow-up (#328) ([#328](https://github.com/nash87/parkhub-php/pull/328))
+
+
+### Build
+
+- Bump @tanstack/react-query from 5.100.1 to 5.100.3 in the npm-tooling-deps group (#368) ([#368](https://github.com/nash87/parkhub-php/pull/368))
+- Bump the actions group with 5 updates (#363) ([#363](https://github.com/nash87/parkhub-php/pull/363))
+- Bump @types/node from 24.10.13 to 25.6.0 (#359) ([#359](https://github.com/nash87/parkhub-php/pull/359))
+- Bump tailwindcss from 3.4.19 to 4.2.4 (#361) ([#361](https://github.com/nash87/parkhub-php/pull/361))
+- Bump the npm-tooling-deps group with 6 updates (#357) ([#357](https://github.com/nash87/parkhub-php/pull/357))
+- Bump postcss from 8.5.9 to 8.5.10 in /parkhub-web (#350) ([#350](https://github.com/nash87/parkhub-php/pull/350))
+- Bump postcss from 8.5.8 to 8.5.10 in /resources/js in the npm_and_yarn group across 1 directory (#349) ([#349](https://github.com/nash87/parkhub-php/pull/349))
+- Bump library/composer from `b148074` to `dc292c5` (#334) ([#334](https://github.com/nash87/parkhub-php/pull/334))
+
+
+### CI
+
+- Add typos + zizmor as advisory CI checks (Wave 5c) (#387) ([#387](https://github.com/nash87/parkhub-php/pull/387))
+- Pilot fop local-first PR attestation (#385) ([#385](https://github.com/nash87/parkhub-php/pull/385))
+- Close silent-pass holes (lint-ts, typecheck-ts, vitest) (#378) ([#378](https://github.com/nash87/parkhub-php/pull/378))
+- Dependabot cooldown + tailwind 4.2.3 ignore + align github-actions group with rust (#371) ([#371](https://github.com/nash87/parkhub-php/pull/371))
+- Swap trufflehog (AGPL) for gitleaks (MIT) (#365) ([#365](https://github.com/nash87/parkhub-php/pull/365))
+- Pin past tailwind 4.2.4 vite regression (#366) ([#366](https://github.com/nash87/parkhub-php/pull/366))
+- Add actions language analysis (#364) ([#364](https://github.com/nash87/parkhub-php/pull/364))
+- Unblock Render demo deploy (#327) ([#327](https://github.com/nash87/parkhub-php/pull/327))
+
+
+### Changed
+
+- Mirror useDraftFromActive hook (parkhub-rust parity) (#386) ([#386](https://github.com/nash87/parkhub-php/pull/386))
+
+
+### Chore
+
+- Bump to 4.15.0 — parkhub-rust 4.15.0 parity catch-up (#384) ([#384](https://github.com/nash87/parkhub-php/pull/384))
+- Bump parkhub-web/package.json to 4.14.0 (parity with VERSION) (#383) ([#383](https://github.com/nash87/parkhub-php/pull/383))
+- Bump to 4.14.0 — parkhub-rust parity baseline (#381) ([#381](https://github.com/nash87/parkhub-php/pull/381))
+- Install @astrojs/check, exclude stories from tsc (Phase 1) (#374) ([#374](https://github.com/nash87/parkhub-php/pull/374))
+- Catalog v5 primitives with Storybook 10 + a11y + test-runner (#345) ([#345](https://github.com/nash87/parkhub-php/pull/345))
+- Retire PlaceholderV5 + add Playwright mobile-chrome project (#344) ([#344](https://github.com/nash87/parkhub-php/pull/344))
+
+
+### Documentation
+
+- Replace parkhub-web/README boilerplate with real overview (#373) ([#373](https://github.com/nash87/parkhub-php/pull/373))
+- Post-merge-train drift cleanup (#372) ([#372](https://github.com/nash87/parkhub-php/pull/372))
+- V5 design showcase in README (#351) ([#351](https://github.com/nash87/parkhub-php/pull/351))
+
+
+### Fixed
+
+- Wait for lazy UPlotChart canvases (mirrors parkhub-rust) (#376) ([#376](https://github.com/nash87/parkhub-php/pull/376))
+- Only re-init draft on activeId change (#370) ([#370](https://github.com/nash87/parkhub-php/pull/370))
+- Override uuid to ^14.0.0 (close GHSA-w5hq-g745-h8pq) (#367) ([#367](https://github.com/nash87/parkhub-php/pull/367))
+- Remove KI/AI from v5 user-facing strings (#355) ([#355](https://github.com/nash87/parkhub-php/pull/355))
+- Lazy-load UPlotChart (mirror #379 fix) (#341) ([#341](https://github.com/nash87/parkhub-php/pull/341))
+- Admin-nav screens use admin APIs (mirror rust #376) (#338) ([#338](https://github.com/nash87/parkhub-php/pull/338))
+- Mirror rust #374 fleet-screen fixes to PHP Wave 3 (#336) ([#336](https://github.com/nash87/parkhub-php/pull/336))
+- Calendar uses from/to params + Buchen guards invalid datetime (#335) ([#335](https://github.com/nash87/parkhub-php/pull/335))
+- Check ApiResponse.success across all mutations + queries (#332) ([#332](https://github.com/nash87/parkhub-php/pull/332))
+
+
+### Performance
+
+- Lazy-load UPlotChart on Analytics to protect LCP budget (#340) ([#340](https://github.com/nash87/parkhub-php/pull/340))
+
+
+### Tests
+
+- Phase 4c — kill 8 file-level tsc errors with mixed patterns (#382) ([#382](https://github.com/nash87/parkhub-php/pull/382))
+- -41 tsc errors in admin/EV test suites (Phase 4b) (#380) ([#380](https://github.com/nash87/parkhub-php/pull/380))
+- Kill 37 tsc errors in Visitors+AdminUpdates (Phase 4a) (#379) ([#379](https://github.com/nash87/parkhub-php/pull/379))
+- Kill 42 tsc errors via wsAt() helper (Phase 3) (#377) ([#377](https://github.com/nash87/parkhub-php/pull/377))
+- Kill 87 tsc errors via firstCall/nthCall helpers (Phase 2) (#375) ([#375](https://github.com/nash87/parkhub-php/pull/375))
+- Dashboard/Profil regression guards + PWA OfflineIndicator wire-up (#352) ([#352](https://github.com/nash87/parkhub-php/pull/352))
+- Axe-core audit + WCAG 2.1 AA fixes for v5 (T-1974) (#346) ([#346](https://github.com/nash87/parkhub-php/pull/346))
+- 100% happy-path + visual coverage for 26 screens (T-1948) (#343) ([#343](https://github.com/nash87/parkhub-php/pull/343))
+- Regression guard for uPlot data-ref stability (#342) ([#342](https://github.com/nash87/parkhub-php/pull/342))
+
+
+### Release
+
+- Cut v5.0.1 (#388) ([#388](https://github.com/nash87/parkhub-php/pull/388))
+
+
+### Sync
+
+- Cherry-pick Gitea fixes for parity with parkhub-rust (#330) ([#330](https://github.com/nash87/parkhub-php/pull/330))
+
+
+## [5.0.0] - 2026-04-23
+
+### Added
+
+- ParkHub v5 design system + global ⌘K + 3-step onboarding tour (#326) ([#326](https://github.com/nash87/parkhub-php/pull/326))
+- Sync PHP v4 design surfaces (#324) ([#324](https://github.com/nash87/parkhub-php/pull/324))
+- Claude.ai/design v3+v4 integration + React 19 refactor (#306) ([#306](https://github.com/nash87/parkhub-php/pull/306))
+- Multi-country VAT profiles + EU B2B reverse-charge
+- Add Laravel Policies for primary domain models
+- Per-module JSON Schema config editor modal
+- Per-module JSON Schema config editor
+- Runtime enable/disable toggle in ModulesDashboard
+- Runtime enable/disable for safe modules + PATCH admin/modules/{name}
+- Command Palette (Cmd+K) + Modules Dashboard
+- Enrich api/v1/modules endpoint with ModuleInfo metadata
+- HTTP timeouts + per-host circuit breaker for outbound calls
+- Enforce absolute session lifetime + regenerate on privilege change
+- Add ServiceMonitor + PrometheusRule templates
+- Add Reporting-Endpoints + NEL + COEP headers
+- Scheduled PurgeAuditLogsJob enforces 90-day audit retention
+- PSS-restricted hardening default-on
+- Dashboard CO₂ KPI tile + Co2Summary API typing
+- Feat(multi-tenancy): tenant-filter the EV charging widget aggregate phase 3 continued. `WidgetController::evChargingStatus` runs a
+raw `DB::table('parking_slots')` aggregate over every electric slot
+in the database. `parking_slots` has no tenant_id column of its own
+(tenant ownership lives on the parent `parking_lots` row), so when
+the MODULE_MULTI_TENANT flag is on the widget would otherwise leak
+cross-tenant EV station counts into an operator's dashboard.
+
+Fix: only when a tenant is currently bound (`TenantScope::currentId`
+returns non-null), join the slots query through `parking_lots` and
+apply the tenant filter to the parent table via the same
+`TenantScope::applyTo($q, 'parking_lots')` helper shipped in f47d17e.
+Single-tenant path is unchanged — the helper short-circuits.
+
+Verified: pint --test ok, phpstan ok, php artisan test
+--testsuite=Feature → 1258 1258 pass.
+
+Remaining tenant-guard audit before flipping the flag:
+MetricsController personal_access_tokens aggregate
+(one-Sanctum-token-per-user is 1:1 to a tenanted user, but the raw
+DB::table count doesn't enforce that) and StripeController webhook
+crediting (tenant-neutral by design — webhook comes from Stripe, not
+a user session, so tenant inference requires the stripe_payments
+row's user_id → user.tenant_id lookup).
+- Feat(multi-tenancy): TenantScope helper for raw DB::table callsites phase 3: Eloquent's global scope covers every model query, but
+a handful of controllers reach into `DB::table(...)` directly for
+analytics-shaped queries that join + aggregate across tables. Those
+paths bypass the `BelongsToTenant` scope by design, so they need to
+apply the tenant filter themselves when the feature flag is on.
+
+New helper: `App\Support\TenantScope::applyTo($builder, $qualifier)`.
+Takes any query builder + an optional table qualifier, reads the
+current tenant id from the container (null when the flag is off or no
+tenant is bound), and applies `->where("$qualifier.tenant_id",...)`
+conditionally. Callers chain unconditionally — the helper is a no-op
+in single-tenant mode.
+
+First callsite: `LobbyDisplayController::buildFloorBreakdown` — counts
+occupied slots per zone via a `DB::table('bookings')->join(...)`
+aggregate. Wrapped in `TenantScope::applyTo($q, 'bookings')` so
+multi-tenant deployments don't leak cross-tenant occupancy counts
+into a kiosk display.
+
+The `currentId` accessor is also useful for any future filter-on-
+write or filter-in-cache-key paths; the match against getKey property `id` mirrors the shape of the global scope.
+
+Verified: pint --test ok, phpstan analyse ok, php artisan test
+--testsuite=Feature → 1258 1258 pass.
+
+fop task phase 3. Remaining DB::table callsites that need the
+same treatment before MODULE_MULTI_TENANT is safe to flip: grep
+surface shows `UserController::userCalendar` (guest bookings cleanup),
+`StripeController::webhook` (users credit grant), `MetricsController`
+(personal access tokens count), `WidgetController` (EV slots) — each
+needs a look to decide whether a global-by-design query stays global
+or grows a tenant scope.
+- Feat(multi-tenancy): extend BelongsToTenant scope to User model phase 2 after the admin-controller audit: AdminReportController
++ AdminAnalyticsController both call `User::count` and
+`User::where(...)` for system-wide metrics. Under `MODULE_MULTI_TENANT=true`
+those would leak cross-tenant user counts back to an operator who is
+only supposed to see their own slice.
+
+User already has a `tenant_id` column in `$fillable` (just never gated
+at query time). Applying the `BelongsToTenant` trait extends the same
+config-flag-gated global scope to User, so admin analytics reports
+automatically filter by tenant the moment the flag flips.
+
+No Bookings ParkingLot User raw `DB::table` queries exist in the
+Admin* controllers — all access goes through Eloquent, which means the
+scope catches everything without a per-controller patch.
+
+Verified: php artisan test --testsuite=Feature → 1258 1258 (no
+regression since the flag is still off by default).
+
+fop task phase 2. Remaining work before flipping the flag:
+audit `DB::table('users'|'bookings'|'parking_lots')` direct callsites
+anywhere outside Admin* (grep shows a handful in
+DataImportExportController, StripeController, MetricsController —
+those iterate globally on purpose but need a tenant_id WHERE when the
+flag is on).
+- Feat(multi-tenancy): BelongsToTenant global scope wiring (flag-gated) phase 1 — plumbing only. Adds a Laravel Eloquent global scope
+that limits a model's queries to the authenticated user's tenant
+when `config('modules.multi_tenant')` is true. In single-tenant mode
+(the default build) the scope returns immediately, so this lands as
+a pure no-op until the operator flips `MODULE_MULTI_TENANT=true`
+intentionally.
+
+Shape:
+
+ * `app/Models/Scopes/BelongsToTenantScope.php` — the Scope class.
+ Reads `config('modules.multi_tenant')` and the `current_tenant`
+ container binding at query time (not boot time) so toggling the
+ flag doesn't need a reboot. Pulls the id via `getKey` when the
+ binding is an Eloquent Tenant (the shape set by the existing
+ `App\Http\Middleware\TenantScope`), falling back to a public
+ `->id` property for stdClass stubs.
+
+ * `app/Models/Concerns/BelongsToTenant.php` — the trait a model
+ opts into with `use BelongsToTenant;`. Laravel's
+ `bootBelongsToTenant` boot hook registers the scope once per
+ model class.
+
+ * Applied to `Booking` and `ParkingLot` — the two models that
+ already carry a `tenant_id` column in `$fillable`. User also has
+ `tenant_id` but it doesn't need the scope (users are the thing
+ that owns a tenant, so scoping them to themselves is a tautology;
+ authorisation is handled elsewhere).
+
+ * `tests/Feature/TenantScopeTest.php` — four Pest-style cases that
+ exercise both sides of the gate: no-op when the flag is off,
+ no-op when no tenant is bound in the container, filter-by-id
+ when both conditions are met, and cross-model consistency on
+ `Booking`.
+
+Verified: pint --test ok, phpstan analyse ok, php artisan test
+--testsuite=Feature → 1258 1258 (the four new tenant tests land
+alongside the existing 1254, all green).
+
+fop task phase 1. Phase 2 (audit admin controllers for
+queries that bypass Eloquent and hit DB::table directly, making them
+escape the scope) is the follow-up before any operator should
+consider flipping MODULE_MULTI_TENANT.
+- Sync AdminModules + commandRegistry from parkhub-rust
+
+
+### Build
+
+- Bump astro from 6.0.6 to 6.1.6 in /resources/js in the npm_and_yarn group across 1 directory (#323) ([#323](https://github.com/nash87/parkhub-php/pull/323))
+- Bump react-i18next from 16.6.6 to 17.0.4 (#317) ([#317](https://github.com/nash87/parkhub-php/pull/317))
+- Bump i18next from 25.10.9 to 26.0.6 (#319) ([#319](https://github.com/nash87/parkhub-php/pull/319))
+- Bump react-i18next from 16.6.6 to 17.0.4 in /parkhub-web (#314) ([#314](https://github.com/nash87/parkhub-php/pull/314))
+- Bump eslint from 9.39.2 to 10.2.1 (#320) ([#320](https://github.com/nash87/parkhub-php/pull/320))
+- Bump i18next from 25.10.10 to 26.0.6 in /parkhub-web (#315) ([#315](https://github.com/nash87/parkhub-php/pull/315))
+- Bump typescript from 5.9.3 to 6.0.3 (#318) ([#318](https://github.com/nash87/parkhub-php/pull/318))
+- Bump the actions group with 2 updates (#321) ([#321](https://github.com/nash87/parkhub-php/pull/321))
+- Bump the npm-tooling-minor-patch group with 8 updates (#316) ([#316](https://github.com/nash87/parkhub-php/pull/316))
+- Bump the npm-minor-patch group in /parkhub-web with 2 updates (#313) ([#313](https://github.com/nash87/parkhub-php/pull/313))
+- Shrink baseline via model @property + @mixin resources
+- Dump-openapi.sh uses.env.example, not local.env
+
+
+### CI
+
+- Tier-1 workflow cleanup (#304) ([#304](https://github.com/nash87/parkhub-php/pull/304))
+- Add helm lint + template validation gate on chart changes
+- Promote advisory checks to required now that CI is reliably green
+- Loosen gates to achievable-today + keep CWV as aspirational floor
+- Create sqlite + migrate before scramble export
+- Don't swallow scramble:export stdout
+- Add openapi-drift workflow to keep docs/openapi/php.json in sync
+
+
+### Changed
+
+- Extract AuditLogQueryService
+- Extract AdminUserManagementService + WebhookDispatchService
+- Extract ModuleConfigurationService + UserAccountService
+- Extract AdminSettingsService + ComplianceService
+- Extract StripeWebhookService + VehicleService
+- Extract 3 services from heaviest controllers
+- Split BookingController (1035 → 640 LOC) into focused controllers
+- Close — migrate trivial controllers + iCal conditional
+- Migrate final inline validate calls to FormRequest
+- Migrate 15 more inline validate to FormRequest
+- Migrate 15 more inline validate to FormRequest
+- Migrate 15 more inline validate to FormRequest
+- Migrate 10 more inline validate to FormRequest
+- Refactor(validation): migrate UserController inline validate to FormRequest
+
+Extract the 3 remaining inline $request->validate([...]) blocks from
+UserController into dedicated App\Http\Requests\*Request classes.
+Identical rules; validation still runs on request resolution.
+
+Controller methods migrated:
+- updatePreferences -> UpdatePreferencesRequest
+- addFavorite -> AddFavoriteRequest
+- anonymizeAccount -> AnonymizeAccountRequest (GDPR Art. 17 erasure;
+ Hash::check + AuditLog::log + token revocation
+ stays in controller body — state mutation is not
+ the FormRequest's job)
+
+All three endpoints are the authenticated user acting on their own record
+(routes sit behind auth:sanctum; no admin-only variants). authorize is
+\$this->user !== null accordingly.
+
+Verification:
+- vendor/bin/pint --test: pass
+- vendor/bin/phpstan analyse --memory-limit=2G (level 5, baseline-gated): 0 errors
+- php artisan test --testsuite=Feature --filter 'User|Profile|Account': 189 passed
+- Full Feature suite: 1283 passed (unchanged from baseline)
+
+UserController shrinks 349 -> 335 lines. With this slice now
+covers UserController on top of the 10 controllers in 26b15e8 and
+BookingController in 9cfa0c6. VehicleController remains as a follow-up.
+
+Refs:
+- Migrate VehicleController uploadPhoto to FormRequest
+- Refactor(validation): migrate BookingController inline validate to FormRequest
+
+Extract all 7 remaining inline $request->validate([...]) blocks from
+BookingController into dedicated App\Http\Requests\*Request classes.
+Identical rules; validation still runs on request resolution.
+
+Controller methods migrated:
+- index -> IndexBookingsRequest
+- guestBooking -> StoreGuestBookingRequest (pre-check for
+ allow_guest_bookings setting left in controller body
+ to preserve 403 GUEST_BOOKINGS_DISABLED semantic)
+- swap -> SwapBookingRequest
+- updateNotes -> UpdateBookingNotesRequest (policy authorize stays
+ in controller — needs $booking context)
+- createSwapRequest -> CreateSwapRequestRequest
+- respondSwapRequest -> RespondSwapRequestRequest
+- extend -> ExtendBookingRequest
+
+All authorize default to `$this->user !== null` — every route sits
+behind auth:sanctum, no admin-only endpoints in this batch.
+
+Verification:
+- vendor/bin/pint --test: pass
+- vendor/bin/phpstan (level 4, baseline-gated): 0 errors
+- php artisan test --filter Booking: 176 passed
+- Full Feature suite: 1283 passed (unchanged from baseline)
+
+BookingController shrinks 1062 -> 1035 lines. now covers all
+inline validate migrations for the 5 controllers shipped in 26b15e8
+plus BookingController here. VehicleController + UserController remain
+as separate follow-up slices.
+
+Refs:
+- Refactor(validation): migrate 10 inline validate calls to FormRequest classes
+
+Extract inline $request->validate([...]) blocks from 5 mutating controllers
+into dedicated App\Http\Requests\*Request classes. No behaviour change —
+rules are identical; validation still runs on request resolution.
+
+Controllers migrated:
+- AdminCreditController: updateUserQuota, grantCredits, refillAllCredits
+- GeofenceController: checkIn, update
+- DynamicPricingController: adminUpdate (authorize replaces requireAdmin)
+- MaintenanceController: store, update
+- TwoFactorController: verify, disable
+
+New FormRequest classes (10):
+- UpdateUserQuotaRequest, GrantCreditsRequest, RefillAllCreditsRequest
+- GeofenceCheckInRequest, UpdateGeofenceRequest
+- UpdateDynamicPricingRequest (admin-only authorize)
+- StoreMaintenanceWindowRequest, UpdateMaintenanceWindowRequest
+- VerifyTwoFactorRequest, DisableTwoFactorRequest
+
+Feature tests: +8 targeted validation-failure cases in
+FormRequestValidationTest. Full Feature suite: 1268 -> 1283 passing.
+Pint + PHPStan clean.
+
+Skipped (tracked as separate follow-ups per scope): VehicleController,
+BookingController, UserController — too large for a single codemod commit.
+
+Refs:
+
+
+### Chore
+
+- Update visual baselines + local runner for v4 design system ([#325](https://github.com/nash87/parkhub-php/pull/325))
+- Pin primary-language pill to PHP (#303) ([#303](https://github.com/nash87/parkhub-php/pull/303))
+- Cosign sign + PDB + topology-spread + Lighthouse CWV gates
+- Bump level 4 -> 5 on top of strict_types
+- State-of-the-art 2025 local CI mirror + workflow cleanup
+- Add lint + ci pre-push script shortcuts
+- Raise phpstan level 3 → 4 on top of strict_types
+- Raise phpstan level 2 → 3 on top of strict_types
+- Raise phpstan level 1 → 2 on top of strict_types
+- Raise phpstan level 0 → 1 on top of strict_types
+- Add openapi:dump + openapi:drift script shortcuts
+- Trufflehog secret scan + document K8s hardening + supply chain
+- Pin every GitHub Action to a SHA (v-tag as comment)
+
 
 ### Dependencies
 
-- `opis/json-schema` 2.6.0 added (JSON Schema 2020-12 validator).
-- `infection/infection` 0.32.6 added (dev-dep, mutation testing).
-- `schemathesis` 4.15.2 pinned in the nightly contract-fuzz workflow (Python-only, not in `composer.json`).
-- `laravel/pint` kept at current stable; `phpstan` stays at level 5 intentionally — the baseline was shrunk from **1795 → 763 lines (−57 %)** by adding `@property` PHPDoc to 13 Eloquent models and `@mixin` to 13 matching `JsonResource` subclasses. A level-6 promotion attempt surfaced 328 additional real PHPDoc/generics findings; held at level 5 to preserve the shrink gain. Level-6 promotion is the next documented follow-up. Three Event classes (`BookingCancelled`, `BookingCreated`, `OccupancyChanged`) got proper `array<string, mixed>` / `array<int, Channel|PrivateChannel>` return types inline.
+- Phpunit 11 → 13 major upgrade (#310) ([#310](https://github.com/nash87/parkhub-php/pull/310))
+- Composer patch bumps (scramble/larastan/sail/tinker) (#309) ([#309](https://github.com/nash87/parkhub-php/pull/309))
+- Upgrade Laravel 12.56 -> 13.5 + Symfony 7.4 -> 8.0
 
-### Earlier in this release cycle
 
-- **`declare(strict_types=1)` rolled out across 19 bootstrap-tier files**: all nine `app/Http/Middleware/*.php`, three `app/Events/*.php`, two `app/Providers/*.php`, four `app/Console/Commands/*.php`, and `AggregateOccupancyStatsJob.php`. An earlier bulk-attempt across all 171 app files surfaced ~60 genuine Carbon→string coercion bugs in the Mail + Model + Service layers; those migrate file-by-file.
-- **Carbon→`strtotime` bug** in `AggregateOccupancyStatsJob::handle`: `str_pad($hour, 2, ...)` with `$hour` as an `int` silently stringified under loose types. Strict types caught the mismatch; fixed with explicit `(string) $hour` cast.
-- **Laravel 12 → 13.5** upgrade, Symfony 7.4 → 8.0 lockstep, leftover `sentry/*` packages pruned.
-- **laravel/pint 1.24 → 1.29**.
-- **Helm chart**: added `terminationGracePeriodSeconds: 45` + `preStop: sleep 15 && apache2ctl graceful-stop`.
-- **Legal templates for BFSG + EU AI Act** in `legal/`, mirrored with parkhub-rust.
-- **Stripe webhook fails closed when `STRIPE_WEBHOOK_SECRET` is missing** — previously skipped HMAC verification entirely.
-- **All GitHub Actions pinned to full commit SHAs** across 10 workflow files (23 distinct actions).
+### Documentation
 
----
+- Fix stale steps + missing secrets + broken links across install paths
+- Refresh commit-SHA references after history rewrite
+- Scrub internal task IDs from external-facing docs
+- Fresh v4.13.0 screenshots + modular UX gallery
+- Refresh README + ARCHITECTURE for v4.13.0 Modular UX service layer (12 services)
+- Document Modular UX platform
+- Note PHPStan baseline shrink in v4.13.0
+- Cut v4.13.0 for the Modular UX + security/testing cycle
+- Regenerate php.json for 14 new FormRequest schemas
+- Regenerate php.json snapshot for security/{csp,nel}-report
+- Sync README + AGENTS with parkhub-rust sprint shipments
+- Regenerate php.json from.env.example state (matches CI dump)
+- Mirror diff-openapi.sh prefix-normalisation fix
+- Commit PHP OpenAPI spec + dump script for PR-visible drift
+- OpenAPI parity methodology + diff script (mirror)
+- Add BFSG Accessibility Statement + EU AI Act transparency templates
+
+
+### Fixed
+
+- Key mapped React fragments in heatmap views (#322) ([#322](https://github.com/nash87/parkhub-php/pull/322))
+- Bump parkhub-web package version 4.12.0 → 4.13.0 (#312) ([#312](https://github.com/nash87/parkhub-php/pull/312))
+- Clear CodeQL warnings in Settings + AdminModules (mirror) (#307) ([#307](https://github.com/nash87/parkhub-php/pull/307))
+- Add top-level event_id to Stripe double-credit replay test
+- Regenerate openapi snapshot for AlreadyProcessed webhook response
+- Fortlaufende invoice numbers + webhook idempotency
+- Drop SVG from branding logo uploads
+- Deterministic integration-admin/user usernames
+- Enforce tenant scope on admin analytics + CSV exports + rate-limit keys
+- Openapi drift regen with.env.example baseline
+- Webhook job test DI + openapi drift regen
+- Drop openapi:dump from `composer ci` — env-dependent output
+- Mirror diff-openapi.sh four-way prefix normalisation
+- Graceful shutdown hook for Helm deployment
+- Webhook fails closed when STRIPE_WEBHOOK_SECRET missing
+
+
+### Performance
+
+- Eager-load relations to eliminate N+1 queries
+
+
+### Tests
+
+- Add Playwright visual regression suite
+- Add schemathesis OpenAPI contract fuzzing nightly
+- Add infection-php for app/Rules + app/Http/Middleware
+- Wait for auth cookie after login to unblock mobile-safari
+- Align Dashboard.test with KpiCard migration
+- Wire getCo2Summary mock (mirror of parkhub-rust)
+- Infection-php config + weekly CI sweep (mirror of parkhub-rust)
+
+
+### Marathon
+
+- Demo seed routing + a11y labels + visual expand (#302) ([#302](https://github.com/nash87/parkhub-php/pull/302))
+
+
+### Ops
+
+- Add Fly.io + Railway templates + nightly install smoke test
+- Ship default Grafana dashboard (opt-in via values)
+
+
+### Security
+
+- Close — 171 171 app files on strict_types
+- Strict_types on 6 more controllers + haversine float fix
+- Declare(strict_types=1) on helpers + ApiKey + ICal controllers
+- Declare(strict_types=1) on 32 remaining controllers + Rule + Service
+- Declare(strict_types=1) on 31 Eloquent Models
+- Declare(strict_types=1) on 10 mid-size controllers + str_pad(int) fix
+- Declare(strict_types=1) on all 13 API Resources
+- Declare(strict_types=1) on all 5 Mail classes
+- Declare(strict_types=1) on Form Requests
+- Declare(strict_types=1) on 25 small stateless controllers
+- Declare(strict_types=1) on Listeners + Policies
+- Declare(strict_types=1) on 19 bootstrap-tier files
+
 
 ## [4.12.0] - 2026-04-16
 
 ### Added
-- **Brotli compression** via `mod_brotli` + `.htaccess`. Apache 2.4.26+ ships the module but it was not enabled; enable alongside deflate + expires so text assets (HTML/JS/CSS/JSON/SVG) compress 20-30% smaller than gzip at the same CPU budget. Cloudflare now keeps separate cache entries for br vs gzip via `Vary: Accept-Encoding`.
-- **`Cross-Origin-Opener-Policy: same-origin`** and **`Cross-Origin-Resource-Policy: same-origin`** in `SecurityHeaders` — parity with parkhub-rust's site-isolation headers.
-- **`x-request-id` log correlation**: new `RequestIdLogging` middleware prepended to the global stack mints a UUID v4 if Render / Cloudflare / client didn't forward one, stores it via `Log::withContext(['request_id' => $id])`, and echoes it back on the response. A single `grep request_id=` now threads one visitor's full session end-to-end.
-- **Stripe webhook tamper + replay rejection tests**: the existing `test_webhook_rejects_bad_signature` only proved that literal garbage in the Stripe-Signature header is rejected. Two adversarial paths were uncovered — (1) valid HMAC computed over the original body, then body rewritten to mint free credits (MITM), and (2) real HMAC but timestamp beyond the 5-minute tolerance (replay). Added positive + both rejection-path tests in `StripeControllerTest`.
-- **`scripts/locale-coverage.mjs`** + `npm run i18n:coverage`: enumerates every leaf key under en.translation and reports missing keys per locale. All ten files currently ship at 100% (1,543 keys each); the script guards future feature work against en-only key regressions.
-- **`METRICS_TOKEN` generated in `render.yaml`**: `MetricsController` already exposed the full Prometheus gauge set (`parkhub_users_total`, `parkhub_bookings_total{status}`, `parkhub_lot_occupancy_percent`, `parkhub_active_sessions`, slot counts), but every request to `/api/metrics` returned 401 because no token was ever set. Render now mints one; external Prometheus scrapes authenticate with `Authorization: Bearer $METRICS_TOKEN`.
 
-### Changed
-- **Pre-auth critical path trimmed by ~150 KB** via `React.lazy` on the Layout shell — synced from parkhub-rust.
-- **Non-English locales now lazy-load** via `import.meta.glob` — ~450 KB raw JS saved per user.
-- **`/_astro/*` hashed chunks now carry `Cache-Control: public, max-age=31536000, immutable`**, unhashed PWA shell assets (favicon, manifest.json, sw.js, offline.html) get `public, max-age=3600, must-revalidate`. Previously these assets shipped with no Cache-Control header at all; Cloudflare reported `cf-cache-status: DYNAMIC` on every navigation.
-- **`composer dev` + root `npm run dev`** now route to `parkhub-web/` (Astro) instead of the legacy Vite/React `resources/js/` backup, mirroring the `build` script.
-- **Admin dashboard KPI row no longer reads zeros on first login**: `seedAdmins` now sets `credits_balance=35/28`, and new `seedAdminBookings` gives each admin a vehicle + 18 bookings (mix of completed / cancelled / no_show / active / confirmed) spread across the last 25 days and next 5.
+- Add locale-coverage script as a drift guard
+- Wire sentry-laravel for error tracking (opts in via SENTRY_LARAVEL_DSN)
+- Propagate x-request-id into Laravel log context + unlock metrics
+
+
+### Dependencies
+
+- Sync composer.lock with sentry-laravel addition
+
 
 ### Fixed
-- **`e2e/*.spec.ts`**: replaced 37 `waitForLoadState('networkidle')` + one `helpers.ts goto({waitUntil: 'networkidle'})` call site with `'domcontentloaded'` — Playwright has discouraged `networkidle` since 1.x because modern apps run continuous background traffic that keeps the 500 ms idle timer from ever firing.
 
----
+- Seed admin bookings + credits so dashboard isn't empty on login
+
+
+### Performance
+
+- Lazy-load non-English locales to shave ~450KB
+- Lazy-load Layout to shrink pre-auth critical path
+- Enable Brotli via mod_brotli.htaccess
+
+
+### Tests
+
+- Cover webhook HMAC tamper + replay rejection paths
+- Replace deprecated networkidle waits with domcontentloaded
+
+
+### Release
+
+- V4.12.0
+
+
+### Sec
+
+- Add Cross-Origin-{Opener,Resource}-Policy: same-origin
+
 
 ## [4.11.0] - 2026-04-16
 
-### Added
-- **Keepalive cron** (`.github/workflows/keepalive-demo.yml`): pings the Render demo's `/up` every 10 minutes between 05-22 UTC so the free-tier 15-minute idle spin-down never drops a cold 30-60 s wake-up on the first visitor of the day.
-- **HSTS in production**: `APP_HSTS=true` added to `render.yaml` so `SecurityHeaders` emits `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload` on every response. Parity with parkhub-rust.
+### CI
 
-### Changed
-- **Astro** `6.1.5 → 6.1.7` in `parkhub-web/`. npm audit clean, parity with parkhub-rust.
-- **Docker FROM digest-pinning** for supply-chain hardening: `node:22-slim` (frontend), `composer:2` (vendor), and `php:8.4-apache` (runtime) now all carry immutable `@sha256:…` references. Dependabot's `docker` ecosystem block refreshes these on its weekly cycle.
-- **`.htaccess` cache strategy**: `/_astro/*` (content-hashed chunks) now carry `Cache-Control: public, max-age=31536000, immutable` so the Cloudflare CDN in front of the Render demo caches them for a year without revalidation; `favicon.*`, `manifest.json`, `sw.js`, `offline.html` get `public, max-age=3600, must-revalidate` so the PWA shell still updates promptly. Previously these assets shipped with no `Cache-Control` header at all and Cloudflare reported `cf-cache-status: DYNAMIC` on every navigation.
-- **`composer dev` and root `npm run dev`** now route to `parkhub-web/` (Astro) instead of the legacy Vite/React `resources/js/` backup, mirroring the `build` script.
-- **Repo metadata**: README gains Astro 6 badge; GitHub description and topics list Astro explicitly.
-- **Astro build output** (`public/_astro/`, `public/index.html`, `public/manifest.json`, `public/sw.js`, `public/offline.html`, `public/og-image.svg`, favicons) is no longer tracked — the Dockerfile rebuilds these from `parkhub-web/` at container build time, so committing them caused dirty working trees after local `npm run build`. Eight orphaned Vite-era assets (`vite.svg`, `pwa-*.svg`, old `icon-*.png`, `apple-touch-icon.png`, `favicon.png`) were deleted in the same pass.
+- Ping Render demo every 10 min to prevent spin-down
+
+
+### Chore
+
+- Chore(web): remove orphaned Vite-era assets from public These files were tracked from the legacy Vite/React build but are no
+longer referenced anywhere in the Astro source, PHP controllers, or
+Laravel blade templates. Active PWA icons live in public/icons (served
+by PWAController), active favicon is public/icon.svg.
+
+Removed:
+- vite.svg (Vite default logo)
+- apple-touch-icon.png, favicon.png (replaced by favicon.svg)
+- icon-192.png, icon-256.png, icon-512.png (replaced by icons/icon-*.png)
+- pwa-192x192.svg, pwa-512x512.svg (replaced by icons set)
+- Chore(web): untrack Astro build output in public Dockerfile builds parkhub-web and copies dist -> public at container
+build time. Tracking build artifacts caused dirty working trees after
+local npm run build and staleness between Vite (legacy) and Astro output.
+
+Gitignore now excludes the full Astro output set (_astro/, index.html,
+manifest.json, sw.js, offline.html, og-image.svg, favicons). Server
+files (.htaccess, index.php, robots.txt, logos/) stay tracked.
+
+
+### Dependencies
+
+- Bump astro 6.1.5 -> 6.1.7
+
+
+### Documentation
+
+- Add Astro 6 badge + mention in stack tagline
+
 
 ### Fixed
-- **`VERSION` file** bumped `4.9.0 → 4.11.0`. The live demo was reporting `4.9.0` via `/api/v1/system/version` while the CHANGELOG and git tag already said `4.10.0` because `VERSION` (the single source of truth for `SystemController::appVersion()`) had never been updated when v4.10.0 was tagged.
 
----
+- Digest-pin all FROM directives for supply-chain hardening
+- Route composer dev + root npm dev to Astro, not legacy Vite
+- Bump VERSION file to 4.10.0
+- Derive cookie Secure flag from request scheme, not APP_ENV
+
+
+### Performance
+
+- Perf(cache): immutable cache for Astro chunks, short cache for SW/manifest _astro/*.js,css,woff2,... carry a content hash in the filename, so
+the URL is effectively immutable — 'public, max-age=31536000,
+immutable' lets both browsers and the Cloudflare CDN in front of the
+Render demo keep them cached for a year with zero revalidation round
+trips on repeat navigations. Previously these chunks came back with
+no Cache-Control header at all, which surfaced as 'cf-cache-status:
+DYNAMIC' on every request — each page load fetched the same chunks
+fresh from origin through Cloudflare.
+
+favicon/manifest.json/sw.js/offline.html are unhashed and therefore
+need to update when the source does — 1-hour max-age with must-
+revalidate is the state-of-the-art balance for PWA shell assets.
+- Instant navigation via prefetch + View Transitions API
+
+
+### Tests
+
+- Widen cross-env tolerance to 10%
+
+
+### Release
+
+- V4.11.0
+
+
+### Sec
+
+- Enable HSTS on the PHP Render demo (parity with rust)
+
 
 ## [4.10.0] - 2026-04-15
 
 ### Added
-- **Kinetic Observatory dashboard**: new `KpiCard`, `TrendCard`, `SensorFeedCard`, `RecentActivityCard` component kit in `parkhub-web/src/components/KineticObservatory.tsx`, composed by `DashboardPage` into a 4-KPI row + trend chart + sensor feed + recent activity table. Added i18n keys (`dashboard.totalBookings`, `weeklyActivityTitle`, `liveSensorFeed`, `recentActivity`, etc.) for all 10 languages.
 
-### Changed
-- **Container build**: dropped `linux/arm64` from `Release Container` workflow. Render only runs amd64 and QEMU arm64 emulation was the critical-path bottleneck. Removed `setup-qemu-action` step entirely.
+- P0 sidebar regrouping + empty-state onboarding (sync from rust)
+- React 19 useOptimistic on cancel (sync from parkhub-rust)
+- Transparent token refresh interceptor
+- Wire 2FA login + consistent envelopes + refresh endpoint
+- Kinetic Observatory dashboard — synced from parkhub-rust
+
+
+### CI
+
+- Shard E2E across chromium + mobile-chrome + mobile-safari
+- Remove continue-on-error masks on integration + PHPStan jobs
+- Wire up the env the local suite proved out
+- Drop dead multi-arch scaffolding + hardcoded --retries=2
+- Build amd64 only (drop arm64 multi-arch)
+
+
+### Documentation
+
+- Append v4.10.0 session fixes
+- Bump to v4.10.0 + changelog for Kinetic Observatory + Render fixes
+- Add CODE_OF_CONDUCT and NOTICE for public release
+- Accurate third-party license inventory for v4.9.0
+
 
 ### Fixed
-- **Render deploy Apache log permission**: reverted the `gosu www-data` privilege drop from commit 62a954f. The `php:8.4-apache` base image symlinks `/var/log/apache2/error.log` -> `/proc/self/fd/2` (owned by root), so running Apache as `www-data` failed with `AH00091: could not open error log file` and every deploy since 2026-04-13 16:45 UTC silently rolled back to the last working image. The CodeQL "container-running-as-root" alert for this image is a false positive in a single-tenant Render container and has been dismissed.
-- **Production seeder performance on Render free tier**: `Hash::make('Demo2026!')` ran inside a 198-iteration loop with bcrypt cost 12 -- ~5 minutes on Render's 0.1 CPU, long enough to trip the port-scan deploy timeout. Hash the shared demo password once and reuse it. Also pre-fetch the `parking_slots` `id -> slot_number` map before the bookings loop to kill an N+1 query that would have added another ~4500 queries during seeding.
-- **Pint style**: applied `not_operator_with_successor_space`, `fully_qualified_strict_types`, `unary_operator_spaces`, `ordered_imports`, and `class_attributes_separation` fixes to `MetricsController`, `SSOController`, `UpdateController`, and `WebhookV2Controller`.
-- **CORS regex delimiter crash**: `config/cors.php` had an `allowed_origins_patterns` entry `'^https://nash87\.github\.io$'` without PCRE delimiters. fruitcake/php-cors calls `preg_match()` on each pattern and a delimiter-less string raised `No ending delimiter '^' found` for every request carrying an `Origin` header, turning the entire login flow into HTTP 500 on Playwright. Wrapped the pattern in `#...#` and added a localhost/127.0.0.1 port pattern for dev + CI origins.
-- **NotificationCenter localStorage drift**: `NotificationCenter.tsx` was still reading the bearer token from `localStorage.getItem('parkhub_token')` after the httpOnly-cookie auth migration. Every page mount fired `/api/v1/notifications/unread-count` with `Authorization: Bearer null` and surfaced a 401 flood in the console. Refactored to use the shared `api` client and bail out early when `getInMemoryToken()` returns null.
-- **AuthenticateFromCookie over-eager 403**: the middleware returned 403 when a `parkhub_token` cookie arrived without the `X-Requested-With` header, which broke every page-mount `fetch('/api/v1/theme')` call that didn't opt into the XHR header. Degrade silently instead: skip injecting the Bearer header and let `auth:sanctum` issue its normal 401 if the route actually needs credentials.
-- **`/api/v1/auth/2fa/status` missing**: the Profile page expected this endpoint to decide whether to render the Enable/Disable button. Without the route every profile load 404'd and triggered `"Invalid time value"` because `login-history` data was stale. Added `TwoFactorController::status` + the route registration under `auth:sanctum`.
-- **`/api/v1/absences/pattern` wrong shape**: returned `{pattern: [...]}` while the shared TS type expected `AbsencePattern[]` (array of `{absence_type, weekdays}`). Crashed `/absences` with `"j.find is not a function"`. Rewrote `getPattern`/`setPattern` to emit the canonical array shape.
-- **`/api/v1/swap-requests` wrong shape**: returned `{incoming: {data, meta}, outgoing: {data, meta}}` pagination envelopes while the frontend expected a flat `SwapRequest[]`. Crashed `/swap-requests` with `"w.map is not a function"`. Merged the two queries into a single flat list; direction is derivable from `requester_id` vs current user.
-- **`login_history` field-name drift**: `AuthController::loginHistory` returned the raw Eloquent column `logged_in_at`, but the shared TS `LoginHistoryEntry` type expects `timestamp` (matching the Rust backend). `/profile` crashed with `"Invalid time value"` when date-fns tried to format `undefined`. Added a `loginHistoryEntry` mapper that renames the field and always emits `success: true`.
-- **`GET /api/v1/bookings/guest` missing + route ordering**: the GuestPass page calls this on mount; the route didn't exist and `/bookings/{id}` swallowed the request with a `"Booking not found"` 404. Added `listGuestBookings`/`deleteGuestBooking`, registered literal paths before the `/{id}` catch-all in `routes/modules/bookings.php`.
-- **Docker entrypoint ownership**: every artisan command in `docker-entrypoint.sh` runs as root (the entrypoint needs root to bind `:10000`), so the config cache, route cache, VAPID key files, and `storage/framework/cache/data/**` ended up root-owned. Apache's prefork workers run as www-data, so `file_put_contents` raised `Permission denied` on any request that touched the file cache and surfaced as 500s on `/api/v1/discover`. `chown -R www-data:www-data storage bootstrap/cache` before `exec "$@"`, and run the scheduler under `gosu www-data`.
-- **CSP vs inline Astro bootstrap scripts**: `SecurityHeaders::buildCsp` issued a per-request `script-src 'self' 'nonce-XXX'` policy, but the Astro SPA shell in `public/index.html` contains two inline bootstrap blocks baked in at build time — the per-request nonce can't be injected into them without HTML rewriting, and CSP3 browsers ignore `'unsafe-inline'` when a nonce is present. Switched to `script-src 'self' 'unsafe-inline'` so the SPA actually boots; revisit once static SHA-256 hashes for the two blocks are pinned.
-- **Duplicate security headers**: `public/.htaccess` was setting `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, and `Content-Security-Policy` via `mod_headers` on top of `SecurityHeaders` middleware. The duplicates surfaced as `"nosniff, nosniff"` when Playwright read `res.headers()['x-content-type-options']`. Dropped the mod_headers overlap; kept only `Header unset X-Powered-By` / `Header always unset Server`.
-- **CI smoke + nightly green for the first time**: fixed a dozen test files to be tolerant of PHP vs Rust backend shapes (`tryEndpoints` helper, PaginatedResponse envelope unwrapping, /health/ready + /api/v1/system/version JSON fallback, ISO-8601 booking timestamps, slot rotation to dodge seeded-data collisions, strict-mode locator fixes, animation-disabled visual baselines, login form `input[type=password]` selector to avoid matching "Forgot password?", hydration-safe `loginViaUi` with networkidle wait + focus-then-fill + form-state verify). Removed `continue-on-error: true` from the `integration` and `static-analysis` jobs now that both are green. Sharded the nightly into `(project × shard)` = 3 × 4 = 12 parallel matrix jobs so chromium + mobile-chrome + mobile-safari all fit in the 45-minute job ceiling.
 
----
+- Clean up the full nightly suite
+- Rescue sidebar routes that broke on the Render deploys
+- Delimiter-less regex pattern crashed middleware on every Origin
+- Kill the per-render DDoS on api/v1/demo/status
+- Add missing api.getBookingRecommendations + setAccessibilityNeeds
+- Dashboard skeleton matches Kinetic layout (sync from rust)
+- 3 high-severity bugs + pagination envelope
+- Move disable flag to config/app.php for PHPStan
+- Add PARKHUB_DISABLE_RATE_LIMITS bypass for E2E
+- Run Apache as root to fix var/log/apache2 permission denied
+- Bridge --dt-* tokens into --theme-* (synced from parkhub-rust)
+- Sync frontend fixes from Rust repo
+- PWA icons, notification guard, CSP header, footer landmark
+- Disable unsafe SAML callback, encrypt auth cookie
+- Admin middleware, metrics auth, CSP nonce, SSRF guard, import roles, session encrypt
+- Increase login redirect timeout to 30s for slow CI runners
+- Guard optional-chain array ops to prevent crash on null API response
+- Drop root privileges via gosu + fix picomatch CVEs
+- Add explicit port to render.yaml
+
+
+### Performance
+
+- Hash demo password once + prefetch slot numbers
+
+
+### Tests
+
+- Sync health-JSON probe from parkhub-rust
+- Final nightly + CI smoke fixes
+- Sync remaining spec fixes from parkhub-rust 1cb009e
+- Remaining feature tests that asserted old shapes
+- Align fixtures with the demo-route fixes
+- Set METRICS_TOKEN env var for all test runs
+- Sync frontend from parkhub-rust — 2019 tests, 97.56% coverage
+- Sync frontend tests from Rust repo — 1683 tests, 91% coverage
+- Update tests for security fixes (metrics auth, SSO 501, webhook SSRF)
+
 
 ## [4.9.0] - 2026-04-13
 
 ### Added
-- **API Client Resilience**: Exponential backoff retry for transient errors (502/503/504/429), GET request deduplication, AbortController support
-- **Service Worker Update Prompt**: User-controlled update flow with toast notification instead of auto-`skipWaiting()`
-- **CSP Meta Tag**: Content-Security-Policy for static deployments
-- **Security Headers Middleware**: CSP, Permissions-Policy, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy
-- **React 19 `useOptimistic`**: Notifications view uses `useOptimistic` + `useTransition` for instant read toggle
-- **CommandPalette ARIA**: Full WAI-ARIA 1.2 combobox pattern with keyboard navigation
-- **WebSocket Heartbeat**: 30s ping, max retry cap (10), manual reconnect
-- **ErrorBoundary Event**: `app:error` custom event for external monitoring integration
-- **Vitest Coverage Thresholds**: Enforced minimums with `json-summary` reporter
-- 10 new Vitest tests (822 total)
 
-### Changed
-- TypeScript: `noUncheckedIndexedAccess` + `noFallthroughCasesInSwitch`
-- DataTable: proper ARIA table roles for screen readers
-- Updated deps: React 19.2.5, Astro 6.1.5, Vitest 4.1.4
+- Self-update system with version history + rollback
+- 4 new premium themes + enhanced animations
+- Add Team Leaderboard + Smart Predictions views
+
 
 ### Fixed
-- Framer Motion `layoutId` prop leaking to DOM in test mocks
-- Service Worker auto-`skipWaiting()` causing mid-session reloads
-- CHANGELOG incorrectly said "ParkHub Rust" instead of "ParkHub PHP"
 
----
+- Pint formatting + robust loginViaUi (click demo button)
+- Make team/leaderboard E2E test tolerant of feature flags
+
+
+### Release
+
+- V4.9.0 — API resilience, React 19 useOptimistic, security hardening
+
 
 ## [4.8.0] - 2026-04-13
 
 ### Added
-- **QR Check-In/Out**: Scan QR code to check in at parking lot, live elapsed timer, manual checkout
-- **Swap Requests**: Offer and accept parking spot trades between colleagues
-- **Guest Parking Pass**: Generate shareable QR passes for visitors with unique guest codes
-- **Occupancy Heatmap**: 7x24 grid visualization of lot usage patterns (admin)
-- **DESIGN.md**: Comprehensive AI-readable design system specification
-- **SEO**: Open Graph, Twitter Card meta tags, JSON-LD structured data
-- **CODEOWNERS**: Automated code review routing
-- **DOCKER.md + PAAS.md**: Deployment guides for Docker, Render, Railway, Fly.io
-- **X-RateLimit headers**: Limit/Remaining/Retry-After on all API responses
-- Container queries and scroll-driven animations (CSS 2026)
-- Visual regression baselines (login, register, welcome)
-- 34 new Vitest tests (782 total), 4 new E2E specs (117 total)
 
-### Changed
-- i18n: 160+ untranslated strings filled across all 9 non-EN locales
-- All 50 clippy warnings resolved (Rust 2024 let chains)
-- Typography: text-wrap balance/pretty, Inter var font optimization
+- Add QR Check-In, Swap Requests, Guest Pass, Occupancy Heatmap
+- Sync translated locale files from parkhub-rust
+- CODEOWNERS + SEO meta tags (Open Graph, Twitter Card, JSON-LD)
+- Add cutting-edge CSS patterns + DESIGN.md + visual baselines
+
+
+### Chore
+
+- Bump version badges to v4.8.0
+
+
+### Dependencies
+
+- Bump the npm-tooling-minor-patch group with 8 updates (#294)
+
+
+### Documentation
+
+- Add What's New in v4.8.0 + Lighthouse CI on push/PR
+
 
 ### Fixed
-- CI: cargo fmt after let-chain refactoring
-- nav.favorites missing i18n key in sidebar
 
----
+- Use getByPlaceholder for password field in loginViaUi
+- Fix E2E smoke — modules format, password selector
+- Add getInMemoryToken mock + QR ok:true in tests (CI fix)
+- Add missing btn base class on GuestPass buttons
+- Address all pre-release review findings (7 agents)
+- Address pre-release review findings
+- Add missing nav.favorites key to all 10 locales
+- Use ProductionSimulationSeeder for E2E smoke tests
+
+
+### Release
+
+- V4.8.0 — QR Check-In, Swap Requests, Guest Pass, Heatmap
+
 
 ## [4.7.0] - 2026-04-12
 
-### Added
-- **Full Test Pyramid**: 8-layer test infrastructure matching production standards
-  - 10 integration test suites per repo (API contract, auth flow, booking lifecycle, webhook delivery, GDPR compliance, multi-tenant isolation, rate limiting, email templates, recurring bookings, DB migration)
-  - 1-month booking simulation engine with 3 profiles (small/campus/enterprise)
-  - k6 load test profiles with graduated thresholds (p95 <200ms/<500ms/<1s)
-  - 6 new E2E Playwright suites (multi-language, offline/reconnect, concurrent users, admin CRUD, booking edge cases, security flows)
-  - Frontend Vitest expansion: hooks, validation, router, error boundary tests
-  - axe-core WCAG2aa accessibility testing
-  - Visual regression testing with Playwright screenshots
-- **CI/CD Modernization**
-  - Integration tests in GitHub Actions CI (advisory)
-  - Nightly assurance workflow (Rust) / Security workflow (PHP) for parity
-  - `docker-compose.test.yml` for containerized test pipeline
-  - Dependabot auto-merge with version filtering (skip major bumps)
-  - Branch protection aligned to gate job ("Required checks")
-  - PHPStan static analysis in PHP CI (advisory)
-- **Quick-Start installer** (`install.sh`) for one-command setup
+### CI
 
-### Changed
-- Rust toolchain pinned to 1.94.1 via `rust-toolchain.toml` (was 1.88.0, release had 1.85!)
-- MSRV bumped from 1.88 to 1.94
-- actionlint v1.7.11 → v1.7.12, setup-qemu-action v3 → v4
-- GDPR/COMPLIANCE docs synced to v3.3.0 across both repos
-- Lighthouse CI: added LCP ≤4000ms threshold, 3 runs per URL
-- All README badges updated to v4.7.0
+- Add security workflow (parity with Rust)
+- Add docker-compose.test.yml + integration tests in CI
+- Add release workflow + dependabot auto-merge
+- Add PHPStan static analysis (advisory, matches Rust clippy pattern)
+- Update actionlint v1.7.11→v1.7.12
+
+
+### Chore
+
+- Bump vite from 7.3.1 to 7.3.2 (#283)
+- Bump lodash from 4.17.23 to 4.18.1 (#285)
+- Fix dependabot auto-merge (skip major), remove skills-lock.json
+- Align VERSION and parkhub-web to 4.5.0
+
+
+### Dependencies
+
+- Bump the composer-minor-patch group across 1 directory with 6 updates (#289)
+- Bump vite from 7.3.1 to 7.3.2 in parkhub-web (#282)
+- Bump the actions group across 1 directory with 4 updates (#290)
+- Bump the npm-minor-patch group across 1 directory with 10 updates (#288)
+- Bump the npm_and_yarn group across 1 directory with 2 updates (#286)
+- Bump defu from 6.1.4 to 6.1.7 in parkhub-web (#284)
+- Bump smol-toml from 1.6.0 to 1.6.1 in parkhub-web
+
+
+### Documentation
+
+- Sync GDPR/COMPLIANCE to v3.3.0, align CHANGELOG v4.3.0 date
+- Update all MD files to v4.5.0
+
 
 ### Fixed
-- **ParkingPassController**: QR code v6 API migration (`OUTPUT_MARKUP_SVG` → `QRMarkupSVG::class`) — PHP only
-- E2E login payload: `email` → `username` field for Laravel Sanctum
-- 28 clippy warnings resolved (Rust test files)
-- 50 cargo fmt formatting diffs resolved
-- nightly.yml shellcheck issues (SC2015, SC2034)
-- `router.test.tsx`: `require()` → direct mock (Vitest jsdom compat)
-- Pint formatting on 17 PHP test files
-- `build:php` path: `../parkhub-php/public/` → `../public/`
-- serialize-javascript 7.0.4 → 7.0.5 (CVE DoS fix)
-- RUSTSEC-2026-0097 (rand unsoundness) acknowledged in deny.toml
+
+- Update serialize-javascript 7.0.4→7.0.5 (CVE DoS fix)
+- Fix api.spec.ts login payload (email → username field)
+- Fix login API payload (email → username field)
+- ParkingPassController QR code v6 API migration
+- Pint formatting + router.test.tsx require → direct mock
+- Fix integration test API contract mismatches
+- Fix nightly E2E build path + add retries
+- Replace hard 401 redirect with event-based auth clearing to stop landing page loop
+
 
 ### Security
-- Removed `program.md` (exposed local filesystem paths)
-- Removed `.aoe/`, `.forge-operator/`, `.claude/` from git tracking
-- Removed internal IPs from AGENTS.md, package.json, seeders
-- Added `.aoe/`, `.forge-operator/`, `.fop/`, `.claude/`, `skills-lock.json` to .gitignore
-- 14 Dependabot security alerts resolved (vite, defu, lodash, serialize-javascript)
-- cargo-deny stale advisory (RUSTSEC-2025-0141) cleaned
 
-### Removed
-- `program.md` (internal autoimprove config, not for public)
-- `.aoe/config.toml`, `.forge-operator/config.toml` (internal tooling)
-- `.claude/skills/` (62 files, internal automation)
+- V4.7.0 — full test pyramid, installer, security fixes
 
----
+
+### Tests
+
+- Add frontend Vitest expansion (hooks, validation, router, error boundary)
+- Add 6 missing parkhub-web E2E specs (parity with Rust)
+- Add 6 E2E Playwright suites (multi-lang, offline, concurrent, admin CRUD, edge cases, security)
+- Add k6 load test profiles (small/campus/enterprise)
+- Add 1-month booking simulation engine (3 profiles)
+- Add 10 integration test suites (110 tests)
+- Add a11y, visual regression, and Lighthouse LCP threshold
+
+
+### Merge
+
+- Fix landing page infinite loop (PR #265)
+
+
+### Security
+
+- Remove internal references from public repo
+
+
+## [4.6.0] - 2026-03-27
+
+### CI
+
+- Fix composer validation and helm lint
+
+
+### Chore
+
+- Add.forge-operator/config.toml for fop integration
+
+
+### Documentation
+
+- Align readme and contributing with current counts
+- Update CONTRIBUTING.md with Sail setup, 67 modules, accurate counts, and good first issues (#244)
+- Overhaul README for public audience with badges, screenshots, quick-start (#243)
+- Add GitHub issue templates for bug reports and feature requests
+
+
+### Fixed
+
+- Replace QR placeholder SVG with real chillerlan/php-qrcode
+- Gate SMS/WhatsApp notification toggles (synced from Rust)
+- Guard theme fetch against non-200 response to prevent retry loop
+
+
+### Performance
+
+- Add Vite manual chunk splitting for vendor libraries (#259)
+- Add compound indexes for booking conflict hot-path queries (#258)
+- Add Setting::preload to bulk-fetch settings per request (#256)
+- Fix N+1 query in MobileBookingController (#251)
+
+
+### Security
+
+- Add Laravel Policies for Booking, ParkingLot, and Absence models (#260)
+- GraphQL createBooking mutation bypasses all booking policy enforcement (#252)
+- Apply allowlist to importBackup to prevent arbitrary setting key injection (#249)
+
+
+### Tests
+
+- Add Vitest coverage for 5 previously untested view/component files (#240)
+
+
+### Merge
+
+- Product-truth-cleanup (forge-operator init)
+
+
+### Quality
+
+- Fix phpstan and frontend typechecks
+
+
+### Security
+
+- Document missing SAML signature verification and default SSO to off (#250)
+
+
+### Sync
+
+- Align parkhub-web npm deps with Rust repo + full frontend parity
+- Align parkhub-web frontend with Rust repo (100% parity)
+
 
 ## [4.5.0] - 2026-03-25
 
 ### Added
-- **Mobile Booking**: 3 endpoints + tests
-- **Notification Center**: 5 endpoints with 8 notification types and enriched metadata
-- Integration test suite (10 suites)
-- 1-month booking simulation engine (3 profiles)
-- k6 load test profiles (small/campus/enterprise)
-- axe-core WCAG2aa accessibility testing
-- Visual regression testing with Playwright
-- Lighthouse CI with LCP threshold
-- 6 new E2E test suites: multi-language, offline-reconnect, concurrent-users, admin-crud-complete, booking-edge-cases, security-flows
 
-### Changed
-- Rust toolchain pinned to 1.94.1 via rust-toolchain.toml
-- CI modernized: actionlint v1.7.12, setup-qemu-action v4
+- Add admin analytics with occupancy, revenue, popular-lots
+
+
+### CI
+
+- Add auto-merge workflow for low-risk Copilot PRs
+- Stop uploading Trivy SARIF to code-scanning tab
+- Exclude locale files from CodeQL analysis (false positive duplicate keys)
+- Trigger fresh CI run
+- Align php codeql and release workflow
+- Fix php workflows and frontend build path
+- Make workflow-hygiene, quality, frontend, e2e advisory gates
+- Harden and simplify GitHub Actions for deterministic CI and secure releases
+
+
+### Chore
+
+- Fix MissingAppKeyException in test environment
+- Bump laravel/sail from 1.54.0 to 1.55.0 in the composer-minor-patch group (#219)
+
+
+### Dependencies
+
+- Bump the npm-tooling-minor-patch group with 9 updates (#225)
+- Bump the npm-minor-patch group in parkhub-web with 5 updates (#223)
+- Bump the actions group with 2 updates (#224)
+
 
 ### Fixed
-- Landing page infinite loop (event-driven 401 handling)
-- SMS/WhatsApp notification toggle gating
 
-### Security
-- Removed internal references from public repos
-- 6 critical security fixes (OAuth, SAML, importBackup, GraphQL, N+1)
+- Update Docker base images + make Trivy non-blocking
+- Resolve picomatch ReDoS and method injection vulnerabilities
+- Resolve Lot model table mapping + MobileBooking import consistency
 
----
+
+### Tests
+
+- Add feature tests for WebhookV2 delivery history and retry
+
+
+### Release
+
+- V4.5.0
+
 
 ## [4.4.0] - 2026-03-25
 
 ### Added
-- **Notification Center module** (5 endpoints)
-- **Mobile Booking module**
-- Copilot Agent CI/CD integration
-- GitHub Audit Kit
 
-### Changed
-- Branch cleanup: 42 -> 11 branches
-- CI hardened with auto-merge for Copilot PRs
+- Mobile booking module + Copilot test PR #215 merge + module count 66
+- Add mobile booking module + docs commit
+- Smart notification center with enriched metadata
 
----
 
-## [4.3.0] - 2026-03-23
+### Chore
+
+- Add GitHub Audit Kit (Copilot agents, instructions, dependency review)
+
+
+### Documentation
+
+- Add superpowers design spec for github audit kit
+
+
+### Fixed
+
+- Address code review feedback - remove unused imports and use portable path
+- Sync php v4.3 module routing
+
+
+### Tests
+
+- Add middleware, jobs, mail, listener tests + 5 model factories
+- Add 128 tests for models, events, rules, helpers, and providers (#214)
+- Add comprehensive unit tests for 22 untested models, events, rules, helpers, and providers
+
+
+## [4.3.0] - 2026-03-24
 
 ### Added
-- **Role-Based Access Control (RBAC)**: Fine-grained permission management with 5 built-in roles (super_admin, admin, manager, user, viewer) and 6 permissions (manage_users, manage_lots, manage_bookings, view_reports, manage_settings, manage_plugins). Custom roles with any permission combination. 6 admin API endpoints: `GET/POST /api/v1/admin/roles`, `PUT/DELETE /api/v1/admin/roles/{id}`, `GET/PUT /api/v1/admin/users/{id}/roles`. RBAC permission middleware for endpoint authorization. Frontend: AdminRoles page with permission checkboxes, built-in badges, help tooltip. Feature flag: `mod-rbac`. 15 backend + 8 frontend tests. (#269)
-- **Advanced Audit Log Export**: Multi-format audit log export supporting PDF, CSV, and JSON with signed download URLs (5-minute expiry). Full filtering: date range, action type, user ID. Token-based download endpoint (no auth header needed). `GET /api/v1/admin/audit-log/export/enhanced`, `GET /api/v1/admin/audit-log/export/download/{token}`. Frontend: enhanced export dialog with format selector cards, download progress indicator. Feature flag: `mod-audit-export`. 11 backend tests. (#270)
-- **Parking Zones with Pricing Tiers**: Zone-based pricing with 4 tiers: economy (0.8x green), standard (1.0x blue), premium (1.5x gold), VIP (2.5x purple). Configurable multipliers and max capacity per zone. `GET /api/v1/lots/{id}/zones/pricing`, `PUT /api/v1/admin/zones/{id}/pricing`, `GET /api/v1/zones/{id}/price`. Frontend: zone cards with color-coded tier badges, inline pricing editor, capacity progress bars. Feature flag: `mod-parking-zones`. 11 backend + 6 frontend tests. (#271)
-- **i18n**: rbac, parkingZones, auditLog.advancedExport keys added to all 10 locales (en, de, fr, es, it, pt, pl, ja, zh, tr)
-- **63 feature flags**: Added `mod-rbac`, `mod-audit-export`, `mod-parking-zones` (was 60)
 
----
+- Add RBAC, advanced audit export, parking zones with pricing tiers (v4.3.0)
+
+
+### Chore
+
+- Add aoe repo defaults
+
+
+### Fixed
+
+- Remove unused fireEvent import from PWAEnhanced test
+- Restore waitFor import in PWAEnhanced test
+- Resolve CodeQL alerts — unused import + property injection
+- Resolve all CI failures from v4.2 feature merge
+
 
 ## [4.2.0] - 2026-03-23
 
 ### Added
-- **SAML/SSO Enterprise Authentication**: Full SAML 2.0 SSO integration with 5 API endpoints. `GET /api/v1/auth/sso/providers`, `GET /api/v1/auth/sso/{provider}/login`, `POST /api/v1/auth/sso/{provider}/callback`, `PUT /api/v1/admin/sso/{provider}`, `DELETE /api/v1/admin/sso/{provider}`. Lightweight XML parsing for SAML responses. SSO login buttons on login page + admin configuration panel. Feature flag: `mod-sso`. 12 backend + 13 frontend tests. (#266)
-- **Webhooks v2 (Outgoing Event Subscriptions)**: Enhanced webhook system with delivery tracking, retry logic, and HMAC-SHA256 signing. 6 admin API endpoints: list, create, update, delete, test, deliveries. Events: booking.created, booking.cancelled, user.registered, lot.full, payment.completed. `X-ParkHub-Signature` header. 3 retry attempts with exponential backoff. Feature flag: `mod-webhooks-v2`. 13 backend + 6 frontend tests. (#267)
-- **Enhanced PWA / Mobile Experience**: Dynamic PWA manifest based on branding, offline data caching, enhanced service worker (network-first API, cache-first static). Offline indicator, cached booking display, bottom navigation bar for mobile, pull-to-refresh gesture. Feature flag: `mod-enhanced-pwa`. 5 backend + 6 frontend tests. (#268)
-- **i18n**: sso, webhooksV2, pwa keys added to all 10 locales (en, de, fr, es, it, pt, pl, ja, zh, tr)
-- **60 feature flags**: Added `mod-sso`, `mod-webhooks-v2`, `mod-enhanced-pwa` (was 57)
 
----
+- Add SAML/SSO, Webhooks v2, Enhanced PWA (v4.2.0)
+
+
+### Documentation
+
+- Update README for v4.1.0 — 58 modules, expanded features, NIS2 compliance, CI scanning
+
+
+### Fixed
+
+- Resolve remaining CodeQL alerts (property injection, unused vars)
+- Sync CodeQL fixes from Rust — prototype pollution, unused imports
+
 
 ## [4.1.0] - 2026-03-23
 
 ### Added
-- **Booking Sharing & Guest Invites**: Share booking details via secure links with optional expiry. Invite guests by email. `POST /api/v1/bookings/{id}/share`, `GET /api/v1/shared/{code}` (public, no auth), `POST /api/v1/bookings/{id}/invite`, `DELETE /api/v1/bookings/{id}/share`. Frontend: BookingSharingModal with share link + invite tabs, copy-to-clipboard, expiry selector. Feature flag: `mod-sharing`. 15 backend + 8 frontend tests. (#262)
-- **Scheduled Reports (Email Digest)**: Configure automated report delivery via email on daily, weekly, or monthly schedules. Report types: occupancy_summary, revenue_report, user_activity, booking_trends. `GET/POST /api/v1/admin/reports/schedules`, `PUT/DELETE /api/v1/admin/reports/schedules/{id}`, `POST .../send-now`. Frontend: AdminScheduledReportsPage with CRUD form and cron visualization. Feature flag: `mod-scheduled-reports`. 16 backend + 7 frontend tests. (#263)
-- **API Versioning & Deprecation**: `GET /api/v1/version` with deprecation notices, `GET /api/v1/changelog` with breaking changes per version. `X-API-Version` response header on all API responses. `Sunset` header on deprecated endpoints. Frontend: ApiVersionBadge + ApiVersionAdmin components. Feature flag: `mod-api-versioning`. 10 backend + 3 frontend tests. (#264)
-- **i18n**: sharing, scheduledReports, apiVersion keys added to all 10 locales (en, de, fr, es, it, pt, pl, ja, zh, tr)
-- **57 feature flags**: Added `mod-sharing`, `mod-scheduled-reports`, `mod-api-versioning` (was 54)
 
----
+- Add booking sharing, scheduled reports, API versioning (v4.1.0)
+
+
+### Fixed
+
+- Resolve all CodeQL security scanning alerts
+- Bump frontend version to 4.0.0
+- Add missing plugins section to EN locale
+- Sync icon test mocks from Rust
+
 
 ## [4.0.0] - 2026-03-23
 
 ### Added
-- **Plugin/Extension System**: Modular plugin architecture with trait-based contract (`name()`, `version()`, `on_event()`, `routes()`). Plugin registry with load/unload/enable/disable. Event hooks: booking_created, booking_cancelled, user_registered, lot_full. 2 built-in plugins: "Slack Notifier" (webhook notifications), "Auto-Assign Preferred Spot" (favorite spot assignment). Admin API: `GET /api/v1/admin/plugins`, `PUT /api/v1/admin/plugins/{id}/toggle`, `GET/PUT /api/v1/admin/plugins/{id}/config`. Frontend: marketplace-style grid with toggle switches and config dialogs. Feature flag: `mod-plugins`. 24 backend + 8 frontend tests. (#257)
-- **GraphQL API**: Full GraphQL interface alongside REST. Schema: Query (me, lots, lot, bookings, booking, myVehicles) + Mutation (createBooking, cancelBooking, addVehicle). Interactive GraphiQL playground at `GET /api/v1/graphql/playground`. Schema SDL at `GET /api/v1/graphql/schema`. Execute at `POST /api/v1/graphql`. Same Bearer token auth. Feature flag: `mod-graphql`. 30 backend + 3 frontend tests. (#258)
-- **Compliance Reports & Audit Trail**: GDPR/DSGVO compliance monitoring system. Compliance status report with 10 checks (encryption, access control, data portability, DPO, etc.). Art. 30 data processing inventory (data map). Full audit trail export (CSV/JSON). PDF compliance report. TOM summary with scoring. `GET /api/v1/admin/compliance/report`, `/report/pdf`, `/data-map`, `/audit-export`. Frontend: compliance dashboard with status cards (green/yellow/red), download buttons. Feature flag: `mod-compliance`. 21 backend + 7 frontend tests. (#259)
-- **i18n**: plugins, compliance, graphql keys added to all 10 locales (en, de, fr, es, it, pt, pl, ja, zh, tr)
-- **54 feature flags**: Added `mod-plugins`, `mod-graphql`, `mod-compliance` (was 51)
 
----
+- Add plugin system, GraphQL API, compliance reports (v4.0.0)
+
+
+### CI
+
+- Best-in-class security tooling for 2026
+
+
+### Dependencies
+
+- Bump the actions group with 4 updates (#209)
+
+
+### Fixed
+
+- Add workflow_dispatch to CodeQL, disable default setup
+- Add workflow_dispatch to CodeQL, disable default setup
+- Sync PuzzlePiece + AdminPlugins from Rust
+- Prevent theme FOUC with inline pre-hydration script
+- Skip Trivy SARIF upload when file missing
+
 
 ## [3.9.0] - 2026-03-23
 
 ### Added
-- **Kubernetes Helm Chart**: Full Helm chart in `helm/parkhub/` for K8s deployment. Deployment with health/readiness/startup probes, resource limits, PVC persistence. ConfigMap with all 51 module feature flags, Secret for credentials (SMTP, Stripe, OAuth, DB encryption). Optional ingress with TLS, HPA for autoscaling. `helm/README.md` with install/upgrade/config docs. (#249)
-- **k6 Load Testing Suite**: Performance testing scripts in `tests/load/`. Smoke test (1 VU, 30s), load test (50 VUs, 5min ramp), stress test (100 VUs, 10min, all endpoints), spike test (1-200-1 VUs). Shared config with environment variable overrides. `tests/load/README.md` with install, run, and interpretation guides. (#250)
-- **Postman Collection & Auto-Generation**: `GET /api/v1/docs/postman.json` endpoint that auto-generates a Postman v2.1 collection from the OpenAPI spec. Static collection in `docs/postman/` with 100+ requests in 17 folders (Auth, Bookings, Lots, Admin, etc.), environment template, login auto-sets token. Feature flag: `mod-api-docs`. 4 backend tests. (#251)
 
----
+- Add Helm chart, k6 load tests, Postman collection (v3.9.0)
 
-## [3.8.0] - 2026-03-23
+
+### Chore
+
+- Bump laravel/sail from 1.53.0 to 1.54.0 in the composer-minor-patch group (#198)
+
+
+### Dependencies
+
+- Bump the npm-minor-patch group in parkhub-web with 5 updates (#206)
+- Bump library/node from 22-slim to 25-slim (#205)
+- Bump library/php from 8.4-apache-bookworm to 8.5-apache-bookworm (#204)
+- Bump github/codeql-action from 3 to 4 (#203)
+- Bump actions/upload-artifact from 4 to 7 (#202)
+- Bump actions/cache from 4 to 5 (#201)
+- Bump docker/setup-qemu-action from 3 to 4 (#200)
+- Bump laravel/tinker from 2.11.1 to 3.0.0 (#199)
+
+
+## [3.8.0] - 2026-03-22
 
 ### Added
-- **Absence Approval Workflows**: Submit absence requests that require admin approval. `POST /api/v1/absences/requests`, `GET /api/v1/admin/absences/pending`, `PUT /api/v1/admin/absences/{id}/approve`, `PUT /api/v1/admin/absences/{id}/reject`, `GET /api/v1/absences/my`. Auto-notification on status change. Frontend: submit form with date range + type + reason, admin pending queue with approve/reject + comment, status badges. Feature flag: `mod-absence-approval`. 14 backend + 8 frontend tests. (#245)
-- **Calendar Drag-to-Reschedule**: Drag booking events to new dates on the calendar. `PUT /api/v1/bookings/{id}/reschedule` with slot availability validation and conflict detection. Visual drop target feedback, confirmation dialog. Feature flag: `mod-calendar-drag`. 10 backend + 5 frontend tests. (#246)
-- **Customizable Admin Dashboard Widgets**: Per-user dashboard widget system. `GET/PUT /api/v1/admin/widgets` for layout persistence, `GET /api/v1/admin/widgets/data/{widget_id}` for data. 8 widget types: occupancy_chart, revenue_summary, recent_bookings, user_growth, booking_heatmap, active_alerts, maintenance_status, ev_charging_status. Grid layout with widget catalog sidebar. Feature flag: `mod-widgets`. 13 backend + 8 frontend tests. (#247)
-- **i18n**: absenceApproval, calendarDrag, widgets keys added to all 10 locales
-- **51 feature flags**: Added `mod-absence-approval`, `mod-calendar-drag`, `mod-widgets` (was 48)
 
----
+- Add absence approval, calendar drag-to-reschedule, admin widgets (v3.8.0)
+
 
 ## [3.7.0] - 2026-03-22
 
 ### Added
-- **Enhanced Waitlist with Notifications**: Priority-based waitlist with auto-notification when slots become available. Accept/decline offers with 15-minute expiry. `POST /api/v1/lots/:id/waitlist/subscribe`, `GET /api/v1/lots/:id/waitlist`, `DELETE /api/v1/lots/:id/waitlist`, `POST .../accept`, `POST .../decline`. Frontend: WaitlistPage with join button, position indicator, accept/decline UI. Feature flag: `mod-waitlist-ext`. 9 backend + 7 frontend tests. (#241)
-- **Digital Parking Pass / QR Badge**: Generate digital passes with QR codes from active bookings. Public verification endpoint for QR scanning. `GET /api/v1/bookings/:id/pass`, `GET /api/v1/pass/verify/:code` (public), `GET /api/v1/me/passes`. Mobile-optimized full-screen pass display. Feature flag: `mod-parking-pass`. 10 backend + 7 frontend tests. (#242)
-- **Interactive API Documentation**: Embedded Swagger UI at `/api/v1/docs` for exploring and testing the REST API. Raw OpenAPI 3.0 JSON spec at `/api/v1/docs/openapi.json`. Admin sidebar link. Feature flag: `mod-api-docs`. 5 backend + 3 frontend tests. (#243)
-- **i18n**: waitlistExt, parkingPass, apiDocs keys added to all 10 locales
-- **48 feature flags**: Added `mod-waitlist-ext`, `mod-parking-pass`, `mod-api-docs` (was 45)
 
----
+- Add enhanced waitlist, digital parking pass, API docs (v3.7.0)
+
 
 ## [3.6.0] - 2026-03-22
 
 ### Added
-- **Personal Parking History**: Paginated booking history with lot/date filters. Personal stats dashboard: total bookings, favorite lot, avg duration, busiest day, monthly trend chart, credits spent. `GET /api/v1/bookings/history`, `GET /api/v1/bookings/stats`. Timeline view with status badges. Feature flag: `mod-history`. 8 backend + 6 frontend tests. (#238)
-- **Geofencing & Auto Check-in**: Auto check-in when user enters lot geofence area using GPS proximity (haversine distance). `POST /api/v1/geofence/check-in`, `GET /api/v1/lots/:id/geofence`, `PUT /api/v1/admin/lots/:id/geofence`. Auto check-in toggle in Profile settings. Feature flag: `mod-geofence`. 8 backend + 4 frontend tests. (#239)
-- **i18n**: History and geofence keys added to all 10 locales
-- **43 feature flags**: Added `mod-history`, `mod-geofence` (was 41)
+
+- Add parking history, geofencing, frontend sync (v3.6.0)
+
 
 ### Fixed
-- **Icon Audit**: Synced test mocks with component icon imports across AdminLots, AdminUsers, and Book tests (#237)
 
----
+- BatteryCharging test mock (#194)
+- Sync build fixes from Rust (#193)
+
 
 ## [3.5.0] - 2026-03-22
 
 ### Added
-- **Visitor Pre-Registration**: Pre-register visitors with name, email, vehicle plate, and visit date. Auto-generated QR code passes with visitor pass URL. `POST /api/v1/visitors/register`, `GET /api/v1/visitors`, `GET /api/v1/admin/visitors`, `PUT /api/v1/visitors/:id/check-in`, `DELETE /api/v1/visitors/:id`. Admin view with search/filter and stats. Feature flag: `mod-visitors`. 8 backend + 6 frontend tests. (#230)
-- **EV Charging Station Management**: Manage EV chargers per lot with Type2, CCS, CHAdeMO, Tesla connector types. Start/stop charging sessions with kWh tracking. `GET /api/v1/lots/:id/chargers`, `POST /api/v1/chargers/:id/start`, `POST /api/v1/chargers/:id/stop`, `GET /api/v1/chargers/sessions`, `GET /api/v1/admin/chargers`, `POST /api/v1/admin/chargers`. Admin utilization stats. Feature flag: `mod-ev-charging`. 10 backend + 5 frontend tests. (#231)
-- **Smart Slot Recommendations**: Enhanced recommendation engine with weighted scoring algorithm: frequency (40%), availability (30%), price (20%), distance (10%). Recommendation badges (Your usual spot, Best price, Closest, Available now, Preferred lot, Accessible). Star rating visualization. "Recommended for you" section in booking flow. `GET /api/v1/recommendations/stats` for admin analytics. 8 backend + 4 frontend tests. (#232)
-- **i18n**: Visitors, EV charging, recommendations keys added to all 10 locales
-- **41 feature flags**: Added `mod-visitors`, `mod-ev-charging` (was 39)
 
----
+- Add visitor pre-registration, EV charging, smart recommendations (v3.5.0)
+
+
+### Fixed
+
+- Update module tests for all-enabled test env (#191)
+- Enable all modules in test environment (#190)
+
 
 ## [3.4.0] - 2026-03-22
 
 ### Added
-- **Accessible Parking System**: `is_accessible` field on ParkingSlot, `accessibility_needs` on User (wheelchair, reduced_mobility, visual, hearing, none). `GET /api/v1/lots/:id/slots/accessible`, `PUT /api/v1/admin/lots/:id/slots/:slot_id/accessible`, `GET /api/v1/bookings/accessible-stats`, `PUT /api/v1/users/me/accessibility-needs`. 30-min priority booking for accessible users. Admin page with stats and slot toggles. Wheelchair icon in booking flow. Feature flag: `mod-accessible`. 9 backend + 8 frontend tests. (#226)
-- **Maintenance Scheduling**: Full CRUD for maintenance windows (`POST/GET/PUT/DELETE /api/v1/admin/maintenance`), `GET /api/v1/maintenance/active` (public). Auto-block affected slots (all or specific). Booking overlap validation. Admin page with calendar list, create/edit form, active banner. Feature flag: `mod-maintenance`. 9 backend + 6 frontend tests. (#227)
-- **Cost Center Billing**: `cost_center` and `department` fields on User. `GET /api/v1/admin/billing/by-cost-center`, `GET /api/v1/admin/billing/by-department`, `GET /api/v1/admin/billing/export` (CSV), `POST /api/v1/admin/billing/allocate`. Admin page with summary cards, tab switcher, data table, CSV export. Feature flag: `mod-cost-center`. 6 backend + 6 frontend tests. (#228)
-- **i18n**: Accessible, maintenance, billing keys in all 10 locales
-- **39 feature flags**: Added `mod-accessible`, `mod-maintenance`, `mod-cost-center` (was 36)
 
----
+- Add accessible parking, maintenance scheduling, and cost center billing (v3.4.0)
+
 
 ## [3.3.0] - 2026-03-22
 
 ### Added
-- **Audit Log UI + Export**: Paginated admin audit log at `/admin/audit-log` with action/user/date filters, color-coded badges, and CSV export. Extended `AuditLogEntry` with `target_type`, `target_id`, `ip_address`. New event types: `PaymentCompleted`, `TwoFactorEnabled/Disabled`, `ApiKeyCreated/Revoked`. 7 backend + 6 frontend tests. (#217)
-- **Data Import/Export Suite**: `POST /api/v1/admin/import/{users,lots}` for CSV/JSON bulk import with validation and error reporting. `GET /api/v1/admin/data/export/{users,lots,bookings}` for enhanced CSV exports with booking stats. Drag-and-drop upload UI with preview and import results. Feature flag: `mod-data-import`. 8 backend + 6 frontend tests. (#218)
-- **Fleet / Vehicle Management**: `GET /api/v1/admin/fleet` (all vehicles with stats), `GET /api/v1/admin/fleet/stats` (types distribution, electric ratio), `PUT /api/v1/admin/fleet/:id/flag` (flag/unflag vehicles). Added `Bicycle` to `VehicleType` enum. Feature flag: `mod-fleet`. 6 backend + 6 frontend tests. (#222)
-- **i18n**: Audit log, data management, fleet keys added to all 10 locales
-- **36 feature flags**: Added `mod-data-import`, `mod-fleet` (was 34)
 
----
+- Add v3.3.0 — audit log, data import/export, fleet management
+
+
+### Changed
+
+- Categorize modules into core/admin/integration/enterprise defaults
+
+
+### Documentation
+
+- Legal compliance suite + README overhaul for v3.2.0 (#187)
+
 
 ## [3.2.0] - 2026-03-22
 
 ### Added
-- **iCal Calendar Sync**: `GET /api/v1/calendar/ical` (authenticated feed), `GET /api/v1/calendar/ical/:token` (public subscription via personal token), `POST /api/v1/calendar/token` (generate/rotate subscription token). VEVENTs with DTSTART, DTEND, SUMMARY, LOCATION, DESCRIPTION, DTSTAMP. Subscribe button in Calendar view with copy-link modal and instructions for Google Calendar, Outlook, Apple Calendar. Feature flag: `mod-ical`. 8 backend + 3 frontend tests. (#214)
-- **API Rate Limiting Dashboard**: `GET /api/v1/admin/rate-limits` (stats per endpoint group: auth 5/min, api 100/min, public 30/min, webhook 50/min), `GET /api/v1/admin/rate-limits/history` (blocked requests over last 24h in hourly bins). Admin Rate Limits page at `/admin/rate-limits` with progress bars and 24h blocked-request bar chart. 4 backend + 5 frontend tests. (#215)
-- **Multi-Tenant Isolation**: `tenant_id: Option<String>` added to User, ParkingLot, Booking models. `GET /POST /api/v1/admin/tenants` (list/create), `PUT /api/v1/admin/tenants/:id` (update). Super-admin sees all tenants; regular admins scoped to their own. AdminTenants page at `/admin/tenants` with create/edit modal and branding support. Feature flag: `mod-multi-tenant`. 10 backend + 5 frontend tests. (#216)
-- **i18n**: Calendar subscribe, rate limits, tenants keys added to all 10 locales
-- **34 feature flags**: Added `mod-ical`, `mod-multi-tenant` (was 31)
 
----
+- Add iCal subscriptions, rate limit dashboard, multi-tenant — v3.2.0
+
 
 ## [3.1.0] - 2026-03-22
 
 ### Added
-- **Interactive Map View**: `GET /api/v1/lots/map` returns lots with coordinates, live availability, and color-coded markers (green/yellow/red/gray). `PUT /api/v1/admin/lots/{id}/location` for setting lot coordinates. Leaflet.js + OpenStreetMap frontend at `/map` with click-to-book popups. Feature flag: `mod-map`. 12 backend + 6 frontend tests. (#211)
-- **Web Push Notifications**: Structured `PushPayload` with event types (booking confirmed/reminder/cancelled, new announcement). Service worker push handler with action buttons and notification click routing. `useNotifications` hook for subscribe/unsubscribe flow. 7 new backend + 4 frontend tests. (#212)
-- **Stripe Payment Integration**: `POST /api/v1/payments/create-checkout` for credit purchase, `POST /api/v1/payments/webhook` for Stripe webhook events, `GET /api/v1/payments/history` for payment history, `GET /api/v1/payments/config` for Stripe status. Feature flag: `mod-stripe`. 14 backend tests. (#213)
-- **i18n**: Map, payments keys added to all 10 locales
-- **31 feature flags**: Added `mod-map`, `mod-stripe` (was 29)
 
----
+- Add map view, web push, and stripe payments — v3.1.0
+
 
 ## [3.0.0] - 2026-03-22
 
 ### Added
-- **10-Language Support**: Complete translations for FR, ES, IT, PT, TR, PL, JA, ZH — all 904 keys matching EN. Language selector dropdown in sidebar with flag + native name. 29 new i18n tests. (#207)
-- **Admin Analytics Dashboard**: `GET /api/v1/admin/analytics/overview` — daily bookings, revenue, peak hours histogram (24 bins), top 10 lots by utilization, user growth (12 months), avg booking duration. Frontend with stat cards, SVG charts, heatmap, date range picker, CSV export. Feature flag: `mod-analytics`. 6 backend + 7 frontend tests. (#208)
-- **Email Notification Templates**: 6 professional HTML email templates with inline CSS — booking confirmation, reminder, cancellation, password reset, welcome, weekly admin summary. Template engine with `{{key}}` variable substitution. Feature flag: `mod-email-templates`. 9 unit tests. (#209)
 
----
+- Add admin analytics module with overview endpoint
+- Sync frontend from parkhub-rust with 10-language i18n and admin analytics
+
+
+### Fixed
+
+- Update module count tests from 28 to 29 for lobby_display
+
+
+### Release
+
+- V3.0.0 — 10-language i18n, admin analytics, 1430 tests
+
 
 ## [2.9.0] - 2026-03-22
 
 ### Added
-- **Lobby Display / Kiosk Mode**: Public `GET /api/v1/lots/:id/display` endpoint for digital signage monitors — no auth required, rate-limited 10 req/min per IP. Returns lot name, available/total slots, occupancy percentage, color status (green/yellow/red), and per-floor breakdown. Feature flag: `mod-lobby-display`. (#198)
-- **LobbyDisplay frontend**: Full-screen view at `/lobby/:lotId` with auto-refresh every 10 seconds, 8rem+ numbers, color-coded occupancy bar, floor breakdown cards, dark background for screen burn-in prevention. i18n for en/de.
-- **Interactive Onboarding Wizard**: 4-step setup wizard at `/setup` — company info (name/logo/timezone), create lot (floors/slots), user invites, theme picker (all 12 themes). Feature flag: `mod-setup-wizard`. (#200)
-- **Wizard API**: `GET /api/v1/setup/wizard/status` + `POST /api/v1/setup/wizard` with per-step persistence and validation
-- **12 backend tests**: 6 lobby display (color boundaries, serialization) + 8 wizard (DTO serialization, theme list, step validation)
-- **12 frontend tests**: 6 lobby display (loading, display, floors, error, occupancy bar) + 6 wizard (render, validation, navigation, themes, redirect)
 
-### Closed
-- **#199 Digital Parking Pass**: Deferred — requires Apple Developer and Google Pay API accounts
+- Add onboarding wizard with 4-step setup flow
+- Add lobby display kiosk mode endpoint and frontend
 
----
+
+### Fixed
+
+- Add permissions block to lighthouse.yml (CodeQL alert #1384)
+- Pint fully_qualified_strict_types in SseController
+
+
+### Release
+
+- V2.9.0 — lobby display + onboarding wizard
+
 
 ## [2.8.0] - 2026-03-22
 
 ### Added
-- **WebSocket real-time updates**: Token-based auth via `?token=` query param, heartbeat with missed-pong tracking, initial occupancy snapshot on connect (`mod-websocket`)
-- **WsEvent factory methods**: `BookingCreated`, `BookingCancelled`, `OccupancyChanged`, `AnnouncementPublished`, `SlotStatusChange`
-- **Live booking broadcasts**: Booking create/cancel handlers broadcast WebSocket events to all connected clients
-- **Frontend useWebSocket hook**: Returns `{ connected, lastMessage, occupancy }` with token auth and exponential backoff reconnect
-- **Dashboard live indicator**: Green dot shows active WebSocket connection status
-- **Bookings real-time toasts**: Toast notifications on WebSocket booking events in Bookings page
 
-### Changed
-- **API module extraction (Phase 3)**: `mod.rs` reduced from 4517 to 1503 lines
-  - `system.rs`: health, version, maintenance, handshake, middleware (345 lines)
-  - `users.rs`: profile CRUD, GDPR, password, preferences, stats (757 lines)
-  - `admin_handlers.rs`: user/booking mgmt, stats, reports, audit, settings (1412 lines)
-  - `lots_ext.rs`: lot QR codes, admin dashboard charts (267 lines)
-  - `misc.rs`: legal/Impressum, public occupancy/display (384 lines)
+- Sync all frontend files from parkhub-rust v28
+- Add SSE real-time module with WebSocket hook sync from Rust
+- Sync 12 themes from parkhub-rust (was 6)
 
----
+
+### Documentation
+
+- Update README badges for v2.8.0 (1365+ tests)
+- Update README badges for v2.7.0 (1400+ tests)
+
+
+### Fixed
+
+- ThemeSwitcher test 6→12 themes
+- Sync test mocks from Rust (Palette, getDynamicPrice)
+- Remove unused import in OAuthTest
+
 
 ## [2.7.0] - 2026-03-22
 
 ### Added
-- **Dynamic pricing**: Occupancy-based surge/discount with admin-configurable multipliers and thresholds (`mod-dynamic-pricing`)
-- **Operating hours**: Per-lot 7-day schedule with open/close times, booking validation, "Open Now" badges (`mod-operating-hours`)
-- **SMS/WhatsApp stubs**: Notification channel expansion with phone number input and per-event toggles
-- **PDF invoices**: Professional booking invoices with VAT breakdown via `printpdf` (`mod-invoices`)
-- **OAuth/Social login**: Self-service Google + GitHub OAuth configuration (`mod-oauth`)
-- **12 design themes**: Added Wabi-Sabi, Scandinavian, Cyberpunk, Terracotta, Oceanic, Art Deco (was 6)
-- **Playwright E2E**: 65 tests covering API, pages, devtools, parking flow, GDPR, PWA
-- **Lighthouse CI**: Automated quality gates (a11y >= 95, perf >= 90, SEO >= 95)
-- **httpOnly cookie auth**: XSS-proof authentication with CSRF protection and Bearer fallback
+
+- Port operating hours from parkhub-rust
+- Port dynamic pricing from parkhub-rust
+
 
 ### Fixed
-- Workspace lint override for Slint FFI on Windows builds
-- ThemeSwitcher test updated for 12 themes
-- Frontend test mocks for all new API endpoints
 
----
+- Module count 25→27, frontend test mocks for theme/2FA/notifications
+
+
+### Tests
+
+- Add full user+admin workflow E2E with 12-theme cycle and booking simulation
+
+
+## [2.6.0] - 2026-03-22
+
+### Added
+
+- Port PDF invoice improvements from parkhub-rust
+- Port OAuth/social login from parkhub-rust
+
+
+### Documentation
+
+- Update README to v2.5.0 — themes, httpOnly cookies, 23 modules, test counts
+
+
+### Fixed
+
+- Update module count 22 -> 23 (themes module added)
+
+
+### Tests
+
+- Add comprehensive Playwright E2E test suite
+
+
+## [2.5.0] - 2026-03-22
+
+### Fixed
+
+- Replace localStorage JWT with httpOnly cookie auth (#153)
+
+
+## [2.4.0] - 2026-03-22
+
+### Added
+
+- Port theme switcher system from parkhub-rust
+
+
+### Fixed
+
+- Pint auto-fix AbsenceController
+
+
+## [2.3.0] - 2026-03-22
+
+### CI
+
+- Downgrade Lighthouse performance to warn (static SPA shell)
+
+
+### Chore
+
+- GitOps polish — README, CHANGELOG, SECURITY.md, templates
+
+
+### Fixed
+
+- Sync accessibility fixes from parkhub-rust + add Lighthouse CI
+
+
+### Tests
+
+- Add 157 tests for security, modules, admin, form requests, edge cases
+
 
 ## [2.2.0] - 2026-03-22
 
-### Added
-- **Glass morphism UI**: Bento grid dashboard with frosted-glass cards, animated counters, and modern gradients
-- **2FA/TOTP authentication**: QR code enrollment via `totp-rs`, backup codes, per-account enable/disable
-- **Accessibility score 100**: Full ARIA compliance, contrast fixes, confirm dialogs replacing `window.confirm`
-- **CI badges and GitOps polish**: README overhaul, SECURITY.md, issue/PR templates, CHANGELOG in Keep a Changelog format
+### Sync
 
-### Changed
-- Bumped version to 2.2.0
-- README badges switched from for-the-badge to flat-square style with CI status badge
-- Added Security link to README navigation
+- Frontend from parkhub-rust v2.2.0
 
----
 
 ## [2.1.0] - 2026-03-22
 
 ### Added
-- **28 Cargo feature flags**: Full modularity system — build only the modules you need (`mod-bookings`, `mod-vehicles`, `mod-absences`, etc.)
-- **Headless mode**: `--no-default-features --features headless` for pure MIT server builds without GUI dependencies
-- **Module documentation**: Feature flag table in README with build examples
 
-### Changed
-- Workspace Rust version updated to 1.85
-- Axum upgraded from 0.7 to 0.8
-- `rand` upgraded from 0.8 to 0.9
+- Add frontend security, UX, and admin improvements
+- Add QoS, admin features, booking policies, and health improvements
+- Add security features — 2FA, password policy, login history, sessions, API keys, notification preferences
 
----
+
+### Fixed
+
+- Add missing icon and API mocks in frontend tests
+
 
 ## [2.0.0] - 2026-03-22
 
 ### Added
-- **Full modularity system**: 28 feature-gated modules for compile-time customization
-- **Smart slot recommendations**: Heuristic scoring engine (slot frequency, lot frequency, features, proximity) — top 5 returned
-- **Community translation management**: Proposal submission, up/down voting, admin review with comments
-- **Runtime translation overrides**: Approved translations hot-loaded into i18n at app startup
-- **Favorites UI**: Full view for managing pinned parking slots with live availability status
-- **Dashboard analytics**: 7-day booking activity bar chart with real booking data
-- **DataTable CSV export**: Download any data table as CSV with proper cell escaping
-- **Demo reset tracking**: `last_reset_at`, `next_scheduled_reset`, `reset_in_progress` in status API
+
+- Discovery endpoint, backup/restore, theme route, CONTRIBUTING.md
+- Add ARIA labels, keyboard nav to FAB, loading skeletons to admin views
+- Full module system — 22 independently toggleable modules
+- Add comprehensive API error handling with consistent response format
+- Add OpenAPI documentation via Scramble (closes #53)
+- Add Larastan (PHPStan) static analysis with baseline
+- Add Stripe payment intent stubs (closes #29)
+- Add Laravel Broadcasting infrastructure for real-time events (#27)
+- Enhance Prometheus metrics endpoint to full spec (#32)
+- Add POST bookings/{id}/extend endpoint (#28)
+- Add PostgreSQL support + harden docker-entrypoint
+
+
+### CI
+
+- Stop spam — remove PostgreSQL/coverage/PHPStan from PRs, lean CI
+- Add QEMU setup for arm64 cross-compilation
+- Add arm64 platform to Docker build (closes #56)
+- Add PostgreSQL 16 service container and test job
+- Add PostgreSQL test job to CI pipeline (closes #51)
+
 
 ### Changed
-- Major version bump to reflect the modularity system and feature flag architecture
-- Clippy pedantic and nursery lints enforced with zero warnings
+
+- Extract route closures into controller methods (closes #50)
+- Consolidate duplicated SSRF validation into shared trait (closes #81)
+- Extract Form Request classes from controllers (closes #57)
+
+
+### Chore
+
+- Remove accidentally staged files from other branches
+
+
+### Dependencies
+
+- Bump h3
+- Bump h3 from 1.15.6 to 1.15.9 in parkhub-web (#22)
+
+
+### Documentation
+
+- Add deep dive audit report (2026-03-21)
+- Redesign README for professional presentation
+- Update README + CHANGELOG for v1.9.0 features
+
+
+### Fixed
+
+- Use.skeleton class selector (works in jsdom)
+- Update spinner tests to match skeleton loading components
+- Nonce-based CSP, session cookie hardening, QR local generation
+- Validate booking date filters, remove redundant requireAdmin methods
+- P2 security batch — token expiry, SMTP encryption, zone auth, branding validation
+- Rate-limit payments, verify Stripe webhook signature, fix stale metrics
+- Use trivy-action@master (0.28.0 does not exist)
+- Remove invalid XML comment from phpunit.xml
+- Remove coverage config from phpunit.xml
+- Security and config fixes for metrics, VAPID, QR auth, health version
+- Align test assertions with ApiResponseWrapper envelope structure
+- Update delete tests to use assertSoftDeleted after adding soft deletes to User model
+- Soft deletes for User+Booking, batch import N+1
+- Rename setup to createTestFixtures — conflicts with TestCase::setUp visibility
+- Update PHP requirement to ^8.4, drop 8.2/8.3 from CI matrix, fix Pint style
+- Security validation gaps + CI/CD hardening
+
+
+### Performance
+
+- Chunked credit refill, batched metrics queries, cached webhooks
+- Use DB aggregates and cursor streaming for reports and stats
+- Add pagination to BookingController + test coverage improvements
+
 
 ### Tests
-- **505 Rust + 401 Frontend + 484 PHP** = 1,390 total tests
 
----
+- Add 18 unit tests for Setting, Zone, Webhook, Absence models
+- Add model unit tests, booking conflict tests, auth and validation tests
+
+
+### Quality
+
+- Security hardening, code review fixes, frontend sync
+
 
 ## [1.9.0] - 2026-03-21
 
 ### Added
-- **Community translation management**: Proposal submission, up/down voting, admin review (approve/reject with comments)
-- **Runtime translation overrides**: Approved translations hot-loaded into i18n at app startup
-- **Smart slot recommendations**: Heuristic scoring engine (slot frequency, lot frequency, features, proximity, base) — top 5 returned
-- **Favorites UI**: Full view for managing pinned parking slots with live availability status
-- **OpenAPI docs**: 30+ annotated endpoints — translations and recommendations schemas registered
-- **Dashboard analytics**: 7-day booking activity bar chart with real booking data
-- **DataTable CSV export**: Download any data table as CSV with proper cell escaping
-- **A11y audit fixes**: ARIA labels on icon buttons, contrast fixes, confirm dialogs replacing window.confirm
-- **Demo reset tracking**: `last_reset_at`, `next_scheduled_reset`, `reset_in_progress` in status API + overlay
-- **PUSH_SUBSCRIPTIONS drain**: Demo reset now properly clears push subscription table
 
-### Changed
-- Clippy pedantic: `map_or`, `let...else`, format string inlining across translation + recommendation handlers
-- API client: 4 `any` types replaced with proper TypeScript interfaces
-- Version bumped to 1.9.0
+- Favorites UI — view, nav, i18n for 10 locales
+- Demo reset tracking tests, cleanup unused imports
+- Recommendations endpoint, a11y audit, analytics charts
+- Smart recommendations, typed API, CSV export, runtime i18n overrides
+- Translation management system + UI/UX 2026 overhaul
+
+
+### Chore
+
+- Bump version to v1.9.0, update README badge
+
+
+### Fixed
+
+- Use fully qualified Docker image names for Podman
+- Include devDependencies in Docker web build stage
+- Skip Astro font fetch in CI/Docker builds
+
+
+## [1.8.0] - 2026-03-21
+
+### Added
+
+- Sync frontend — QR pass, CSV export, enhanced payments
+- Add lightweight system monitoring dashboard (Pulse)
+
+
+### Chore
+
+- Bump version to v1.8.0, update README badge
+
+
+### Fixed
+
+- Pint style fixes + sync frontend from Rust repo
+- Add password confirmation to registration form (#21)
+
+
+## [1.7.1] - 2026-03-20
+
+### Added
+
+- Sync theme polish + PWA offline support from Rust repo
+
+
+## [1.7.0] - 2026-03-20
+
+### Added
+
+- Sync i18n completeness + OpenAPI docs from Rust repo
+
+
+## [1.6.1] - 2026-03-20
+
+### Added
+
+- Sync accessibility improvements (17 views, ARIA labels, semantic HTML)
+
+
+### CI
+
+- Add gate job matching required "CI" status check
+
+
+### Documentation
+
+- Update README and CHANGELOG for v1.6.0
+
+
+### Performance
+
+- Sync frontend bundle optimization (627K → 129K main chunk)
+
 
 ### Tests
-- **505 Rust + 484 PHP + 401 Frontend** = 1,390 total tests
 
----
+- Sync 9 Playwright E2E specs from Rust repo
+- Sync 101 new Vitest tests (13 views/components, 314 total)
+- Expand test suite from 326 to 424 tests
+
+
+### Sec
+
+- Harden security headers, CORS, and rate limiting
+
 
 ## [1.6.0] - 2026-03-20
 
 ### Added
-- **Typed AppError handling**: Structured error responses with consistent error codes across all endpoints
-- **Demo reset with DB wipe**: Full database clear and re-seed on demo reset (not just soft reset)
-- **Auto-reset scheduler**: Demo mode auto-resets every 6 hours with countdown in DemoOverlay
-- **React 19 useActionState**: Form handling migrated to React 19 `useActionState` pattern
-- **Tailwind CSS 4 @utility**: Custom utilities via Tailwind CSS 4 `@utility` directives
-- **Admin user search**: Search/filter users by name, email, or role in admin panel
-- **Rate-limited demo endpoints**: Demo reset and status endpoints are rate-limited to prevent abuse
+
+- Sync frontend — React 19 patterns, TW4 @utility, admin search
+
+
+### Fixed
+
+- Add missing Log facade import in console.php scheduler
+
+
+### Security
+
+- Rate-limit demo vote/reset endpoints (3/min per IP)
+
+
+## [1.5.5] - 2026-03-20
+
+### Added
+
+- Sync frontend v1.5.5 — donut chart, admin search, build hash, Calendar/Team perf
+
 
 ### Tests
-- **965 tests total**: 426 Rust + 213 Vitest + 326 PHP (up from 727 in v1.5.4)
 
----
+- 326 PHP tests passing — edge cases, Cache::flush setUp, missing routes (PUT absences/recurring)
+
 
 ## [1.5.4] - 2026-03-20
 
-### Added
-- **Book a Spot page**: 3-step guided booking flow — lot → slot → confirm (fixes #20)
-- **Command Palette** (Ctrl+K): quick navigation and actions from anywhere
-- **Admin bar chart**: visual booking statistics on admin dashboard
-- **Forgot Password page**: self-service password reset flow with email link
-- **404 page**: custom not-found page with navigation back to dashboard
-- **Playwright E2E tests**: browser-based end-to-end test suite
-- **Lighthouse CI**: automated performance, accessibility, and best practices auditing
+### Changed
+
+- Shared constants, i18n fixes from code review
+
 
 ### Fixed
-- **Dark mode (Tailwind CSS 4)**: resolved compatibility issues with Tailwind CSS v4 dark mode
-- **Shared constants**: extracted magic numbers and strings into shared constants (code review)
-- **N+1 query elimination**: optimized database queries to batch-load related records (code review)
+
+- Make Lighthouse CI non-blocking
+- Lighthouse CI server startup config
+
+
+## [1.5.3] - 2026-03-20
+
+### Added
+
+- Command palette, admin charts, Lighthouse CI, 727 total tests
+
+
+## [1.5.2] - 2026-03-20
 
 ### Tests
-- **727 tests total**: 327 Rust + 197 Vitest + 203 PHP (up from 434 in v1.4.8)
 
----
+- 631 total (203 PHP + 190 vitest + 238 Rust)
+- 539 total tests (180 PHP + 163 vitest + 196 Rust)
+
+
+### Design
+
+- Clean up Register + ErrorBoundary
+
+
+## [1.5.1] - 2026-03-20
+
+### Added
+
+- Add Book a Spot page — fixes #20
+
+
+## [1.5.0] - 2026-03-20
+
+### Added
+
+- Add 404 Not Found page
+- Add Forgot Password page + API methods
+
+
+### Fixed
+
+- Sync package-lock.json for CI npm ci
+
+
+## [1.4.9] - 2026-03-19
+
+### Chore
+
+- Fix Dependabot vulns, update README + CHANGELOG to v1.4.8
+
+
+### Fixed
+
+- Dark mode + mobile touch targets
+
+
+### Tests
+
+- Add Playwright E2E tests
+
 
 ## [1.4.8] - 2026-03-19
 
-### Design
-- **Full UI overhaul**: Eliminated AI slop patterns across all 12+ views
-- Welcome: left-aligned layout, inline features, no floating shapes or 3-column grid
-- Login: dark panel with specific copy, clean form, no decorative elements
-- Dashboard: clean stat cards, tabular-nums, real action buttons
-- Bookings: 2px left-border status accents, text badges
-- Profile: neutral avatar, clean stats, GDPR section
-- Layout: flat sidebar, left-border active indicator, no glass/blur
-- Admin: plain text headers, clean data tables
-- CSS: 12px card radius, 8px button radius, solid backgrounds, system font
-- Specific copy replacing generic AI marketing language
+### Fixed
 
-### Added
-- **434 tests**: 147 Rust + 150 PHP (376 assertions) + 137 frontend vitest
-- **Maestro E2E**: 5 browser flows (welcome, login, dashboard, admin, login failure)
-- **1-month simulation**: 294 bookings, EUR 5,007 revenue simulated successfully
-- **Prometheus metrics middleware**: HTTP request duration/count, auth/booking events
-- **Global rate limiting**: 100 req/s burst 200 on all routes
-- **OpenAPI annotations**: 18 handler endpoints in Swagger UI
-- **Skeleton loading**: contextual skeleton screens for Dashboard, Bookings, Vehicles
-- **i18n**: 50+ translation keys for notifications, calendar, team, profile (EN + DE)
-- **Dynamic version**: reads from package.json at build time
-- **Render env var automation**: deploy workflow sets env vars via API
+- Add missing nav.team/calendar/notifications i18n keys
+
+
+## [1.4.7] - 2026-03-19
 
 ### Fixed
-- Demo login credentials (admin@parkhub.test / demo) — seeder, entrypoint, env vars
-- DemoOverlay [object Object] / NaN — normalize nested API response
-- FeaturesContext crash (api.getFeatures not a function)
-- Welcome screen not showing for first-time visitors
-- PHP DemoController wrong config key (test_mode → demo_mode)
-- PHP User $fillable missing 'role' — setup wizard admin got role=user
-- PHP audit_log table name typo in GDPR anonymize
-- Rate limiter panic on zero config values
-- Admin password exposed via CLI arg (now env var)
 
-### Security
-- Rate limiter: clamp config values to >=1 (prevents panic)
-- Admin password: passed via env var, not CLI arg
-- cargo audit: 1 known advisory (RSA timing in jsonwebtoken, no fix available)
+- Dynamic version from package.json, bump to v1.4.7
 
----
+
+## [1.4.6] - 2026-03-19
+
+### Tests
+
+- 434 total tests — full coverage across all layers
+
+
+### Design
+
+- Apply UI/UX Pro Max design system — system font, tight tracking
+
+
+## [1.4.5] - 2026-03-19
+
+### Copy
+
+- Replace generic AI marketing copy with specific product description
+
+
+## [1.4.4] - 2026-03-19
+
+### Design
+
+- Clean up Admin views + refine global CSS
+
+
+## [1.4.3] - 2026-03-19
+
+### Design
+
+- Full AI slop removal across all views
+
+
+## [1.4.2] - 2026-03-19
+
+### Added
+
+- 103 PHP tests, 106 vitest, 5 Maestro E2E flows
+
+
+### Fixed
+
+- Version badge test uses regex instead of hardcoded version
+
+
+### Design
+
+- Eliminate AI slop from Welcome + Login pages
+
+
+## [1.4.1] - 2026-03-19
+
+### Chore
+
+- Bump version to v1.4.0, add Maestro E2E tests
+
+
+### Fixed
+
+- Add id to login submit button for E2E testing
+
+
+## [1.4.0] - 2026-03-19
+
+### Added
+
+- Micro-interactions, animated stats, empty state polish
+- Skeleton loading, i18n coverage, Layout test, UI polish
+
+
+## [1.3.17] - 2026-03-19
+
+### Fixed
+
+- Remove api.getFeatures/updateFeatures calls (no backend endpoint)
+
+
+## [1.3.16] - 2026-03-19
+
+### Fixed
+
+- Redirect first-time visitors to welcome language screen
+
+
+## [1.3.15] - 2026-03-19
+
+### Fixed
+
+- Clear config/route cache before rebuilding in entrypoint
+
+
+## [1.3.14] - 2026-03-19
+
+### Fixed
+
+- DemoController used wrong config key (test_mode → demo_mode)
+
+
+## [1.3.13] - 2026-03-19
+
+### Fixed
+
+- Use per-key PUT for Render env vars API
+
+
+## [1.3.12] - 2026-03-19
+
+### Fixed
+
+- Use Render API GET+merge+PUT for env vars
+
+
+## [1.3.11] - 2026-03-19
+
+### Fixed
+
+- Normalize DemoStatus API + set Render env vars in deploy
+
+
+## [1.3.10] - 2026-03-19
+
+### Fixed
+
+- Fix: override.env with Docker env vars in entrypoint.env.example defaults were shadowing Docker env vars like
+PARKHUB_ADMIN_PASSWORD and DEMO_MODE because Laravel env
+reads.env first. Now the entrypoint patches.env with actual
+Docker environment variables before running migrations/seeding.
+
+
+## [1.3.9] - 2026-03-19
+
+### Fixed
+
+- Use env PARKHUB_ADMIN_PASSWORD in seeder (was hardcoded ParkHub2026!)
+
+
+## [1.3.8] - 2026-03-19
+
+### CI
+
+- Fix frontend job directory, add vitest, fix Docker npm ci
+
+
+### Dependencies
+
+- Bump npm minor/patch — astro 6.0.6, framer-motion 12.38, zustand 5.0.12
+
 
 ## [1.3.7] - 2026-03-19
 
+### V1.3.7
+
+- Fix admin role bug, add 27 tests, Vitest, i18n
+
+
+## [1.3.6] - 2026-03-19
+
 ### Added
-- **Prometheus metrics middleware**: HTTP request duration/count, auth events (login success/fail), booking events (created/cancelled) recorded for every request
-- **Global rate limiting**: 100 req/s with burst 200 on all routes (in addition to per-IP auth rate limits)
-- **Periodic gauge updates**: Lot occupancy and active booking counts updated every 5 minutes via cron
-- **OpenAPI annotations**: 18 handler endpoints annotated with `#[utoipa::path]` — Swagger UI now fully populated for auth, lots, and credits APIs
-- **Frontend Vitest tests**: 33 tests across 3 files (API client, DemoOverlay, Login) — vitest + @testing-library/react
-- **Use-case context providers**: `UseCaseProvider` and `FeaturesProvider` wired into App.tsx provider tree
-- **i18n keys**: Added `useCase.*` and `features.*` translation keys in English and German for UseCaseSelector page
-- **PWA support**: manifest.json, service worker registration, apple-mobile-web-app meta tags
+
+- Wire UseCaseSelector route + full PWA support
+
+
+## [1.3.5] - 2026-03-19
+
+### Added
+
+- Wire use-case CSS theme via ThemeLoader component
+- Add SEED_DEMO_DATA mode + deployment modes docs
+
+
+## [1.3.4] - 2026-03-19
+
+### Added
+
+- Use-case CSS theme overrides + fix.test TLD
+
+
+## [1.3.3] - 2026-03-19
 
 ### Fixed
-- **AdminSettings use-case dropdown**: Options now match backend presets (company, residential, shared, rental, personal) instead of stale corporate/university/other
-- **Metric path normalization**: UUIDs and numeric IDs collapsed to `:id` to prevent Prometheus label cardinality explosion
-- **Clippy clean**: Resolved `if_same_then_else` in metric path normalization
 
-### Improved
-- **Test coverage**: 77 Rust tests (60 server + 17 common), 33 frontend vitest tests, all passing
-- **OpenAPI schemas**: Request/response types registered in ApiDoc for complete Swagger documentation
+- Change demo credentials to admin@parkhub.demo demo
 
----
+
+## [1.3.2] - 2026-03-19
+
+### Added
+
+- Use-case theming system with 5 presets
+
+
+## [1.3.1] - 2026-03-19
+
+### Added
+
+- Redesign login page — split-screen layout with hero panel
+
 
 ## [1.3.0] - 2026-03-18
 
 ### Added
-- **Demo auto-reset**: Scheduled auto-reset every 6 hours when `DEMO_MODE=true` — clears all data and re-seeds
-- **Demo reset button**: Manual reset via `POST /api/v1/demo/reset` with actual database wipe + re-seed
-- **Demo status tracking**: `GET /api/v1/demo/status` now returns `last_reset_at`, `next_scheduled_reset`, `reset_in_progress`
-- **DemoOverlay countdown**: Frontend shows time since last reset, countdown to next auto-reset, and reset-in-progress indicator
-- **Database clear method**: `Database::clear_all_data()` for full table drain while preserving settings
 
-### Fixed
-- **Silent error ignores**: Replaced all `let _ =` patterns with `tracing::warn` logging for credit transactions, GDPR operations, and settings saves
-- **Absence date parsing**: Replaced `unwrap()` with safe `Option` chaining in absence date filtering (prevented potential panics)
-- **CI pipeline**: Removed `|| true` from clippy and test steps in Gitea CI (errors were silently ignored)
-- **Duplicate scheduling**: Removed duplicate auto-release job in PHP scheduler (ran twice every 5 min)
-- **GDPR export route**: Fixed broken `/users/me/export` route pointing to wrong method name (PHP)
-- **Swap race condition**: Wrapped slot swap in `DB::transaction` with `lockForUpdate` (PHP)
-- **Admin pagination**: Added pagination to admin bookings endpoint to prevent memory exhaustion (PHP)
+- Complete webhook parity — add PUT/DELETE routes + test endpoint
+- DemoOverlay shows reset status, countdown, and resetting indicator
+- Demo reset — status tracking + 6h auto-reset scheduler
+- Add pricing system, slot features, premium role, Prometheus metrics, full frontend parity
+- Real swap requests + web push notifications
+- Add webhooks admin UI with CRUD, event filtering, SSRF protection
+- Check-in, extend, waitlist, i18n fixes, gitignore assets
+- Admin reports, credits, user import/export, password change, health endpoint
+- Complete admin panel — settings, slots, announcements, guests, notifications
 
-### Improved
-- **Dead code warnings**: Reduced from 46 to 0 by adding `#[allow(dead_code)]` on scaffolding modules
-- **Auth response**: Removed unnecessary `User::clone()` in login/register responses
-- **iCal import**: Added date validation and title truncation to prevent crashes on malformed input (PHP)
-- **Demo reset error handling**: Returns HTTP 500 on failure instead of silently swallowing exceptions (PHP)
 
----
+### CI
 
-## [1.2.0] - 2026-02-28
+- Auto-deploy to Render after Docker image push
 
-### Added
-- **Audit logging wired**: All sensitive operations (login, register, booking create/cancel, vehicle add/remove, user delete, role change, password reset, GDPR deletion) now emit structured audit log entries via the existing `audit.rs` infrastructure
-- **Booking confirmation email**: `POST /api/v1/bookings` now sends an HTML booking confirmation email (non-fatal if SMTP not configured)
-- **Profile editing**: New `PUT /api/v1/users/me` endpoint allows users to update their name, phone, and avatar URL; frontend Profile page now has an edit form
-- **Admin UI**: User management page now fully implemented — list users, change role, toggle active/inactive, delete user; Bookings overview tab added
-- **Booking filter**: Bookings page now has status/date/search filter bar (client-side filtering)
-- **Koyeb deployment**: Added `koyeb.yaml` for one-command Koyeb deployment
 
-### Fixed
-- Email verification config flag `require_email_verification` is now documented as unimplemented (not silently ignored)
-- parkhub-client: `on_admin_search_users` now implements real client-side user search filtering
-- parkhub-client: `ServerConnection::connect_with_cert()` added for proper TLS cert pinning; `connect()` documents the self-signed cert limitation
+### Changed
 
----
+- Split AdminController into 5 focused controllers
 
-## [1.1.1] — 2026-02-28
+
+### Chore
+
+- Update build output hashes
+
+
+### Dependencies
+
+- Bump docker/setup-buildx-action from 3 to 4 (#14)
+- Bump docker/login-action from 3 to 4 (#13)
+
+
+### Documentation
+
+- Add v1.3.0 changelog and live demo section to README
+
 
 ### Fixed
 
-- **Self-registration enforcement**: `POST /api/v1/auth/register` now returns HTTP 403 `REGISTRATION_DISABLED`
-  when `allow_self_registration = false` in config. Previously the flag had no effect.
-- **Floor name UUID**: Booking confirmation response showed the internal UUID of the floor (e.g.
-  `"Floor 82936167-..."`) instead of the human-readable name. Now resolved from the lot's floors array.
-- **CI Kaniko build**: `Cargo.lock` was gitignored, causing all CI builds to fail with
-  `lstat /workspace/src/Cargo.lock: no such file or directory`. Binary crates must commit
-  their lockfile for reproducible Docker builds.
+- Update composer.lock after tinker move to require
+- Design audit P0 fixes — disabled states, tabular nums, reduced motion
+- Resolve GitHub issues #16, #17, #18
+- DemoOverlay accessibility and UX improvements
+- Remove duplicate auto-release scheduling (ran twice every 5min)
+- Code review fixes — routing, safety, pagination
+- Rename load to loadData in swap request handlers
+- Security hardening, CI lint fixes, WCAG accessibility
+- Admin lot creation + credit quota system (closes #15)
+- Enforce all admin settings in business logic
 
----
 
-## [1.1.0] — 2026-02-28
+### Performance
 
-### Added
-- Per-endpoint rate limiting middleware (login: 5/min, register: 3/min, forgot-password: 3/15min — all per-IP)
-- SMTP email notifications: welcome email on registration, booking confirmation
-- Password reset flow via email (`POST /api/v1/auth/forgot-password`, `POST /api/v1/auth/reset-password`)
-- Token refresh endpoint (`POST /api/v1/auth/refresh`)
-- Booking invoice endpoint (`GET /api/v1/bookings/:id/invoice`)
-- Cookie consent UI (TTDSG §25 compliant — localStorage only, no HTTP cookies)
-- GDPR transparency page (`/transparency`)
-- Legal templates: Widerrufsbelehrung (§356 BGB) and updated cookie policy
-- Admin user management UI with role management
-- Admin booking overview UI
+- Cache Settings, fix N+1 queries, security headers, CSV injection, tests
+
+
+### Tests
+
+- Update register test password for complexity requirement
+
+
+### A11y
+
+- Add reduced motion support + improve input focus indicators
+
+
+### Legal
+
+- Add Art. 28(3)(h) audit rights clause to AVV template
+
+
+### Release
+
+- V1.3.0 — version bump across all route files
+
 
 ### Security
-- JWT secret now uses 256-bit cryptographically random bytes (CSPRNG) instead of UUID
-- HSTS header added (`max-age=31536000; includeSubDomains; preload`)
-- CSP hardened: removed `script-src 'unsafe-inline'`
-- X-Forwarded-For only trusted from private/loopback IP ranges (proxy trust validation)
-- Past booking creation rejected (start_time must be future)
-- Slot status update failure no longer silently ignored — returns HTTP 500
+
+- Prevent open redirect in install.php post-setup redirect
+
+
+## [1.2.6] - 2026-03-14
 
 ### Fixed
-- Docker: Dockerfile now uses `rust:alpine` (latest) for edition2024 + MSRV compatibility
-- Docker: `parkhub-client` (GUI workspace member) excluded from server build
-- Docker: `curl` added to Alpine deps for utoipa-swagger-ui asset download
-- Docker: server compiled with `--no-default-features --features headless` (no GTK/systray)
-- Docker: health checks, named volumes, restart policy
-- UX: empty states, loading states, error handling, mobile layout, accessibility polish
-- Password reset page and admin endpoint authorization checks
 
----
+- Demo crash on missing audit_log table
 
-## [1.0.0] — 2026-02-27 — Initial Public Release
 
-### Backend (parkhub-server)
+## [1.2.5] - 2026-03-14
 
-- Axum 0.7 HTTP server with async Tokio runtime
-- Embedded redb database — no external database server required
-- Optional AES-256-GCM at-rest encryption (PBKDF2-SHA256 key derivation)
-- JWT-style session authentication (UUID tokens, 24-hour expiry)
-- Argon2id password hashing with OsRng salts
-- RBAC with three roles: user, admin, superadmin
-- Parking lot management: create lots, define floors and slots
-- Booking creation with write-lock race condition protection
-- Booking cancellation with automatic slot status restoration
-- Vehicle registry: create and delete vehicles, ownership enforcement
-- GDPR Art. 15 — full data export as JSON (profile, bookings, vehicles)
-- GDPR Art. 17 — account erasure (PII anonymization, §147 AO compliant booking retention)
-- DDG §5 Impressum — configurable via admin API, public endpoint
-- Prometheus metrics endpoint (`/metrics`)
-- OpenAPI specification with Swagger UI (`/swagger-ui`)
-- Kubernetes health probes (`/health`, `/health/live`, `/health/ready`)
-- mDNS LAN autodiscovery via `mdns-sd`
-- TLS 1.3 with auto-generated self-signed certificate via `rcgen` + `rustls`
-- Security headers middleware (CSP, X-Frame-Options, Referrer-Policy, Permissions-Policy)
-- CORS: same-origin only, localhost allowed in development
-- Rate limiting: per-IP for auth endpoints (5 login/3 register per minute), global 100 req/s
-- Request body size limit: 1 MiB
-- Automatic daily backups with configurable retention
-- Audit logging
-- Windows GUI mode: Slint setup wizard, system tray via `tray-icon`
-- Headless and unattended modes for servers and Docker
-- CLI flags: `--headless`, `--unattended`, `--debug`, `--port`, `--data-dir`, `--version`
-- Portable mode: data stored next to binary (no system directory installation required)
+### Fixed
 
-### Frontend (parkhub-web)
+- Security hardening — install.php, render.yaml,.env defaults
 
-- React 19 + TypeScript + Tailwind CSS
-- Login page (username or email)
-- Registration page
-- Dashboard: occupancy stats, active bookings list, parking lot grid overview, quick action
-- Book page: 3-step flow (lot selection → slot grid → duration + vehicle)
-  - Slot favorites (persisted in localStorage)
-  - Duration options: 30 min, 1h, 2h, 4h, 8h, 12h
-  - Booking summary card with confirmation
-- My Bookings: active bookings with expiry countdown and cancel button; booking history
-- Vehicles: add vehicle (plate, make, model, color), delete with confirmation dialog
-- Admin panel: overview stats, lot management with inline layout editor, user management placeholder, bookings placeholder
-- Impressum page: renders DDG §5 data from server or shows setup notice
-- Dark mode and light mode
-- Mobile-responsive layout
-- Accessibility: ARIA labels, roles, live regions, keyboard navigation
-- Animated UI with Framer Motion
-- Toast notifications via react-hot-toast
 
-### Common (parkhub-common)
+## [1.2.4] - 2026-03-14
 
-- Shared data models: User, ParkingLot, ParkingFloor, ParkingSlot, Booking, Vehicle
-- Protocol types: ApiResponse, HandshakeRequest/Response, LoginRequest/Response
-- UserRole, SlotStatus, BookingStatus, VehicleType, LotStatus enums
-- PROTOCOL_VERSION constant for client-server compatibility negotiation
+### Added
 
-### Deployment
+- Add install.php wizard + fix docs and Docker port
 
-- Multi-stage Dockerfile (Node 22 for frontend, Rust 1.83 + musl-dev for backend, Alpine runtime)
-- Docker Compose with named volume, health check, and Traefik labels
-- German legal templates: impressum-template.md, datenschutz-template.md, agb-template.md, avv-template.md
 
-### Known Limitations in 1.0.0
+## [1.2.3] - 2026-03-14
 
-- Token refresh endpoint returns 501 Not Implemented
-- Admin user management UI is a placeholder (use API)
-- Admin booking overview UI is a placeholder (use API)
-- No email/SMTP notification support
+### Fixed
+
+- Pint style, booking test time, demo reset seeder
+- Move all use imports to top of api_v1.php for Pint compliance
+
+
+## [1.2.2] - 2026-03-14
+
+### Fixed
+
+- Add missing me and features v1 routes for frontend compatibility
+- Remove duplicate DemoController import in api_v1.php
+- Add missing DemoController import in v1 API routes
+- Audit cleanup — i18n, credential consistency, dead code removal
+
+
+## [1.2.1] - 2026-03-14
+
+### Added
+
+- Toggleable UX experience modules + PWA + i18n for all 10 locales
+- Solo reset mode with countdown + cancel
+- Use-case selector with adaptive theming
+
+
+### CI
+
+- Add Dependabot grouped updates for minor/patch versions
+- Add workflow_dispatch trigger to all workflows
+- Add Dependabot version update config
+
+
+### Dependencies
+
+- Bump docker/build-push-action from 6 to 7 (#9)
+- Bump docker/metadata-action from 5 to 6 (#8)
+- Bump actions/cache from 4 to 5 (#7)
+
+
+### Documentation
+
+- Add compliance badges and regulatory coverage table to README
+- Add compliance report from legal audit
+- Legal compliance audit — GDPR, TTDSG, BFSG, international
+
+
+### Fixed
+
+- Resolve TypeScript errors in Framer Motion ease types and FeaturesContext
+- Sync composer.lock hash with composer.json metadata changes
+- Make Docker port configurable via PORT env var
+- Update composer.json project metadata
+- Pass credits variables into transaction closure
+- Resolve all CI failures and clean up workflows
+- Bump PHP version to 8.4 for Symfony 8.0 compatibility
+- Accessibility, reduced-motion, i18n completeness, and service worker versioning
+- Sync frontend with Rust — missing CSS, Welcome refinements
+- Update login placeholder to parkhub.test
+- Stop silencing migration and seeding errors
+- Replace parkhub-demo.de with parkhub.test domain
+- Add missing auth.passwordConfirmation to all locales
+- Align DemoOverlay with actual API response shape
+- Resolve npm security vulnerabilities
+- Add Vite client types for import.meta.env
+
+
+### Design
+
+- Industrial-luxury aesthetic rework
+
+
+## [1.2.0] - 2026-03-13
+
+### Added
+
+- Astro 6 frontend, credits system, production admin command
+- Add demo overlay with 30-min countdown, collaborative vote reset, viewer count
+- V1.2.0 — routes, queue jobs, webhook delivery, auto-release, recurring bookings, Koyeb
+- Add Render.com demo deployment config
+
+
+### Chore
+
+- Remove deprecated clawdemos.duckdns.org demo URL
+- Comprehensive audit — improve docs, fix configs, harden security
+
+
+### Documentation
+
+- Docs: add screenshot gallery to docs/screenshots 9 screenshots of the ParkHub UI captured via Playwright at 1280x800-860px,
+all within the 1990px API limit. Covers login, dashboard, registration,
+booking creation, bookings list, vehicles, admin panel, and dark mode.
+
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
+- Add v1.1.1 changelog entry
+
+
+### Fixed
+
+- Security audit + industrial precision UI redesign
+- Bake Apache port 10000 into Dockerfile for Render
+- Dockerfile PHP 8.4, composer install, CMD for Render deployment
+- Admin.tsx broken API URLs and UUID token migration (#1, #2)
+- Resolve test failures in auth, admin role update, and booking overlap
+- Legal template — add supervisory authority examples and withdrawal right
+- Audit-found bugs — export method, importIcal route, waitlist notification
+- CORS, GHCR build pipeline, render.yaml switch to pre-built image
+- Auto-generate slots when creating a parking lot
+
+
+### Devops
+
+- Dockerfile hardening, compose secrets isolation, CI improvements
+
+
+### Security
+
+- Comprehensive audit — fix critical vulns, update deps to 2026
+- Restrict GitHub Actions CI to minimal permissions
+
+
+## [1.1.1] - 2026-02-28
+
+### Documentation
+
+- Add v1.1.0 changelog entry — security hardening and GDPR fixes
+
+
+### Fixed
+
+- Profile save API call, vehicle field name, security headers, duplicate theme toggle, router aliases, cleanup backup files
+- P0 bug fixes — health/ready, announcements, password validation, past booking, single booking endpoint, GDPR deletion response, CORS, admin pagination
+
+
+## [1.1.0] - 2026-02-28
+
+### Added
+
+- Security headers middleware, legal templates, transparency page
+- Password reset email, admin booking API, VERSION file, health probe fix
+
+
+### CI
+
+- Add GitHub Actions CI pipeline
+
+
+### Documentation
+
+- Comprehensive documentation suite — installation, API, GDPR, security, changelog
+- World-class README, issue templates, PR template
+
+
+### Fixed
+
+- P0+P1 security hardening — admin middleware, rate limiting, double-booking lock, GDPR erasure, IDOR fix, token expiry, recurring validation
+- Health checks, named volumes, restart policy,.env.example, override example
+- Deep audit fixes — password reset pages, missing flows, UX polish, email templates
+- Replace placeholder clone URL with actual repo URL
+
+
+## [1.0.1] - 2026-02-27
+
+### Documentation
+
+- Add v1.0.1 changelog entry with E2E bug fixes
+
+
+### Fixed
+
+- E2E-identified bugs — auth bypass, bookings status, privacy template
+
+
+## [1.0.0] - 2026-02-27
+
+### Added
+
+- V1.0.0 release preparation — security, accessibility, docs
+- Feature parity batch 2 — 40+ new endpoints (system, auth, bookings, absences, admin, branding, qr, swap-requests)
+- Feature parity with parkhub-docker
+- Add PHPUnit feature tests (Auth, Booking, Lot, Admin, Absence) + build assets
+- Default admin in entrypoint, setup/change-password + setup/complete routes, onboarding URL fixes
+- Configurable VITE_BASE_PATH build arg, default root deployment
+
+
+### Documentation
+
+- Add root CHANGELOG.md for GitHub release notes
+- Rewrite README with full feature comparison table, quick start options
+
+
+### Fixed
+
+- LicensePlateInput accepts full plate strings typed/pasted at once
+- Portable shebang for deploy script
+- Use VITE_API_URL prefix for all API calls and router basename
+- Default admin password matches Rust version (admin/admin for auto-login)
+- Auto-generate layout from slots, ParkingSlot number accessor, all API compat fixes
+- Add missing routes (announcements/active, updates/check), fix homeoffice API format
+- Safe optional chaining for hoSettings in Dashboard
+- Broken fetch call in importAbsenceIcal, QR code URL prefix
+- CSRF excluded, BrowserRouter basename, hardcoded API URLs
+- Disable CSRF for API routes (419 error)
+
+
+### Merge
+
+- Develop into main (full feature parity, new README)
+- Feature/backend-parity into develop
+
+
+
