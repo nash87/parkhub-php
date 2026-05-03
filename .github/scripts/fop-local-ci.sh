@@ -309,7 +309,14 @@ if [[ "$profile" == "full" || "$profile" == "cd" ]]; then
   #      a developer run it explicitly after starting `php artisan serve`.
   run_step "schemathesis contract fuzz (soft, opt-in)" "if [[ \"\${FOP_LOCAL_CI_RUN_SCHEMATHESIS:-0}\" != \"1\" ]]; then echo 'schemathesis disabled by default; export FOP_LOCAL_CI_RUN_SCHEMATHESIS=1 with a running php artisan serve on :8082 to enable'; elif command -v schemathesis >/dev/null 2>&1; then ./scripts/dump-openapi.sh && schemathesis run --checks=all --hypothesis-max-examples=50 docs/openapi/php.json --base-url=http://127.0.0.1:8082 || echo 'schemathesis returned non-zero (soft on full profile)'; else echo 'schemathesis not installed; skipping'; fi"
 
-  run_step_heavy "infection mutation testing" "./vendor/bin/infection --threads=4 --no-progress"
+  # Infection mutation testing is informational. Two soft gating layers
+  # (mirrors the schemathesis pattern above):
+  #   1. caller opted in via FOP_LOCAL_CI_RUN_INFECTION=1?
+  #   2. coverage extension present? (Infection without pcov/xdebug fails
+  #      with a CoverageChecker error in <1s — meaningless signal.)
+  # The nightly GHA workflow .github/workflows/infection.yml runs with
+  # continue-on-error: true, so the local CD profile must not be stricter.
+  run_step_heavy "infection mutation testing (soft, opt-in)" "if [[ \"\${FOP_LOCAL_CI_RUN_INFECTION:-0}\" != \"1\" ]]; then echo 'infection disabled by default; export FOP_LOCAL_CI_RUN_INFECTION=1 with pcov/xdebug enabled to run mutation testing'; elif ! php -m | grep -qE '^(pcov|xdebug)\$'; then echo 'infection requires pcov or xdebug for coverage; skipping (advisory like infection.yml continue-on-error)'; else ./vendor/bin/infection --threads=4 --no-progress || echo 'infection returned non-zero (soft on cd profile)'; fi"
 
   run_step_heavy "playwright chromium browser install" "npx playwright install --with-deps chromium"
 
