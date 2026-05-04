@@ -212,8 +212,6 @@ Route::middleware([StartSession::class, 'auth:sanctum', 'throttle:api', 'session
         Route::put('/announcements/{id}', [AdminAnnouncementController::class, 'updateAnnouncement']);
         Route::delete('/announcements/{id}', [AdminAnnouncementController::class, 'deleteAnnouncement']);
 
-        Route::get('/updates/check', [PublicController::class, 'updateCheck']);
-
         // Feature flags — stub for frontend compatibility
         Route::get('/features', [PublicController::class, 'adminFeatureFlags']);
         Route::put('/features', [PublicController::class, 'adminFeatureFlags']);
@@ -285,6 +283,7 @@ module_routes('rate_dashboard', 'rate_dashboard.php');
 module_routes('multi_tenant', 'multi_tenant.php');
 module_routes('audit_log', 'audit_log.php');
 module_routes('data_import', 'data_import.php');
+module_routes('updates', 'updates.php');
 module_routes('fleet', 'fleet.php');
 module_routes('maintenance', 'maintenance.php');
 module_routes('cost_center', 'cost_center.php');

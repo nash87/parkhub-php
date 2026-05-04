@@ -1,5 +1,5 @@
 # Mirror of .github/workflows/release.yml for Gitea Actions runner.
-# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Action refs rewritten to https://192.168.178.233/actions/* where mirrored.
 # Edit .github/workflows/release.yml as source-of-truth, then re-mirror.
 
 name: Release
@@ -30,7 +30,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Require v* tag ref
         run: |
@@ -73,8 +73,8 @@ jobs:
     timeout-minutes: 30
     needs: [validate-tag]
     steps:
-      - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      # TODO(gitea-mirror): No mirror at http://192.168.178.212:3000/shivammathur/setup-php yet.
+      - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # TODO(gitea-mirror): No mirror at https://192.168.178.233/shivammathur/setup-php yet.
       # Pin upstream until we mirror; revisit when Gitea mirror lands.
 
       - name: Set up PHP
@@ -90,7 +90,7 @@ jobs:
         # that PR runs can write to, or a malicious PR could poison a tag
         # build via the shared cache key. Cold install is acceptable on the
         # release path.
-        uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: https://192.168.178.233/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
 
@@ -112,7 +112,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Create release
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3

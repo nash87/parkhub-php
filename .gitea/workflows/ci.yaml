@@ -1,5 +1,5 @@
 # Internal full CI for the Gitea Actions runner.
-# Action refs are rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Action refs are rewritten to https://192.168.178.233/actions/* where mirrored.
 #
 # GitHub same-repo PRs are intentionally local-first: they require the
 # `fop/local-ci/pr` commit status posted by `make ci-post` and skip most heavy
@@ -36,7 +36,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Lint GitHub Actions workflows
         uses: rhysd/actionlint@914e7df21a07ef503a81201c76d2b11c789d3fca # v1.7.12
@@ -71,10 +71,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Review dependencies
-        uses: http://192.168.178.212:3000/actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
+        uses: https://192.168.178.233/actions/dependency-review-action@2031cfc080254a8a887f58cffee85186f0e49e48 # v4
         with:
           fail-on-severity: high
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0
@@ -86,8 +86,8 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      # TODO(gitea-mirror): No mirror at http://192.168.178.212:3000/shivammathur/setup-php yet.
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # TODO(gitea-mirror): No mirror at https://192.168.178.233/shivammathur/setup-php yet.
       # Pin upstream until we mirror; revisit when Gitea mirror lands.
 
       - name: Set up PHP
@@ -99,7 +99,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
@@ -124,7 +124,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up PHP
         uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
@@ -135,7 +135,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
@@ -160,10 +160,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up Node.js
-        uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: https://192.168.178.233/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -190,7 +190,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up PHP
         uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
@@ -201,14 +201,14 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Set up Node.js
-        uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: https://192.168.178.233/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -217,7 +217,7 @@ jobs:
             parkhub-web/package-lock.json
 
       - name: Cache Playwright browsers
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
@@ -261,7 +261,7 @@ jobs:
 
       - name: Upload Playwright report
         if: always()
-        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: https://192.168.178.233/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: playwright-report
           path: playwright-report/
@@ -269,7 +269,7 @@ jobs:
 
       - name: Upload Laravel server log
         if: always()
-        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: https://192.168.178.233/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: e2e-server-log
           path: /tmp/parkhub-e2e.log
@@ -282,7 +282,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4
@@ -304,7 +304,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up PHP
         uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
@@ -315,7 +315,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
@@ -343,7 +343,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up PHP
         uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
@@ -353,7 +353,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
@@ -389,7 +389,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up PHP
         uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
@@ -400,7 +400,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
