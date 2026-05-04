@@ -1,9 +1,10 @@
 # parkhub-php — Developer Guide
 
-This doc covers the local dev loop, the local-first CI/CD gate, the Gitea
-runner mirror, and the GitHub Actions hardening we rely on. The rule is:
-run the expensive proof locally through `fop`, let Gitea run the fuller
-internal mirror, and keep GitHub as the thin external gate that checks the
+This doc covers the local dev loop, the local-first CI/CD gate, the internal
+runner mirror, and the GitHub Actions hardening we rely on. The rule is: use
+GitHub `nash87/parkhub-php` as the canonical repository, run the expensive
+proof locally through `fop`, let the internal Gitea runner mirror catch
+cluster-near issues, and keep GitHub as the external gate that checks the
 posted `fop/local-ci/pr` status.
 
 ---
@@ -11,10 +12,12 @@ posted `fop/local-ci/pr` status.
 ## 1. Quickstart
 
 ```bash
-# Clone (Gitea = origin, GitHub = github)
-git clone git@192.168.178.220:florian/parkhub-php.git
+# Fresh clone: GitHub is canonical.
+git clone git@github.com:nash87/parkhub-php.git
 cd parkhub-php
-git remote add github https://github.com/nash87/parkhub-php.git
+
+# Optional local restore mirror. Do not pull, rebase, or base PR work from it.
+git remote add gitea-restore git@192.168.178.220:florian/parkhub-php.git
 
 # Bootstrap
 composer install
@@ -107,11 +110,12 @@ Shared feature/API changes also need the cross-runtime docs kept in sync:
 
 ---
 
-## 4. Gitea and `act`
+## 4. GitHub, Gitea mirror, and `act`
 
-Gitea is the internal runner surface. The `.gitea/workflows/*` files mirror the
-GitHub workflows with action refs rewritten to the local Gitea mirror where we
-have one, but the CI workflow intentionally remains fuller than a normal
+GitHub `nash87/parkhub-php` is the canonical repo. Gitea is only an internal
+runner/mirror surface for this project. The `.gitea/workflows/*` files mirror
+the GitHub workflows with action refs rewritten to the local Gitea mirror where
+we have one, but the CI workflow intentionally remains fuller than a normal
 same-repo GitHub PR. Use it to catch runner, packaging, and deploy-shape issues
 before GitHub is asked to spend minutes failing on something local or internal
 CI could have caught.
@@ -142,25 +146,30 @@ act -l                       # list every job/workflow
 
 ---
 
-## 5. Dual-remote push convention
+## 5. Remote convention
 
-Gitea is `origin` (private canonical). GitHub (`nash87/parkhub-php`) is a
-mirror for Actions + visibility.
+GitHub (`nash87/parkhub-php`) is the source of truth. Fresh clones should use
+GitHub as `origin`.
 
 ```bash
-git push origin main
-git push github main
+git remote -v
+git pull --rebase origin main
+git push origin <branch>
 ```
 
-One-liner helper (add to `~/.gitconfig`):
+Some workstation clones still have stale Gitea as `origin` and GitHub as
+`github`. In those clones, use GitHub explicitly and do not base work on
+`origin/main`:
 
-```ini
-[alias]
-    pa = "!git push origin \"$(git rev-parse --abbrev-ref HEAD)\" && git push github \"$(git rev-parse --abbrev-ref HEAD)\""
+```bash
+git fetch github
+git pull --rebase github main
+git push github <branch>
 ```
 
-Then `git pa` pushes both. **Always `git pull --rebase origin main` before
-either push** — Flux-style automation may have rewritten tags.
+Keep any Gitea remote named `gitea-restore` or similar unless an operator
+explicitly asks to restore mirroring. Do not use it for PR bases, release
+preflight updates, or GitOps build inputs.
 
 ---
 
@@ -199,8 +208,9 @@ primitives ([docs.github.com/en/actions](https://docs.github.com/en/actions)):
 - **Full fallback** — fork PRs, `main` pushes, and PRs labelled `github-ci-full`
   run the heavy GitHub jobs directly. This keeps external contributions honest
   while avoiding duplicate GitHub failures for local branches.
-- **Environments** — not wired yet (no external deploy targets on GitHub — we
-  deploy from Gitea via Flux). When we do wire them, use GitHub
+- **Environments** — not wired yet (no external deploy targets on GitHub; Flux
+  consumes ParkHub from the GitHub source-of-truth path). When we do wire them,
+  use GitHub
   [Environments](https://docs.github.com/en/actions/managing-workflow-runs-and-deployments/managing-deployments/managing-environments-for-deployment)
   with required reviewers + wait-timers.
 - **Dependency graph** — native, used by Dependabot + dependency-review.

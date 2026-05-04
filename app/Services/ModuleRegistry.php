@@ -778,6 +778,14 @@ final class ModuleRegistry
             'depends_on' => [],
         ],
         [
+            'name' => 'updates',
+            'category' => 'Admin',
+            'description' => 'Admin-controlled release checks, update application, rollback, and update history.',
+            'config_keys' => [],
+            'ui_route' => '/admin/updates',
+            'depends_on' => [],
+        ],
+        [
             'name' => 'themes',
             'category' => 'Enterprise',
             'description' => 'Per-tenant theme / branding customization.',

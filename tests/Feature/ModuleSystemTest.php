@@ -350,11 +350,11 @@ class ModuleSystemTest extends TestCase
             ->assertOk();
     }
 
-    public function test_all_68_modules_in_config(): void
+    public function test_all_69_modules_in_config(): void
     {
         $modules = config('modules');
 
-        $this->assertCount(68, $modules);
+        $this->assertCount(69, $modules);
     }
 
     public function test_disabled_accessible_module_returns_404(): void

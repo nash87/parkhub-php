@@ -36,4 +36,19 @@ return [
     */
 
     'audit_retention_days' => (int) env('AUDIT_RETENTION_DAYS', 90),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Self-Update
+    |--------------------------------------------------------------------------
+    |
+    | The release/update controller defaults to the conventional origin/main
+    | pair, but local development worktrees may keep a stale Gitea remote as
+    | origin while GitHub is the canonical source of truth.
+    */
+
+    'updates' => [
+        'remote' => env('PARKHUB_UPDATE_REMOTE', 'origin'),
+        'branch' => env('PARKHUB_UPDATE_BRANCH', 'main'),
+    ],
 ];
