@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Process;
 use Tests\TestCase;
 
 class AdminUpdatesRouteTest extends TestCase
@@ -50,5 +52,42 @@ class AdminUpdatesRouteTest extends TestCase
         $this->actingAs($user)
             ->postJson('/api/v1/admin/updates/apply', ['version' => '9.9.9'])
             ->assertForbidden();
+    }
+
+    public function test_apply_uses_configured_update_remote_and_branch(): void
+    {
+        config([
+            'parkhub.updates.remote' => 'github',
+            'parkhub.updates.branch' => 'main',
+        ]);
+
+        Process::fake();
+        Artisan::shouldReceive('call')
+            ->with('migrate', ['--force' => true])
+            ->once()
+            ->andReturn(0);
+        Artisan::shouldReceive('call')
+            ->with('config:cache')
+            ->once()
+            ->andReturn(0);
+        Artisan::shouldReceive('call')
+            ->with('route:cache')
+            ->once()
+            ->andReturn(0);
+        Artisan::shouldReceive('call')
+            ->with('view:clear')
+            ->once()
+            ->andReturn(0);
+
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->postJson('/api/v1/admin/updates/apply', ['version' => '9.9.9'])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'update_applied');
+
+        Process::assertRan(fn ($process) => $process->command === ['git', 'pull', 'github', 'main']);
+        Process::assertRan(fn ($process) => $process->command === ['composer', 'install', '--no-dev', '--optimize-autoloader', '--no-interaction']);
     }
 }

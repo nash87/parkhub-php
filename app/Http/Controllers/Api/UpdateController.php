@@ -72,9 +72,12 @@ class UpdateController extends Controller
     public function apply(Request $request): JsonResponse
     {
         try {
+            $remote = (string) config('parkhub.updates.remote', 'origin');
+            $branch = (string) config('parkhub.updates.branch', 'main');
+
             // Pull latest code (Process facade uses proc_open, not shell exec)
             $gitResult = Process::path(base_path())
-                ->run(['git', 'pull', 'origin', 'main']);
+                ->run(['git', 'pull', $remote, $branch]);
 
             if (! $gitResult->successful()) {
                 return response()->json([
