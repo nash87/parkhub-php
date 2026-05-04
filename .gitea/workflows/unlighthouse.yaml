@@ -39,7 +39,7 @@ jobs:
     name: Unlighthouse (whole-site crawl)
     runs-on: ubuntu-latest
     container:
-      image: 192.168.178.250:5000/gitea/runner-images:ubuntu-latest
+      image: 192.168.178.250:5000/gitea/runner-images@sha256:056f41b214d06e42289a7b2918950e46e9394e855ca056c88b8131a5f0761557
       options: --add-host=gitea.test:192.168.178.233
     timeout-minutes: 45
     continue-on-error: true # Soft-fail — long-tail budgets still tuning.
@@ -138,8 +138,8 @@ jobs:
       - name: Upload Unlighthouse report
         if: always()
         # SOTA-2026 (T-2280): @v4 uses a GHES-incompatible artifact API
-        # not yet served by Gitea Actions. @v3 is the last GHES-compat tag.
-        uses: https://192.168.178.233/actions/upload-artifact@v3
+        # not yet served by Gitea Actions. Pinned to the v3 commit.
+        uses: https://192.168.178.233/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5
         with:
           name: unlighthouse-${{ github.run_number }}
           path: parkhub-web/.unlighthouse/
