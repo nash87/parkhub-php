@@ -137,6 +137,28 @@ run_advisory_if_available() {
   fi
 }
 
+run_composer_prod_audit() {
+  local name="composer audit (prod locked)"
+  section "$name"
+
+  local out
+  if out="$(composer audit --locked --no-dev --no-interaction 2>&1)"; then
+    printf '%s\n' "$out"
+    return 0
+  fi
+
+  local status=$?
+  printf '%s\n' "$out"
+  if [[ "$profile" == "pr" && "$fail_advisory" -eq 0 ]] &&
+    [[ "$out" =~ (Could\ not\ resolve\ host|curl\ error|probably\ indicates\ you\ are\ offline|Failed\ to\ download) ]]; then
+    advisory_failures+=("$name network unavailable")
+    echo "$name could not reach advisory metadata (advisory in local PR mode)"
+    return 0
+  fi
+
+  return "$status"
+}
+
 require_core_tool git
 require_core_tool composer
 require_core_tool npm
@@ -145,7 +167,7 @@ require_core_tool python3
 section "local security profile"
 echo "profile=$profile strict_tools=$strict_tools fail_advisory=$fail_advisory"
 
-run_required "composer audit (prod locked)" composer audit --locked --no-dev --no-interaction
+run_composer_prod_audit
 
 run_advisory "npm audit root (prod high)" npm audit --package-lock-only --omit=dev --audit-level=high
 run_advisory "npm audit parkhub-web (prod high)" npm audit --prefix parkhub-web --package-lock-only --omit=dev --audit-level=high
