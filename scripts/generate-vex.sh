@@ -19,7 +19,9 @@ if [[ $# -ne 0 ]]; then
 fi
 
 DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-REPO_URL="${GITHUB_SERVER_URL:-https://gitea.test}/${GITHUB_REPOSITORY:-parkhub-php}"
+REPO_HOST="${GITHUB_SERVER_URL:-https://github.com}"
+REPO_PATH="${GITHUB_REPOSITORY:-nash87/parkhub-php}"
+REPO_URL="${REPO_HOST}/${REPO_PATH}"
 COMMIT="${GITHUB_SHA:-unknown}"
 
 # ── Known accepted vulnerabilities (edit as baseline changes) ──

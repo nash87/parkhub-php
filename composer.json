@@ -75,7 +75,7 @@
         ],
         "lint": [
             "vendor/bin/pint --test",
-            "vendor/bin/phpstan analyse --memory-limit=2G --no-progress"
+            "scripts/ci/phpstan-analyse.sh --memory-limit=2G --no-progress"
         ],
         "ci": [
             "@php artisan config:clear --ansi",

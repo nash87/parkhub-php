@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use Dedoc\Scramble\Attributes\Response as OpenApiResponse;
+use Illuminate\Contracts\Process\ProcessResult as ProcessResultContract;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -71,31 +73,61 @@ class UpdateController extends Controller
      */
     public function apply(Request $request): JsonResponse
     {
+        $remote = (string) config('parkhub.updates.remote', 'origin');
+        $branch = (string) config('parkhub.updates.branch', 'main');
+        $currentVersion = $this->currentVersion();
+
         try {
             // Pull latest code (Process facade uses proc_open, not shell exec)
             $gitResult = Process::path(base_path())
-                ->run(['git', 'pull', 'origin', 'main']);
+                ->run(['git', 'pull', $remote, $branch]);
 
             if (! $gitResult->successful()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => ['code' => 'GIT_ERROR', 'message' => 'git pull failed: '.$gitResult->errorOutput()],
-                ], 500);
+                return $this->failedUpdateResponse('apply', 'GIT_ERROR', 'git pull failed: '.$this->processError($gitResult), [
+                    'from_version' => $currentVersion,
+                    'remote' => $remote,
+                    'branch' => $branch,
+                ]);
+            }
+
+            // Install composer dependencies before running the updated code's migrations.
+            $composerResult = $this->composerInstall();
+
+            if (! $composerResult->successful()) {
+                return $this->failedUpdateResponse('apply', 'COMPOSER_ERROR', 'composer install failed: '.$this->processError($composerResult), [
+                    'from_version' => $currentVersion,
+                    'remote' => $remote,
+                    'branch' => $branch,
+                ]);
             }
 
             // Run migrations
-            Artisan::call('migrate', ['--force' => true]);
+            if (Artisan::call('migrate', ['--force' => true]) !== 0) {
+                return $this->failedUpdateResponse('apply', 'ARTISAN_ERROR', 'migrate failed', [
+                    'from_version' => $currentVersion,
+                    'remote' => $remote,
+                    'branch' => $branch,
+                ]);
+            }
 
             // Clear caches
-            Artisan::call('config:cache');
-            Artisan::call('route:cache');
-            Artisan::call('view:clear');
+            foreach (['config:cache', 'route:cache', 'view:clear'] as $command) {
+                if (Artisan::call($command) !== 0) {
+                    return $this->failedUpdateResponse('apply', 'ARTISAN_ERROR', "{$command} failed", [
+                        'from_version' => $currentVersion,
+                        'remote' => $remote,
+                        'branch' => $branch,
+                    ]);
+                }
+            }
 
-            // Install composer dependencies
-            $composerResult = Process::path(base_path())
-                ->run(['composer', 'install', '--no-dev', '--optimize-autoloader', '--no-interaction']);
-
-            $newVersion = trim(file_get_contents(base_path('VERSION')));
+            $newVersion = $this->currentVersion();
+            $this->appendHistory('apply', 'success', [
+                'from_version' => $currentVersion,
+                'version' => $newVersion,
+                'remote' => $remote,
+                'branch' => $branch,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -105,11 +137,12 @@ class UpdateController extends Controller
                     'message' => "Updated to v{$newVersion}. Application caches refreshed.",
                 ],
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => ['code' => 'UPDATE_ERROR', 'message' => $e->getMessage()],
-            ], 500);
+        } catch (\Throwable $e) {
+            return $this->failedUpdateResponse('apply', 'UPDATE_ERROR', $e->getMessage(), [
+                'from_version' => $currentVersion,
+                'remote' => $remote,
+                'branch' => $branch,
+            ]);
         }
     }
 
@@ -119,18 +152,17 @@ class UpdateController extends Controller
      */
     public function history(): JsonResponse
     {
-        $historyFile = storage_path('app/update_history.json');
-        $history = file_exists($historyFile)
-            ? json_decode(file_get_contents($historyFile), true) ?? []
-            : [];
-
-        return response()->json(['success' => true, 'data' => $history]);
+        return response()->json(['success' => true, 'data' => $this->readHistory()]);
     }
 
     /**
      * GET /api/v1/admin/updates/releases
      * List all available GitHub releases.
      */
+    #[OpenApiResponse(
+        status: 200,
+        type: 'array{success: bool, data: list<array{version: string, tag: string, name: string, published_at: string, prerelease: bool, url: string, is_current: bool}>}',
+    )]
     public function releases(): JsonResponse
     {
         $currentVersion = trim(file_get_contents(base_path('VERSION')));
@@ -146,15 +178,20 @@ class UpdateController extends Controller
                 return response()->json(['success' => true, 'data' => []]);
             }
 
-            $releases = collect($response->json())->map(fn ($r) => [
-                'version' => ltrim($r['tag_name'] ?? '', 'v'),
-                'tag' => $r['tag_name'] ?? '',
-                'name' => $r['name'] ?? '',
-                'published_at' => $r['published_at'] ?? '',
-                'prerelease' => $r['prerelease'] ?? false,
-                'url' => $r['html_url'] ?? '',
-                'is_current' => ltrim($r['tag_name'] ?? '', 'v') === $currentVersion,
-            ])->toArray();
+            $releases = [];
+            foreach ($response->json() as $release) {
+                $tagName = (string) ($release['tag_name'] ?? '');
+                $version = ltrim($tagName, 'v');
+                $releases[] = [
+                    'version' => $version,
+                    'tag' => $tagName,
+                    'name' => (string) ($release['name'] ?? ''),
+                    'published_at' => (string) ($release['published_at'] ?? ''),
+                    'prerelease' => (bool) ($release['prerelease'] ?? false),
+                    'url' => (string) ($release['html_url'] ?? ''),
+                    'is_current' => $version === $currentVersion,
+                ];
+            }
 
             return response()->json(['success' => true, 'data' => $releases]);
         } catch (\Exception $e) {
@@ -169,6 +206,8 @@ class UpdateController extends Controller
     public function rollback(Request $request): JsonResponse
     {
         $version = $request->input('version');
+        $currentVersion = $this->currentVersion();
+
         if (! $version) {
             return response()->json([
                 'success' => false,
@@ -177,7 +216,10 @@ class UpdateController extends Controller
         }
 
         if (! preg_match('/^\d+\.\d+\.\d+$/', $version)) {
-            return response()->json(['error' => ['message' => 'Invalid version format']], 422);
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'INVALID_VERSION', 'message' => 'Invalid version format'],
+            ], 422);
         }
 
         try {
@@ -186,16 +228,42 @@ class UpdateController extends Controller
                 ->run(['git', 'checkout', "v{$version}"]);
 
             if (! $result->successful()) {
-                return response()->json([
-                    'success' => false,
-                    'error' => ['code' => 'GIT_ERROR', 'message' => 'Rollback failed: '.$result->errorOutput()],
-                ], 500);
+                return $this->failedUpdateResponse('rollback', 'GIT_ERROR', 'Rollback failed: '.$this->processError($result), [
+                    'from_version' => $currentVersion,
+                    'version' => $version,
+                ]);
+            }
+
+            $composerResult = $this->composerInstall();
+
+            if (! $composerResult->successful()) {
+                return $this->failedUpdateResponse('rollback', 'COMPOSER_ERROR', 'composer install failed: '.$this->processError($composerResult), [
+                    'from_version' => $currentVersion,
+                    'version' => $version,
+                ]);
             }
 
             // Run migrations
-            Artisan::call('migrate', ['--force' => true]);
-            Artisan::call('config:cache');
-            Artisan::call('route:cache');
+            if (Artisan::call('migrate', ['--force' => true]) !== 0) {
+                return $this->failedUpdateResponse('rollback', 'ARTISAN_ERROR', 'migrate failed', [
+                    'from_version' => $currentVersion,
+                    'version' => $version,
+                ]);
+            }
+
+            foreach (['config:cache', 'route:cache', 'view:clear'] as $command) {
+                if (Artisan::call($command) !== 0) {
+                    return $this->failedUpdateResponse('rollback', 'ARTISAN_ERROR', "{$command} failed", [
+                        'from_version' => $currentVersion,
+                        'version' => $version,
+                    ]);
+                }
+            }
+
+            $this->appendHistory('rollback', 'success', [
+                'from_version' => $currentVersion,
+                'version' => (string) $version,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -205,11 +273,93 @@ class UpdateController extends Controller
                     'message' => "Rolled back to v{$version}.",
                 ],
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => ['code' => 'ROLLBACK_ERROR', 'message' => $e->getMessage()],
-            ], 500);
+        } catch (\Throwable $e) {
+            return $this->failedUpdateResponse('rollback', 'ROLLBACK_ERROR', $e->getMessage(), [
+                'from_version' => $currentVersion,
+                'version' => (string) $version,
+            ]);
         }
+    }
+
+    private function currentVersion(): string
+    {
+        return trim(file_get_contents(base_path('VERSION')));
+    }
+
+    private function composerInstall(): ProcessResultContract
+    {
+        return Process::path(base_path())
+            ->run(['composer', 'install', '--no-dev', '--optimize-autoloader', '--no-interaction']);
+    }
+
+    private function failedUpdateResponse(string $action, string $code, string $message, array $context): JsonResponse
+    {
+        $this->appendHistory($action, 'failed', [
+            ...$context,
+            'error_code' => $code,
+            'message' => $message,
+        ]);
+
+        return response()->json([
+            'success' => false,
+            'error' => ['code' => $code, 'message' => $message],
+        ], 500);
+    }
+
+    private function processError(ProcessResultContract $result): string
+    {
+        $error = trim($result->errorOutput());
+        if ($error !== '') {
+            return $error;
+        }
+
+        $output = trim($result->output());
+        if ($output !== '') {
+            return $output;
+        }
+
+        return 'exit code '.(string) $result->exitCode();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function readHistory(): array
+    {
+        $historyFile = $this->historyPath();
+        if (! file_exists($historyFile)) {
+            return [];
+        }
+
+        $history = json_decode((string) file_get_contents($historyFile), true);
+
+        return is_array($history) ? array_values($history) : [];
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function appendHistory(string $action, string $status, array $context): void
+    {
+        $history = $this->readHistory();
+        $history[] = [
+            'action' => $action,
+            'status' => $status,
+            'created_at' => now()->toISOString(),
+            ...$context,
+        ];
+
+        $historyFile = $this->historyPath();
+        $directory = dirname($historyFile);
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        file_put_contents($historyFile, json_encode($history, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+    }
+
+    private function historyPath(): string
+    {
+        return storage_path('app/update_history.json');
     }
 }
