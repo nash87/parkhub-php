@@ -1,5 +1,5 @@
 # Mirror of .github/workflows/visual-regression.yml for Gitea Actions runner.
-# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Action refs rewritten to https://192.168.178.233/actions/* where mirrored.
 # Edit .github/workflows/visual-regression.yml as source-of-truth, then re-mirror.
 
 name: Visual Regression
@@ -40,8 +40,8 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      # TODO(gitea-mirror): No mirror at http://192.168.178.212:3000/shivammathur/setup-php yet.
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # TODO(gitea-mirror): No mirror at https://192.168.178.233/shivammathur/setup-php yet.
       # Pin upstream until we mirror; revisit when Gitea mirror lands.
 
       - name: Set up PHP
@@ -53,14 +53,14 @@ jobs:
           tools: composer:v2
 
       - name: Cache Composer downloads
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.composer/cache
           key: ${{ runner.os }}-composer-${{ hashFiles('composer.lock') }}
           restore-keys: ${{ runner.os }}-composer-
 
       - name: Set up Node.js
-        uses: http://192.168.178.212:3000/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        uses: https://192.168.178.233/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -69,7 +69,7 @@ jobs:
             parkhub-web/package-lock.json
 
       - name: Cache Playwright browsers
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
@@ -124,7 +124,7 @@ jobs:
 
       - name: Upload diff artifacts
         if: failure()
-        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: https://192.168.178.233/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: visual-regression-diffs
           path: |
@@ -136,7 +136,7 @@ jobs:
 
       - name: Upload full Playwright report
         if: always()
-        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: https://192.168.178.233/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: playwright-visual-report
           path: playwright-report/
@@ -144,7 +144,7 @@ jobs:
 
       - name: Upload Laravel server log
         if: always()
-        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: https://192.168.178.233/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: visual-server-log
           path: /tmp/parkhub-visual.log

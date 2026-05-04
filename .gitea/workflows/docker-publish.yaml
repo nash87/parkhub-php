@@ -1,5 +1,5 @@
 # Mirror of .github/workflows/docker-publish.yml for Gitea Actions runner.
-# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Action refs rewritten to https://192.168.178.233/actions/* where mirrored.
 # Edit .github/workflows/docker-publish.yml as source-of-truth, then re-mirror.
 
 name: Release Container
@@ -41,7 +41,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4

@@ -44,6 +44,7 @@ return [
     'rate_dashboard' => env('MODULE_RATE_DASHBOARD', true),
     'audit_log' => env('MODULE_AUDIT_LOG', true),
     'data_import' => env('MODULE_DATA_IMPORT', true),
+    'updates' => env('MODULE_UPDATES', true),
     'fleet' => env('MODULE_FLEET', true),
     'accessible' => env('MODULE_ACCESSIBLE', true),
     'maintenance' => env('MODULE_MAINTENANCE', true),
