@@ -1,5 +1,5 @@
 # Mirror of .github/workflows/schemathesis.yml for Gitea Actions runner.
-# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Action refs rewritten to https://192.168.178.233/actions/* where mirrored.
 # Edit .github/workflows/schemathesis.yml as source-of-truth, then re-mirror.
 
 name: Schemathesis (contract fuzzing)
@@ -35,8 +35,8 @@ jobs:
     # triage follow-up tasks off the nightly run.
     continue-on-error: true
     steps:
-      - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      # TODO(gitea-mirror): No mirror at http://192.168.178.212:3000/shivammathur/setup-php yet.
+      - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # TODO(gitea-mirror): No mirror at https://192.168.178.233/shivammathur/setup-php yet.
       # Pin upstream until we mirror; revisit when Gitea mirror lands.
 
       - name: Set up PHP
@@ -48,7 +48,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache composer
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
@@ -57,7 +57,7 @@ jobs:
         run: composer install --prefer-dist --no-progress --no-interaction
 
       - name: Set up Python
-        uses: http://192.168.178.212:3000/actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: https://192.168.178.233/actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.12'
 
@@ -148,7 +148,7 @@ jobs:
 
       - name: Upload schemathesis report
         if: always()
-        uses: http://192.168.178.212:3000/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: https://192.168.178.233/actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: schemathesis-report
           path: |

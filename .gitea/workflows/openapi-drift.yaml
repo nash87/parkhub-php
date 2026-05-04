@@ -1,5 +1,5 @@
 # Mirror of .github/workflows/openapi-drift.yml for Gitea Actions runner.
-# Action refs rewritten to http://192.168.178.212:3000/actions/* where mirrored.
+# Action refs rewritten to https://192.168.178.233/actions/* where mirrored.
 # Edit .github/workflows/openapi-drift.yml as source-of-truth, then re-mirror.
 
 name: OpenAPI Drift
@@ -32,8 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: http://192.168.178.212:3000/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      # TODO(gitea-mirror): No mirror at http://192.168.178.212:3000/shivammathur/setup-php yet.
+      - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      # TODO(gitea-mirror): No mirror at https://192.168.178.233/shivammathur/setup-php yet.
       # Pin upstream until we mirror; revisit when Gitea mirror lands.
 
       - name: Set up PHP
@@ -44,7 +44,7 @@ jobs:
           tools: composer:v2
 
       - name: Cache composer
-        uses: http://192.168.178.212:3000/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
+        uses: https://192.168.178.233/actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5
         with:
           path: vendor
           key: composer-${{ hashFiles('composer.lock') }}
