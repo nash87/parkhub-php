@@ -254,7 +254,7 @@ run_step "composer install (sync)" "composer install --prefer-dist --no-interact
 
 run_step "pint format check" "./vendor/bin/pint --test"
 
-run_step "phpstan level 5" "./vendor/bin/phpstan analyse --memory-limit=512M --no-progress"
+run_step "phpstan level 5" "scripts/ci/phpstan-analyse.sh --memory-limit=512M --no-progress"
 
 run_step "phpunit unit + feature" "./vendor/bin/phpunit --testsuite=Unit --no-coverage && ./vendor/bin/phpunit --testsuite=Feature --no-coverage"
 
