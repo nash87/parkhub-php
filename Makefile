@@ -54,7 +54,7 @@ lint:
 
 ## Mirrors: static-analysis job
 static-analysis:
-	./vendor/bin/phpstan analyse --memory-limit=512M
+	scripts/ci/phpstan-analyse.sh --memory-limit=512M
 
 ## Mirrors: backend-tests job
 test:

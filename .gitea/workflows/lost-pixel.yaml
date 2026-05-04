@@ -37,8 +37,8 @@ jobs:
     name: Lost Pixel (pages + Storybook)
     runs-on: ubuntu-latest
     container:
-      image: 192.168.178.250:5000/gitea/runner-images:ubuntu-latest
-      options: --add-host=gitea.test:192.168.178.212
+      image: 192.168.178.250:5000/gitea/runner-images@sha256:056f41b214d06e42289a7b2918950e46e9394e855ca056c88b8131a5f0761557
+      options: --add-host=gitea.test:192.168.178.233
     timeout-minutes: 30
     continue-on-error: true # Diffs surface as artefacts, never block.
     # Gated until lostpixel.config.ts lands at repo root and the
@@ -50,9 +50,9 @@ jobs:
       run:
         working-directory: parkhub-web
     steps:
-      - uses: http://192.168.178.212:3000/actions/checkout@v4
+      - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
-      - uses: http://192.168.178.212:3000/actions/setup-node@v4
+      - uses: https://192.168.178.233/actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -95,8 +95,8 @@ jobs:
         if: always()
         working-directory: ${{ github.workspace }}
         # SOTA-2026 (T-2280): @v4 uses a GHES-incompatible artifact API
-        # not yet served by Gitea Actions. @v3 is the last GHES-compat tag.
-        uses: http://192.168.178.212:3000/actions/upload-artifact@v3
+        # not yet served by Gitea Actions. Pinned to the v3 commit.
+        uses: https://192.168.178.233/actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5
         with:
           name: lost-pixel-diffs-${{ github.run_number }}
           path: |

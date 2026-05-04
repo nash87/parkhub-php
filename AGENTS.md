@@ -35,14 +35,17 @@ make ci-security    # strict local OSS mirror of GitHub/Gitea security gates
 make cd             # release-oriented local preflight
 make act            # optional: run the actual workflow files locally via nektos/act (.actrc preconfigured)
 ```
-Install pre-commit hooks once per clone: `pre-commit install` (config in `.pre-commit-config.yaml`). See [DEVELOPMENT.md](DEVELOPMENT.md) for the full loop. GitHub same-repo PRs are local-first: branch protection waits for the `fop/local-ci/pr` status from `make ci-post`, while Gitea keeps fuller internal runner coverage. Mutation testing (Infection) runs weekly via `.github/workflows/infection.yml` (`infection.json5` gates survivors). OpenAPI parity with the Rust edition is tracked via [docs/openapi-parity.md](docs/openapi-parity.md) + `scripts/dump-openapi.sh` / `scripts/diff-openapi.sh`; current CI still hard-gates only self-snapshot drift.
+Install pre-commit hooks once per clone: `pre-commit install` (config in `.pre-commit-config.yaml`). See [DEVELOPMENT.md](DEVELOPMENT.md) for the full loop. GitHub same-repo PRs are local-first: branch protection waits for the `fop/local-ci/pr` status from `make ci-post`, while the internal Gitea mirror keeps fuller runner coverage. Mutation testing (Infection) runs weekly via `.github/workflows/infection.yml` (`infection.json5` gates survivors). OpenAPI parity with the Rust edition is tracked via [docs/openapi-parity.md](docs/openapi-parity.md) + `scripts/dump-openapi.sh` / `scripts/diff-openapi.sh`; current CI still hard-gates only self-snapshot drift.
 
-## Dual-Remote Convention
-Two remotes are always configured on this repo:
-- `origin` — Gitea at `git@192.168.178.220:florian/parkhub-php.git` (primary, source of truth)
-- `github` — `https://github.com/nash87/parkhub-php.git` (public mirror)
+## Remote Convention
+GitHub `nash87/parkhub-php` is the source of truth for this repo. Fresh clones
+should use GitHub as `origin`.
 
-Always `git push origin <branch>` first, then `git push github <branch>`. Never push only to GitHub. CI runs on GitHub; operator review happens on Gitea.
+Some workstation clones still have stale Gitea as `origin` and GitHub as
+`github`. In those clones, fetch/rebase/push via `github`; do not base ParkHub
+work on `origin/main`. Keep any Gitea remote as `gitea-restore` or similar
+unless an operator explicitly asks to restore mirroring. CI and PR review run
+from GitHub.
 
 ## Code Conventions
 - **`declare(strict_types=1);` is mandatory** on every PHP file in `app/` — 171/171 app files are strict today. Any new `.php` file under `app/` MUST start with `<?php` then a blank line then `declare(strict_types=1);` before the namespace.
