@@ -20328,6 +20328,91 @@
                         "error": {
                           "properties": {
                             "code": {
+                              "const": "ARTISAN_ERROR",
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "properties": {
+                            "code": {
+                              "const": "ARTISAN_ERROR",
+                              "type": "string"
+                            },
+                            "message": {
+                              "const": "migrate failed",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "properties": {
+                            "code": {
+                              "const": "COMPOSER_ERROR",
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "properties": {
+                            "code": {
                               "const": "GIT_ERROR",
                               "type": "string"
                             },
@@ -20544,23 +20629,8 @@
                 "schema": {
                   "properties": {
                     "data": {
-                      "anyOf": [
-                        {
-                          "type": "null"
-                        },
-                        {
-                          "type": "object"
-                        },
-                        {
-                          "additionalItems": false,
-                          "items": {
-                            "type": "string"
-                          },
-                          "maxItems": 0,
-                          "minItems": 0,
-                          "type": "array"
-                        }
-                      ]
+                      "items": {},
+                      "type": "array"
                     },
                     "success": {
                       "type": "boolean"
@@ -20594,45 +20664,54 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "properties": {
-                        "data": {
-                          "additionalItems": false,
-                          "items": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "properties": {
+                          "is_current": {
+                            "type": "boolean"
+                          },
+                          "name": {
                             "type": "string"
                           },
-                          "maxItems": 0,
-                          "minItems": 0,
-                          "type": "array"
+                          "prerelease": {
+                            "type": "boolean"
+                          },
+                          "published_at": {
+                            "type": "string"
+                          },
+                          "tag": {
+                            "type": "string"
+                          },
+                          "url": {
+                            "type": "string"
+                          },
+                          "version": {
+                            "type": "string"
+                          }
                         },
-                        "success": {
-                          "type": "boolean"
-                        }
+                        "required": [
+                          "version",
+                          "tag",
+                          "name",
+                          "published_at",
+                          "prerelease",
+                          "url",
+                          "is_current"
+                        ],
+                        "type": "object"
                       },
-                      "required": [
-                        "success",
-                        "data"
-                      ],
-                      "type": "object"
+                      "type": "array"
                     },
-                    {
-                      "properties": {
-                        "data": {
-                          "additionalProperties": {},
-                          "type": "object"
-                        },
-                        "success": {
-                          "type": "boolean"
-                        }
-                      },
-                      "required": [
-                        "success",
-                        "data"
-                      ],
-                      "type": "object"
+                    "success": {
+                      "type": "boolean"
                     }
-                  ]
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
                 }
               }
             },
@@ -20749,18 +20828,27 @@
                   "properties": {
                     "error": {
                       "properties": {
+                        "code": {
+                          "const": "INVALID_VERSION",
+                          "type": "string"
+                        },
                         "message": {
                           "const": "Invalid version format",
                           "type": "string"
                         }
                       },
                       "required": [
+                        "code",
                         "message"
                       ],
                       "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
                     }
                   },
                   "required": [
+                    "success",
                     "error"
                   ],
                   "type": "object"
@@ -20780,6 +20868,91 @@
                           "properties": {
                             "code": {
                               "const": "ROLLBACK_ERROR",
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "properties": {
+                            "code": {
+                              "const": "ARTISAN_ERROR",
+                              "type": "string"
+                            },
+                            "message": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "properties": {
+                            "code": {
+                              "const": "ARTISAN_ERROR",
+                              "type": "string"
+                            },
+                            "message": {
+                              "const": "migrate failed",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "error": {
+                          "properties": {
+                            "code": {
+                              "const": "COMPOSER_ERROR",
                               "type": "string"
                             },
                             "message": {
