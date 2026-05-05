@@ -10,7 +10,7 @@
     "test:e2e:local": "bash scripts/e2e-local.sh",
     "test:e2e:local:chromium": "bash scripts/e2e-local.sh --project=chromium",
     "test:e2e:local:design": "bash scripts/e2e-local.sh --project=chromium e2e/visual.spec.ts e2e/a11y.spec.ts",
-    "test:e2e:design-smoke": "bash scripts/e2e-local.sh --project=chromium --project=mobile-chrome e2e/pages.spec.ts e2e/v5-design-smoke.spec.ts",
+    "test:e2e:design-smoke": "bash scripts/e2e-local.sh --project=chromium --project=mobile-chrome e2e/pages.spec.ts e2e/v5-design-smoke.spec.ts e2e/v5-happy-paths.spec.ts",
     "test:e2e:report": "npx playwright show-report"
   },
   "dependencies": {

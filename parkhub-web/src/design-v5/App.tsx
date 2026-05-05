@@ -10,7 +10,8 @@ import { api } from '../api/client';
 import { V5TopBar } from './TopBar';
 import { V5CommandPalette } from './CommandPalette';
 import { V5AssistantPanel } from './AssistantPanel';
-import { breadcrumbFor, byId, type ScreenId } from './nav';
+import { breadcrumbFor, byId, NAV, SECTION_HEADINGS, type NavSection, type ScreenId } from './nav';
+import { V5NamedIcon } from './primitives';
 import { startViewTransition } from './viewTransitions';
 import { readScreenFromUrl, useSyncScreenToUrl } from './useDeepLink';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
@@ -139,6 +140,77 @@ function SettingsBridge() {
   return null;
 }
 
+export function V5MobileNav({
+  open,
+  active,
+  onClose,
+  onNavigate,
+}: {
+  open: boolean;
+  active: ScreenId;
+  onClose: () => void;
+  onNavigate: (id: ScreenId) => void;
+}) {
+  const sections: NavSection[] = ['main', 'fleet', 'admin'];
+
+  if (!open) return null;
+
+  return (
+    <div className="v5-mobile-nav" role="dialog" aria-modal="true" aria-label="Navigation">
+      <button
+        type="button"
+        className="v5-mobile-nav__scrim"
+        aria-label="Navigation schließen"
+        onClick={onClose}
+      />
+      <nav className="v5-mobile-nav__sheet" aria-label="Mobile Hauptnavigation">
+        <div className="v5-mobile-nav__header">
+          <div className="v5-mobile-nav__brand">
+            <span className="v5-mobile-nav__brand-mark">P</span>
+            <span>ParkHub</span>
+          </div>
+          <button
+            type="button"
+            className="v5-mobile-nav__close"
+            aria-label="Navigation schließen"
+            onClick={onClose}
+          >
+            <V5NamedIcon name="x" size={16} color="var(--v5-txt)" />
+          </button>
+        </div>
+
+        <div className="v5-mobile-nav__body">
+          {sections.map((section) => (
+            <div className="v5-mobile-nav__section" key={section}>
+              <div className="v5-mobile-nav__section-label">{SECTION_HEADINGS[section]}</div>
+              {NAV.filter((item) => item.section === section).map((item) => {
+                const isActive = item.id === active;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="v5-mobile-nav__item"
+                    aria-current={isActive ? 'page' : undefined}
+                    data-active={isActive ? 'true' : 'false'}
+                    onClick={() => onNavigate(item.id as ScreenId)}
+                  >
+                    <V5NamedIcon
+                      name={item.icon}
+                      size={16}
+                      color={isActive ? 'var(--v5-acc)' : 'var(--v5-mut)'}
+                    />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </nav>
+    </div>
+  );
+}
+
 function V5Shell() {
   // URL is source of truth; localStorage is a back-compat cache for users
   // who load `/v5` bare. Priority: URL → localStorage → default.
@@ -146,12 +218,12 @@ function V5Shell() {
   const [screen, setScreen] = useState<ScreenId>(() => {
     if (typeof window === 'undefined') return DEFAULT_SCREEN;
     const stored = window.localStorage.getItem(STORAGE_KEY) as ScreenId | null;
-    const storedFallback: ScreenId =
-      stored && byId.has(stored) ? stored : DEFAULT_SCREEN;
+    const storedFallback: ScreenId = stored && byId.has(stored) ? stored : DEFAULT_SCREEN;
     return readScreenFromUrl(storedFallback);
   });
   const [cmdOpen, setCmdOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, screen);
@@ -197,6 +269,7 @@ function V5Shell() {
     Escape: () => {
       setCmdOpen(false);
       setAssistantOpen(false);
+      setMobileNavOpen(false);
     },
   });
 
@@ -207,6 +280,7 @@ function V5Shell() {
     startViewTransition(() => {
       setScreen(id);
       setCmdOpen(false);
+      setMobileNavOpen(false);
     });
   }, []);
 
@@ -215,6 +289,7 @@ function V5Shell() {
 
   return (
     <div
+      className="v5-shell-root"
       style={{
         width: '100%',
         height: '100dvh',
@@ -222,12 +297,16 @@ function V5Shell() {
         background: 'var(--v5-bg)',
         color: 'var(--v5-txt)',
         overflow: 'hidden',
-        fontFamily: "var(--v5-font-family, 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif)",
+        fontFamily:
+          "var(--v5-font-family, 'Inter Variable', 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif)",
         fontFeatureSettings: '"cv11", "ss01"',
       }}
     >
-      <V5Sidebar active={screen} onNavigate={navigate} />
+      <div className="v5-shell-sidebar">
+        <V5Sidebar active={screen} onNavigate={navigate} />
+      </div>
       <div
+        className="v5-shell-content"
         style={{
           flex: 1,
           display: 'flex',
@@ -239,15 +318,16 @@ function V5Shell() {
         <V5TopBar
           title={meta?.label ?? ''}
           breadcrumb={breadcrumbFor(screen)}
+          onOpenNavigation={() => setMobileNavOpen(true)}
           onOpenCommand={() => setCmdOpen(true)}
           onToggleAssistant={() => setAssistantOpen((o) => !o)}
           assistantOpen={assistantOpen}
         />
-        <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div className="v5-shell-stage" style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
           <main
             key={screen}
             // Feature: viewTransitions — apply fade-up animation only when on.
-            className={settings.features.viewTransitions ? 'v5-ani' : undefined}
+            className={`v5-shell-main ${settings.features.viewTransitions ? 'v5-ani' : ''}`.trim()}
             style={{
               flex: 1,
               overflow: 'hidden',
@@ -261,9 +341,11 @@ function V5Shell() {
           <V5AssistantPanel open={assistantOpen} />
         </div>
       </div>
-      <V5CommandPalette
-        open={cmdOpen}
-        onClose={() => setCmdOpen(false)}
+      <V5CommandPalette open={cmdOpen} onClose={() => setCmdOpen(false)} onNavigate={navigate} />
+      <V5MobileNav
+        open={mobileNavOpen}
+        active={screen}
+        onClose={() => setMobileNavOpen(false)}
         onNavigate={navigate}
       />
     </div>

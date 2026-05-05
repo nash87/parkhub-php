@@ -137,7 +137,7 @@ test.describe('Pages — Admin Routes (after admin login)', () => {
       await page.goto(route);
       await expect(page.locator('body')).not.toContainText(/returned an object instead of string/i);
       await expect(page.locator('body')).not.toContainText(/key '[^']+' returned/i);
-      await expect(page.locator('h1, h2').first()).toBeVisible();
+      await expect(page.locator('h1:visible, h2:visible').first()).toBeVisible();
     }
 
     await page.goto('/admin/chargers');
