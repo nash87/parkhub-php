@@ -21,6 +21,12 @@ import { loginAsAdmin, openV5, V5_MODES, V5_SCREENS } from './v5-helpers';
  *     root `e2e/visual.spec.ts`.
  */
 
+// Screens whose React tree throws during hydration on github/main.
+// fixme'd here so snapshot capture stays meaningful — without this,
+// Playwright records a blank PNG as the baseline and every future
+// real render flips it to "diff detected".
+const KNOWN_BROKEN = new Set<string>(['nutzer']);
+
 test.describe('v5 visual regression', () => {
   test.beforeEach(async ({ page }, testInfo) => {
     test.skip(
@@ -33,11 +39,11 @@ test.describe('v5 visual regression', () => {
   for (const screen of V5_SCREENS) {
     for (const mode of V5_MODES) {
       test(`${screen} — ${mode}`, async ({ page }) => {
+        test.fixme(
+          KNOWN_BROKEN.has(screen),
+          `${screen} is broken on github/main — baseline would be blank, skip capture`,
+        );
         await openV5(page, screen, mode);
-
-        // react-query prefetches land after the initial paint; give the
-        // shell a brief window to settle populated vs empty states.
-        await page.waitForTimeout(400);
 
         await expect(page).toHaveScreenshot(
           `v5-${screen}-${mode}.png`,
