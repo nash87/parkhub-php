@@ -5,7 +5,7 @@ type: "handoff"
 priority: "high"
 status: "in_progress"
 task_id: "T-2705"
-updated: "2026-05-05 00:52 CEST"
+updated: "2026-05-05 02:41 CEST"
 ---
 
 # T-2705 ParkHub CI and local-dev reconciliation handoff
@@ -32,7 +32,7 @@ PHP, and fop-first coordination into a working, auditable state.
 | PHP local GitHub VEX metadata | PR #448 merged on GitHub at `2026-05-04T20:31:42Z`, merge commit `2aafe330ce1042fc89024c63e3fce1172a936e37`; the follow-up main Release Container run signed and SBOM-attested successfully. | Done |
 | Rust local GitHub VEX metadata | PR #588 merged on GitHub at `2026-05-04T20:30:12Z`, merge commit `5a0ebabb2378161c07d5aa298d16ce7f0c5b6c3d`. | Done |
 | Rust workflow drift gate | Covered by merged Rust PR #588 (`docs/github-canonical-remotes`). | Done |
-| GitHub action refs pinned | PHP Dependabot PR #445 is rebased to `679ea5b91d8da219e5e00d175ba0ebd2f3351cfe`; cosign/SBOM rerun succeeded and the full local PR gate passed with report `.fop/reports/local-ci-pr-679ea5b91d8da219e5e00d175ba0ebd2f3351cfe.json`. | Waiting on GitHub status/merge refresh |
+| GitHub action refs pinned | PHP Dependabot PR #445 merged at `2026-05-04T23:43:36Z`, merge commit `7f00134ea0ab33c5d66af8c425b21db1e4d7d73e`, after cosign/SBOM rerun and full local PR gate passed at `679ea5b91d8da219e5e00d175ba0ebd2f3351cfe`. | Done |
 | PHP Gitea mirror IP refresh | PHP PR #447 merged on GitHub at `2026-05-04T20:31:12Z`, merge commit `93fcd4f8b744ac603401d6168b1f4ac8e3c2bc46`. | Done |
 | Flux/GitOps build chain | Gitea Flux PR #178 is open with an explicit review-only body; host-network `tea pulls` confirmed it at `2026-05-05 00:37 CEST`. | Review-only |
 | Local `.test` router | Host-network probe at `2026-05-05 00:38 CEST` returned `ok=true` through `127.0.0.1:39080/_parkhub-local/health` for `parkhub.test`, `parkhub-rust.test`, and `parkhub-php.test`; Rust port `8081`, PHP port `8082`. | Done |
@@ -40,15 +40,25 @@ PHP, and fop-first coordination into a working, auditable state.
 
 Known incomplete items before the objective can be called done:
 
-- PHP Dependabot PRs #441, #442, #443, #444, and #445 are rebased on current
-  GitHub main and still open. Their GitHub CI workflows are waiting on the
+- PHP Dependabot PR #443 has a passing local PR gate at
+  `642ead927f7293c36d2b4fb282bf3056be0d63b4`; its GitHub CI rerun/merge is
+  blocked by the Codex usage-limit window until `2026-05-05 05:35 CEST`.
+- PHP Dependabot PR #444 is still open and should wait until #443 merges or
+  rebases because both touch the `parkhub-web` dependency surface.
+- The remaining open PHP Dependabot PRs' GitHub CI workflows are waiting on the
   separate `fop/local-ci/pr` commit status from
   `.github/scripts/fop-local-ci.sh --profile pr --post-status`.
+- PHP Dependabot PR #441 merged at `2026-05-05T00:05:09Z`, merge commit
+  `b2fcf7d03443a2162c899fa691d983f0857ccc56`, after local PR gate report
+  `.fop/reports/local-ci-pr-02773f832105a6e586841005677822aa1d440687.json`
+  and CI rerun `25342003627` passed.
+- PHP Dependabot PR #442 merged at `2026-05-05T00:25:16Z`, merge commit
+  `10ff140f61c8707d6dae65b1c801fc1c0424780a`, after local PR gate report
+  `.fop/reports/local-ci-pr-23b58ad998f59f354303f93aac6b2e294223d467.json`
+  and CI rerun `25342004322` passed.
 - Do not start local CI attestations while `fop queue status` shows an active
-  build reservation. Latest check at `2026-05-05 00:52 CEST` was idle and
-  `fop guard preflight` was green, but the external-action window remains
-  closed until `2026-05-05 01:41 CEST`. #441-#444 exact updated heads are not
-  present locally and cannot be fetched until external GitHub access is allowed.
+  build reservation. The latest source blocker is external GitHub access, not
+  local ParkHub source drift.
 - Re-query security findings after the Dependabot PRs merge and after the
   completed PHP Release Container run has propagated its new Trivy/code-scanning
   results.
@@ -110,10 +120,24 @@ Known incomplete items before the objective can be called done:
   `6178` assertions, Vitest `174` files / `2500` tests, Astro builds, OpenAPI
   sync, local security audit pass, Trivy filesystem clean, and final advisory
   Zizmor no findings after ignores.
-- Current external-action blocker: Codex usage limit rejects escalated GitHub
-  status/merge checks and host Podman build retries until
-  `2026-05-05 01:41 CEST`. Do not workaround. Retry GitHub #445 status/merge
-  refresh and the fop-queued Podman image build after that window.
+- PHP Dependabot PR #445 merged at `2026-05-04T23:43:36Z`, merge commit
+  `7f00134ea0ab33c5d66af8c425b21db1e4d7d73e`, after local PR gate
+  `.fop/reports/local-ci-pr-679ea5b91d8da219e5e00d175ba0ebd2f3351cfe.json`,
+  cosign/SBOM rerun, and required checks passed.
+- PHP Dependabot PR #441 merged at `2026-05-05T00:05:09Z`, merge commit
+  `b2fcf7d03443a2162c899fa691d983f0857ccc56`, after local PR gate
+  `.fop/reports/local-ci-pr-02773f832105a6e586841005677822aa1d440687.json`,
+  CI rerun `25342003627`, and required checks passed.
+- PHP Dependabot PR #442 merged at `2026-05-05T00:25:16Z`, merge commit
+  `10ff140f61c8707d6dae65b1c801fc1c0424780a`, after local PR gate
+  `.fop/reports/local-ci-pr-23b58ad998f59f354303f93aac6b2e294223d467.json`,
+  CI rerun `25342004322`, and required checks passed.
+- PHP Dependabot PR #443 local PR gate passed at
+  `642ead927f7293c36d2b4fb282bf3056be0d63b4`; report:
+  `.fop/reports/local-ci-pr-642ead927f7293c36d2b4fb282bf3056be0d63b4.json`.
+  The attempted GitHub CI rerun `25342004199` was rejected by the Codex
+  usage-limit guard; retry after `2026-05-05 05:35 CEST` and do not
+  workaround.
 
 Follow-up proof at `2026-05-05 00:36-00:38 CEST`:
 
@@ -165,8 +189,11 @@ Prompt-to-artifact audit:
 |---|---|---|
 | Rust GitHub work | Rust PR #587 and #588 merged; no open Rust PRs in last GitHub refresh; Rust Dependabot/secret/code alerts were `0`. | Reconfirm after external window opens if doing final audit. |
 | PHP shipped work | PHP PR #446, #447, #448 merged; Release Container run `25341955517` completed signing/SBOM. | Reconfirm final GitHub PR list after external window opens. |
-| PHP Dependabot #445 | Local PR gate passed at `679ea5b91d8da219e5e00d175ba0ebd2f3351cfe`; compact success manifest is in `/var/home/florian/dev/parkhub-php.dependabot-ci/.fop/reports/`; cosign/SBOM rerun passed. | GitHub status/merge refresh after `2026-05-05 01:41 CEST`; merge with head-SHA guard if clean. |
-| PHP Dependabot #441-#444 | Rebased heads known from earlier GitHub update-branch calls: `02773f8`, `23b58ad`, `642ead9`, `3cc9482`. | Exact commit objects are absent locally; fetch heads after external window, then run/post local gates serially. |
+| PHP Dependabot #445 | Merged at `2026-05-04T23:43:36Z`, merge commit `7f00134ea0ab33c5d66af8c425b21db1e4d7d73e`. | Done. |
+| PHP Dependabot #441 | Merged at `2026-05-05T00:05:09Z`, merge commit `b2fcf7d03443a2162c899fa691d983f0857ccc56`. | Done. |
+| PHP Dependabot #442 | Merged at `2026-05-05T00:25:16Z`, merge commit `10ff140f61c8707d6dae65b1c801fc1c0424780a`. | Done. |
+| PHP Dependabot #443 | Local PR gate passed at `642ead927f7293c36d2b4fb282bf3056be0d63b4`; report `.fop/reports/local-ci-pr-642ead927f7293c36d2b4fb282bf3056be0d63b4.json`. | Retry GitHub CI rerun `25342004199` after `2026-05-05 05:35 CEST`, then merge with head-SHA guard if required checks pass. |
+| PHP Dependabot #444 | Exact head fetched locally: `3cc9482df36cb138adbcd009d602aec7184fc204`. | Wait until #443 merges/rebases because #443 and #444 both touch `parkhub-web/package*.json`; then run/post local gate and merge only after required checks pass. |
 | PHP image security | Representative high alert #2166 traced to retained `linux-libc-dev`; Dockerfile fix committed as `e9aa60c` in `/var/home/florian/dev/parkhub-php.trivy-runtime-prune`. | Host Podman build + Trivy image proof; then push/open PR. Sandbox build failed on read-only `/run/user/1000/libpod`; external retry blocked until `01:41 CEST`. |
 | Flux/GitOps | Gitea Flux PR #178 exists and is explicitly review-only; host-network `tea pulls` confirmed it at `2026-05-05 00:37 CEST`. | Operator review; do not auto-merge/reconcile production. |
 | Local `.test` | Host-network health probe returned `ok=true` at `2026-05-05 00:38 CEST` for `parkhub.test`, `parkhub-rust.test`, and `parkhub-php.test`, with Rust `8081` and PHP `8082`. | Re-probe only after local runtime changes or immediately before final completion if the runtime may have drifted. |
