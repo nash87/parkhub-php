@@ -15,8 +15,8 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, fallback?: string) => {
       const map: Record<string, string> = {
-        'prediction.title': 'Smart Predictions',
-        'prediction.subtitle': 'AI-powered occupancy forecasts',
+        'prediction.title': 'Occupancy Forecast',
+        'prediction.subtitle': 'Pattern-based occupancy forecasts',
         'prediction.bestTime': 'Best Time to Book',
         'prediction.recommendReason': 'Based on your booking patterns and lot availability',
         'prediction.weeklyForecast': '7-Day Forecast',
@@ -42,8 +42,6 @@ vi.mock('framer-motion', () => ({
 }));
 
 vi.mock('@phosphor-icons/react', () => ({
-  Sparkle: (props: any) => <span data-testid="icon-sparkle" {...props} />,
-  Brain: (props: any) => <span data-testid="icon-brain" {...props} />,
   CalendarBlank: (props: any) => <span data-testid="icon-calendar" {...props} />,
   Clock: (props: any) => <span data-testid="icon-clock" {...props} />,
   TrendUp: (props: any) => <span data-testid="icon-trend" {...props} />,
@@ -107,7 +105,7 @@ describe('OccupancyPredictionPage', () => {
 
     render(<OccupancyPredictionPage />);
     await waitFor(() => {
-      expect(screen.getByText('Smart Predictions')).toBeInTheDocument();
+      expect(screen.getByText('Occupancy Forecast')).toBeInTheDocument();
     });
     expect(screen.getByTestId('prediction-page')).toBeInTheDocument();
     expect(screen.getByTestId('prediction-page')).toHaveAttribute('data-surface', 'marble');

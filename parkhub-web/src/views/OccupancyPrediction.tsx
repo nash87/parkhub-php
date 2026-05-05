@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Sparkle, Brain, CalendarBlank, Clock, TrendUp, CaretDown } from '@phosphor-icons/react';
+import { CalendarBlank, Clock, TrendUp, CaretDown } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { getInMemoryToken } from '../api/client';
 import { staggerSlow, fadeUp } from '../constants/animations';
@@ -42,8 +42,8 @@ interface Recommendation {
   reason: string;
 }
 
-const DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const DAYS_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const;
+const DAYS_SHORT = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
 function authHeaders(): Record<string, string> {
   const token = getInMemoryToken();
@@ -150,7 +150,7 @@ export function OccupancyPredictionPage() {
       return {
         dayIndex: idx,
         dayName: name,
-        dayShort: DAYS_SHORT[idx],
+        dayShort: DAYS_SHORT[idx] ?? name.slice(0, 3),
         predicted,
         confidence,
         peakHour,
@@ -166,6 +166,9 @@ export function OccupancyPredictionPage() {
     }
     // Find the day with lowest predicted occupancy
     const best = [...predictions].sort((a, b) => a.predicted - b.predicted)[0];
+    if (!best) {
+      return { day: '-', timeSlot: '-', reason: '' };
+    }
     return {
       day: best.dayName,
       timeSlot: `${formatHour(best.offPeakHour)} - ${formatHour(best.offPeakHour + 2)}`,
@@ -198,11 +201,10 @@ export function OccupancyPredictionPage() {
       <motion.div variants={fadeUp} className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold text-surface-900 dark:text-white flex items-center gap-3">
-            <Brain weight="fill" className="w-7 h-7 text-purple-500" />
-            {t('prediction.title', 'Smart Predictions')}
-            <Sparkle weight="fill" className="w-5 h-5 text-yellow-400" />
+            <TrendUp weight="bold" className="w-7 h-7 text-primary-500" />
+            {t('prediction.title', 'Occupancy Forecast')}
           </h1>
-          <p className="text-surface-500 dark:text-surface-400 mt-1">{t('prediction.subtitle', 'AI-powered occupancy forecasts')}</p>
+          <p className="text-surface-500 dark:text-surface-400 mt-1">{t('prediction.subtitle', 'Pattern-based occupancy forecasts')}</p>
         </div>
         {lots.length > 1 && (
           <div className="relative">
@@ -224,19 +226,19 @@ export function OccupancyPredictionPage() {
       {/* Best time recommendation */}
       <motion.div variants={fadeUp} className="glass-card p-6" data-testid="recommendation-card">
         <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-400 flex items-center justify-center flex-shrink-0">
-            <Sparkle weight="fill" className="w-6 h-6 text-white" />
+          <div className="w-12 h-12 rounded-xl bg-primary-600 flex items-center justify-center flex-shrink-0">
+            <Clock weight="fill" className="w-6 h-6 text-white" />
           </div>
           <div>
             <h2 className="text-lg font-semibold text-surface-900 dark:text-white">
               {t('prediction.bestTime', 'Best Time to Book')}
             </h2>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 text-sm font-medium">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 text-sm font-medium">
                 <CalendarBlank weight="fill" className="w-4 h-4" />
                 {recommendation.day}
               </span>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/30 text-purple-700 dark:text-purple-300 text-sm font-medium">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-950/30 text-primary-700 dark:text-primary-300 text-sm font-medium">
                 <Clock weight="fill" className="w-4 h-4" />
                 {recommendation.timeSlot}
               </span>
