@@ -26,7 +26,7 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 MAKEFLAGS += --no-print-directory
 
-.PHONY: help ci ci-post full cd release-preflight ci-security lint test static-analysis drift frontend act pre-push clean
+.PHONY: help ci ci-post full cd release-preflight ci-security script-tests lint test static-analysis drift frontend act pre-push clean
 
 help:
 	@echo "parkhub-php local-first CI/CD"
@@ -37,6 +37,7 @@ help:
 	@echo "  make cd         — fop CD profile"
 	@echo "  make release-preflight — required release gate (CD profile)"
 	@echo "  make ci-security — strict local OSS security/workflow mirror"
+	@echo "  make script-tests — shell script contract tests"
 	@echo "  make lint       — pint --test (backend-quality)"
 	@echo "  make static-analysis — phpstan (static-analysis job)"
 	@echo "  make test       — full backend PHPUnit suite (backend-tests)"
@@ -121,8 +122,13 @@ mutants:
 		echo "infection returned non-zero (advisory)."
 
 ci-security:
+	$(MAKE) script-tests
 	.github/scripts/fop-local-ci.sh --profile pr --dry-run >/dev/null
 	scripts/ci/local-security-audit.sh --profile cd --strict-tools --fail-advisory
+
+script-tests:
+	bash scripts/tests/test-drift-scripts.sh
+	bash scripts/tests/test-fop-local-ci-failure-trap.sh
 
 pre-push: ci
 
