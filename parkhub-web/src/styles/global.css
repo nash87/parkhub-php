@@ -749,6 +749,227 @@ body {
   margin-top: var(--density-row-gap);
 }
 
+/* Operational page header used by admin and workflow pages. Keep it dense,
+   calm, and readable: no glowing chrome or hero-scale typography. */
+.admin-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--color-surface-200, #e4e4e7);
+  background: var(--color-surface-50, #fafafa);
+  overflow: hidden;
+}
+.dark .admin-hero {
+  border-color: var(--color-surface-800, #27272a);
+  background: var(--color-surface-900, #18181b);
+}
+.admin-hero::before {
+  display: none;
+}
+.admin-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 11px/1.2 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: var(--color-surface-500, #71717a);
+  margin-bottom: 8px;
+}
+.dark .admin-hero-eyebrow {
+  color: var(--color-surface-400, #a1a1aa);
+}
+.admin-hero-dot {
+  display: none;
+}
+.admin-hero-headline {
+  font: 600 24px/1.2 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  color: var(--color-surface-900, #18181b);
+  margin: 0 0 4px 0;
+}
+.dark .admin-hero-headline { color: #fff; }
+.admin-hero-sub {
+  font: 400 14px/1.45 ui-sans-serif, system-ui, sans-serif;
+  color: var(--color-surface-500, #71717a);
+  margin: 0;
+}
+.admin-hero-actions {
+  display: flex;
+  gap: 8px;
+  align-self: flex-start;
+}
+.admin-hero-iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--color-surface-200, #e4e4e7) 80%, transparent);
+  background: var(--color-surface-50, #fafafa);
+  color: var(--color-surface-500, #71717a);
+  cursor: pointer;
+  transition: background 120ms ease-out, color 120ms ease-out;
+}
+.admin-hero-iconbtn:hover {
+  background: var(--color-surface-100, #f4f4f5);
+  color: var(--color-surface-900, #18181b);
+}
+.dark .admin-hero-iconbtn {
+  background: var(--color-surface-800, #27272a);
+  border-color: color-mix(in oklab, var(--color-surface-700, #3f3f46) 80%, transparent);
+}
+.admin-hero-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--color-primary-500) 22%, transparent);
+  background: var(--color-surface-50, #fafafa);
+  color: var(--color-primary-700);
+  font: 600 13px/1 ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+  transition: background 120ms ease-out;
+}
+.admin-hero-action:hover {
+  background: var(--color-surface-100, #f4f4f5);
+}
+.dark .admin-hero-action {
+  color: var(--color-primary-300, var(--color-primary-500));
+  background: var(--color-surface-800, #27272a);
+}
+.admin-hero--emerald {
+  border-color: color-mix(in oklab, oklch(0.72 0.16 145) 18%, var(--color-surface-200, #e4e4e7));
+}
+.admin-hero--emerald .admin-hero-eyebrow {
+  color: oklch(0.55 0.18 145);
+}
+.dark .admin-hero--emerald {
+  border-color: color-mix(in oklab, oklch(0.72 0.16 145) 22%, var(--color-surface-800, #27272a));
+}
+.admin-hero--info {
+  border-color: color-mix(in oklab, oklch(0.62 0.18 240) 18%, var(--color-surface-200, #e4e4e7));
+}
+.admin-hero--info .admin-hero-eyebrow {
+  color: oklch(0.50 0.18 240);
+}
+.dark .admin-hero--info {
+  border-color: color-mix(in oklab, oklch(0.62 0.18 240) 22%, var(--color-surface-800, #27272a));
+}
+.admin-hero--amber {
+  border-color: color-mix(in oklab, oklch(0.78 0.16 75) 20%, var(--color-surface-200, #e4e4e7));
+}
+.admin-hero--amber .admin-hero-eyebrow {
+  color: oklch(0.61 0.18 75);
+}
+.dark .admin-hero--amber {
+  border-color: color-mix(in oklab, oklch(0.78 0.16 75) 24%, var(--color-surface-800, #27272a));
+}
+
+@media (max-width: 1024px) {
+  .admin-hero { display: none; }
+  .admin-hero.page-hero {
+    display: grid;
+    grid-template-columns: 1fr;
+    padding: 16px 20px;
+    gap: 12px;
+  }
+  .admin-hero.page-hero .admin-hero-headline { font-size: 22px; }
+  .admin-hero.page-hero .admin-hero-sub { font-size: 13px; }
+}
+@media (max-width: 1280px) {
+  .admin-hero { grid-template-columns: 1fr; }
+}
+
+.v11-meter {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 18px 22px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in oklab, var(--meter-tone, var(--color-primary-500)) 24%, transparent);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--meter-tone, var(--color-primary-500)) 6%, transparent) 0%,
+      transparent 70%
+    ),
+    var(--color-surface-50, #fafafa);
+  overflow: hidden;
+  transition: transform 120ms ease-out, border-color 120ms ease-out;
+}
+.dark .v11-meter {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--meter-tone, var(--color-primary-500)) 10%, transparent) 0%,
+      transparent 70%
+    ),
+    var(--color-surface-900, #18181b);
+}
+.v11-meter:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--meter-tone, var(--color-primary-500)) 38%, transparent);
+}
+.v11-meter::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--meter-tone, var(--color-primary-500));
+}
+.v11-meter-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 600 10px/1 ui-monospace, 'JetBrains Mono', monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-surface-500, #71717a);
+}
+.v11-meter-value {
+  font: 700 32px/1 ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+  color: var(--color-surface-900, #18181b);
+  font-variant-numeric: tabular-nums;
+}
+.dark .v11-meter-value { color: #fff; }
+.v11-meter-bar {
+  height: 4px;
+  border-radius: 2px;
+  background: color-mix(in oklab, var(--color-surface-200, #e4e4e7) 60%, transparent);
+  overflow: hidden;
+  margin-top: 4px;
+}
+.dark .v11-meter-bar {
+  background: color-mix(in oklab, var(--color-surface-800, #27272a) 60%, transparent);
+}
+.v11-meter-bar i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--meter-tone, var(--color-primary-500)) 0%,
+    color-mix(in oklab, var(--meter-tone, var(--color-primary-500)) 60%, transparent) 100%
+  );
+  transition: width 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  border-radius: 2px;
+}
+.v11-meter--primary { --meter-tone: var(--color-primary-500); }
+.v11-meter--accent  { --meter-tone: oklch(0.68 0.18 200); }
+.v11-meter--info    { --meter-tone: oklch(0.62 0.18 240); }
+.v11-meter--success { --meter-tone: oklch(0.72 0.16 145); }
+.v11-meter--warn    { --meter-tone: oklch(0.78 0.16 75); }
+.v11-meter--danger  { --meter-tone: oklch(0.65 0.22 25); }
+
 /* ── Welcome page animations — pure CSS (replaces framer-motion) ─────
    Removing framer-motion from /welcome saves ~50KB on the public-route
    bundle. These keyframes recreate the original entrance animations:

@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 
-const mockUseTheme = vi.fn();
-
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, fallbackOrOpts?: string | Record<string, any>) => {
@@ -40,16 +38,12 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
-vi.mock('../context/ThemeContext', () => ({
-  useTheme: () => mockUseTheme(),
-}));
-
 vi.mock('@phosphor-icons/react', () => ({
-  CurrencyDollar: (props: any) => <span data-testid="icon-dollar" {...props} />,
-  ChartBar: (props: any) => <span data-testid="icon-chart" {...props} />,
-  DownloadSimple: (props: any) => <span data-testid="icon-download" {...props} />,
-  Question: (props: any) => <span data-testid="icon-question" {...props} />,
-  Buildings: (props: any) => <span data-testid="icon-buildings" {...props} />,
+  CurrencyDollarIcon: (props: any) => <span data-testid="icon-dollar" {...props} />,
+  ChartBarIcon: (props: any) => <span data-testid="icon-chart" {...props} />,
+  DownloadSimpleIcon: (props: any) => <span data-testid="icon-download" {...props} />,
+  QuestionIcon: (props: any) => <span data-testid="icon-question" {...props} />,
+  BuildingsIcon: (props: any) => <span data-testid="icon-buildings" {...props} />,
 }));
 
 import { AdminBillingPage } from './AdminBilling';
@@ -66,8 +60,6 @@ const sampleDeptData = [
 
 describe('AdminBillingPage', () => {
   beforeEach(() => {
-    mockUseTheme.mockReset();
-    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
     global.fetch = vi.fn((url: string) => {
       if (url.includes('/by-cost-center')) {
         return Promise.resolve({ json: () => Promise.resolve({ success: true, data: sampleCcData }) } as Response);
@@ -90,17 +82,18 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => {
       expect(screen.getByText('Cost Center Billing')).toBeInTheDocument();
-      expect(screen.getByTestId('billing-shell')).toHaveAttribute('data-surface', 'marble');
+      expect(screen.getByTestId('billing-shell')).toBeInTheDocument();
     });
   });
 
-  it('switches to the void surface when the void theme is active', async () => {
-    mockUseTheme.mockReturnValue({ designTheme: 'void' });
-
+  it('uses operational billing copy instead of decorative surface labels', async () => {
     render(<AdminBillingPage />);
 
     await waitFor(() => {
-      expect(screen.getByTestId('billing-shell')).toHaveAttribute('data-surface', 'void');
+      expect(screen.getByText('Cost center billing')).toBeInTheDocument();
+      expect(screen.queryByText('Void finance desk')).not.toBeInTheDocument();
+      expect(screen.queryByText('Marble finance desk')).not.toBeInTheDocument();
+      expect(screen.queryByText('Finance pulse')).not.toBeInTheDocument();
     });
   });
 
@@ -108,8 +101,8 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => {
       expect(screen.getByTestId('billing-summary')).toBeInTheDocument();
-      expect(screen.getAllByText('Total Spending').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Total Bookings').length).toBeGreaterThan(0);
+      expect(screen.getByText('Total Spending')).toBeInTheDocument();
+      expect(screen.getByText('Total Bookings')).toBeInTheDocument();
     });
   });
 
@@ -127,7 +120,7 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => expect(screen.getByTestId('billing-tabs')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByTestId('billing-tabs').querySelectorAll('button')[1]!);
+    fireEvent.click(screen.getByText('By Department'));
     await waitFor(() => {
       const rows = screen.getAllByTestId('billing-row');
       expect(rows).toHaveLength(2);
@@ -153,7 +146,6 @@ describe('AdminBillingPage', () => {
   });
 
   it('handles CSV export click', async () => {
-    const mockBlob = new Blob(['csv data'], { type: 'text/csv' });
     const createObjectURL = vi.fn(() => 'blob:test');
     const revokeObjectURL = vi.fn();
     Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, writable: true });
@@ -208,7 +200,7 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => expect(screen.getByTestId('billing-tabs')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByTestId('billing-tabs').querySelectorAll('button')[1]!);
+    fireEvent.click(screen.getByText('By Department'));
     await waitFor(() => {
       expect(screen.getByText('No billing data')).toBeInTheDocument();
     });
@@ -228,9 +220,8 @@ describe('AdminBillingPage', () => {
     render(<AdminBillingPage />);
     await waitFor(() => expect(screen.getByTestId('billing-tabs')).toBeInTheDocument());
 
-    const tabButtons = screen.getByTestId('billing-tabs').querySelectorAll('button');
-    fireEvent.click(tabButtons[1]!);
-    fireEvent.click(tabButtons[0]!);
+    fireEvent.click(screen.getByText('By Department'));
+    fireEvent.click(screen.getByText('By Cost Center'));
     await waitFor(() => {
       expect(screen.getByText('Cost Center Billing')).toBeInTheDocument();
     });
