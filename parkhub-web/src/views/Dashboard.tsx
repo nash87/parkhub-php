@@ -560,7 +560,7 @@ function MarbleDashboardSurface({
           <article className="rounded-[24px] border border-surface-200 bg-gradient-to-br from-surface-50 to-white p-5 dark:border-surface-800 dark:from-surface-900 dark:to-surface-950">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500 dark:text-surface-400">Marble Surface</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500 dark:text-surface-400">Operating summary</p>
                 <h2 className="mt-1 text-2xl font-bold tracking-tight text-surface-900 dark:text-white">Today at a glance</h2>
               </div>
               <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300">{creditsLeft} credits</span>
@@ -721,7 +721,7 @@ function VoidDashboardSurface({
       <div className="grid gap-6 p-5 lg:grid-cols-[0.85fr_1.15fr]">
         <div className="space-y-5 border-b border-white/10 pb-5 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-5">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">Void Surface</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/45">Focus summary</p>
             <h2 className="mt-2 text-3xl font-semibold tracking-[-0.04em]">Editorial operations</h2>
             <p className="mt-3 text-sm leading-6 text-white/65">{announcement}</p>
           </div>

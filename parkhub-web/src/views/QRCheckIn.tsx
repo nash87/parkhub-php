@@ -192,7 +192,7 @@ export function QRCheckInPage() {
                 : 'border-emerald-200/80 bg-white/80 text-emerald-700 dark:border-emerald-900/60 dark:bg-white/10 dark:text-emerald-300'
             }`}>
               <QrCode weight="duotone" className="h-4 w-4" />
-              {isVoid ? 'Void check-in flow' : 'Marble arrival lane'}
+              Check-in lane
             </div>
 
             <div className="flex items-start justify-between gap-4">

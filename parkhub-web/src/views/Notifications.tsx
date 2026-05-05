@@ -155,7 +155,7 @@ export function NotificationsPage() {
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
             }`}>
               <Broadcast weight="fill" className="h-3.5 w-3.5" />
-              {isVoid ? 'Void signal board' : 'Marble inbox board'}
+              Notification center
             </div>
 
             <h1 className="text-3xl font-black tracking-[-0.04em]">{t('notifications.title')}</h1>

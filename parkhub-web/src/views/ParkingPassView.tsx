@@ -72,7 +72,7 @@ export function ParkingPassPage() {
                 : 'border-emerald-200/80 bg-white/80 text-emerald-700 dark:border-emerald-900/60 dark:bg-white/10 dark:text-emerald-300'
             }`}>
               <Ticket size={14} />
-              {isVoid ? 'Void pass wallet' : 'Marble pass desk'}
+              Parking pass
             </div>
 
             <div className="flex items-start justify-between gap-4">

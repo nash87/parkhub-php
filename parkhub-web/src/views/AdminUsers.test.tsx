@@ -31,7 +31,6 @@ const mockAdminBulkUpdate = vi.fn();
 const mockAdminBulkDelete = vi.fn();
 const mockToastSuccess = vi.fn();
 const mockToastError = vi.fn();
-const mockUseTheme = vi.fn();
 
 vi.mock('../api/client', () => ({
   api: {
@@ -50,10 +49,6 @@ vi.mock('react-hot-toast', () => ({
     success: (...a: any[]) => mockToastSuccess(...a),
     error: (...a: any[]) => mockToastError(...a),
   },
-}));
-
-vi.mock('../context/ThemeContext', () => ({
-  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('framer-motion', () => ({
@@ -147,7 +142,6 @@ describe('AdminUsersPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAdminUsers.mockResolvedValue({ success: true, data: sampleUsers });
-    mockUseTheme.mockReturnValue({ designTheme: 'marble' });
   });
 
   afterEach(() => {
@@ -165,17 +159,16 @@ describe('AdminUsersPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Alice')).toBeInTheDocument();
       expect(screen.getByText('Bob')).toBeInTheDocument();
-      expect(screen.getByTestId('admin-users-shell')).toHaveAttribute('data-surface', 'marble');
     });
   });
 
-  it('switches to the void surface when the void theme is active', async () => {
-    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+  it('does not render route-level theme placeholders', async () => {
     render(<AdminUsersPage />);
+    await waitFor(() => expect(screen.getByText('Alice')).toBeInTheDocument());
 
-    await waitFor(() => {
-      expect(screen.getByTestId('admin-users-shell')).toHaveAttribute('data-surface', 'void');
-    });
+    expect(screen.queryByText('Void user ledger')).not.toBeInTheDocument();
+    expect(screen.queryByText('Marble user ledger')).not.toBeInTheDocument();
+    expect(screen.queryByText('Control posture')).not.toBeInTheDocument();
   });
 
   it('shows user count', async () => {

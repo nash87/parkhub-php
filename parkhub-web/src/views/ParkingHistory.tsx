@@ -103,7 +103,7 @@ export function ParkingHistoryPage() {
                   : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
               }`}>
                 <ClockCounterClockwise weight="fill" className="h-3.5 w-3.5" />
-                {isVoid ? 'Void history ledger' : 'Marble history ledger'}
+                History ledger
               </div>
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">

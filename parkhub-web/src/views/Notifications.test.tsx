@@ -331,14 +331,14 @@ describe('NotificationsPage', () => {
     expect(screen.getAllByText('Days back').length).toBeGreaterThan(0);
   });
 
-  it('renders the void hero variant when the theme is void', async () => {
+  it('renders the focused hero variant when the theme is void', async () => {
     mockUseTheme.mockReturnValue({ designTheme: 'void' });
     mockGetNotifications.mockResolvedValue({ success: true, data: [makeNotification({ title: 'Void alert' })] });
 
     render(<NotificationsPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Void signal board')).toBeInTheDocument();
+      expect(screen.getByText('Notification center')).toBeInTheDocument();
     });
     expect(screen.getAllByText('Latest signal').length).toBeGreaterThan(0);
   });

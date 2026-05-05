@@ -281,7 +281,7 @@ export function CalendarPage() {
                 : 'border-emerald-200/80 bg-white/80 text-emerald-700 dark:border-emerald-900/50 dark:bg-surface-950/60 dark:text-emerald-300'
             }`}>
               <CalendarBlank weight="fill" className="h-3.5 w-3.5" />
-              {isVoid ? 'Void schedule room' : 'Marble calendar deck'}
+              Schedule planning
             </div>
             <div>
               <h1 className="text-3xl font-black tracking-[-0.04em]">{t('calendar.title', 'Calendar')}</h1>

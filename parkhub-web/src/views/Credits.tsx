@@ -75,7 +75,7 @@ export function CreditsPage() {
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
             }`}>
               <Coins weight="fill" className="h-3.5 w-3.5" />
-              {isVoid ? 'Void balance deck' : 'Marble credit ledger'}
+              Credit ledger
             </div>
 
             <h1 className="text-3xl font-black tracking-[-0.04em]">{t('credits.title')}</h1>

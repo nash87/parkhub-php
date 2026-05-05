@@ -171,7 +171,7 @@ export function EVChargingPage() {
                 : 'bg-white/80 text-sky-700 dark:bg-white/10 dark:text-sky-300'
             }`}>
               <Lightning weight="fill" className="h-3.5 w-3.5" />
-              {isVoid ? 'Void charging deck' : 'Marble charging suite'}
+              Charging network
             </div>
 
             <div className="flex items-start gap-3">
@@ -410,7 +410,7 @@ export function AdminChargersPage() {
                 : 'bg-white/80 text-amber-700 dark:bg-white/10 dark:text-amber-300'
             }`}>
               <Lightning weight="fill" className="h-3.5 w-3.5" />
-              {isVoid ? 'Void fleet monitor' : 'Marble ops overview'}
+              Fleet status
             </div>
             <h1 className="flex items-center gap-2 text-3xl font-black tracking-[-0.04em]">
               <Lightning weight="duotone" className="h-7 w-7 text-yellow-500" />

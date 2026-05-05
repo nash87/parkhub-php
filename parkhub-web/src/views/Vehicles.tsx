@@ -133,7 +133,7 @@ export function VehiclesPage() {
                   : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
               }`}>
                 <Car weight="fill" className="h-3.5 w-3.5" />
-                {isVoid ? 'Void fleet deck' : 'Marble vehicle registry'}
+                Vehicle registry
               </div>
 
               <h1 className="text-3xl font-black tracking-[-0.04em] text-surface-900 dark:text-white">{t('vehicles.title', 'Meine Fahrzeuge')}</h1>

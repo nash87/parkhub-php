@@ -99,7 +99,7 @@ export function SettingsPage() {
     {
       label: t('settings.theme', 'Theme'),
       value: themeSwatches.find((swatch) => swatch.value === designTheme)?.label ?? designTheme,
-      meta: isVoid ? 'Void signal' : 'Marble editorial',
+      meta: 'Display mode',
     },
     {
       label: t('settings.dark', 'Dark mode'),
@@ -137,7 +137,7 @@ export function SettingsPage() {
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
             }`}>
               {scope === 'user' ? <User weight="fill" className="h-3.5 w-3.5" /> : <Building weight="fill" className="h-3.5 w-3.5" />}
-              {scope === 'user' ? 'Marble preference deck' : 'Workspace command deck'}
+              {scope === 'user' ? 'Preference center' : 'Workspace command deck'}
             </div>
 
             <h1 className="text-3xl font-black tracking-[-0.04em]">

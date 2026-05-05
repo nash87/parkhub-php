@@ -121,7 +121,7 @@ export function MapViewPage() {
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
             }`}>
               <MapPin weight="fill" className="h-3.5 w-3.5" />
-              {isVoid ? 'Void occupancy deck' : 'Marble live map board'}
+              Live occupancy map
             </div>
 
             <h1 className="flex items-center gap-3 text-3xl font-black tracking-[-0.04em] text-surface-900 dark:text-white">

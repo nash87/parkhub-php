@@ -75,7 +75,7 @@ export function TeamPage() {
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
             }`}>
               <Users weight="fill" className="h-3.5 w-3.5" />
-              {isVoid ? 'Void team deck' : 'Marble roster board'}
+              Team roster
             </div>
 
             <h1 className="text-3xl font-black tracking-[-0.04em]">{t('team.title', 'Team')}</h1>
