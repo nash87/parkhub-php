@@ -5,7 +5,7 @@ type: "handoff"
 priority: "high"
 status: "in_progress"
 task_id: "T-2705"
-updated: "2026-05-05 14:33 CEST"
+updated: "2026-05-05 17:51 CEST"
 ---
 
 # T-2705 ParkHub CI and local-dev reconciliation handoff
@@ -564,18 +564,25 @@ Live update `2026-05-05 14:33 CEST`:
   - Focused BFF cargo test is still blocked by sandbox DNS/offload write limits
     until host approval resets.
 - Latest UI/UX parity update:
-  - PHP design-smoke head is `40d037c`
-    `style: remove legacy generative feature copy` (clean, ahead 23 vs
-    local `github/main`);
-  - Rust design-smoke head is `180ac65b`
-    `feat: add admin overview surface` (clean, ahead 21 vs local
+  - PHP design-smoke head is `03a0b3f`
+    `style: remove dashboard preview copy` (clean, ahead 27 vs local
     `github/main`);
-  - `/admin` now mounts a real `AdminOverviewPage`; `/admin/reports` remains
-    the reports route;
-  - PHP/Rust focused `AdminOverview.test.tsx` + `App.test.tsx` slices passed;
-  - PHP/Rust route-contract Playwright slices passed;
-  - PHP legacy `resources/js` visible copy scan no longer finds the blocked
-    `Generative Background` / `generative art` wording.
+  - Rust design-smoke head is `e1698f79`
+    `style: guard dashboard preview copy` (clean, ahead 25 vs local
+    `github/main`);
+  - the route-smoke gate covers public, protected, admin, redirect, desktop,
+    and mobile route surfaces, with `140` static checks per repo;
+  - V5 design/happy-path static coverage remains `112` checks per repo;
+  - `/admin` mounts a real `AdminOverviewPage`; `/admin/reports` remains the
+    reports route;
+  - public Welcome/Login decorative chrome, old generative-background wording,
+    disabled `coming soon` action copy, and dashboard `New design preview` copy
+    are removed or guarded;
+  - PHP/Rust focused Admin and SidebarV3 tests passed, PHP Dashboard Vitest
+    passed, and PHP/Rust route-smoke static discovery passed at the current
+    heads;
+  - PHP legacy `resources/js` Welcome/Login Vitest replay is still unverified
+    because that app path has no local `vitest` binary in this worktree.
 - GitHub #444 state:
   - public GitHub web shows `main` contains `3db3858`
     `build(deps-dev): bump vite from 7.3.2 to 8.0.10 in /parkhub-web (#444)`;
