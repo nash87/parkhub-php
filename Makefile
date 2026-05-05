@@ -26,7 +26,7 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 MAKEFLAGS += --no-print-directory
 
-.PHONY: help ci ci-post full cd release-preflight ci-security script-tests lint test static-analysis drift frontend nix-contract nix-contract-strict act pre-push pre-push-report clean
+.PHONY: help ci ci-post full cd release-preflight ci-security script-tests lint test static-analysis drift frontend nix-contract nix-contract-strict devcontainer-contract act pre-push pre-push-report clean
 
 help:
 	@echo "parkhub-php local-first CI/CD"
@@ -45,6 +45,7 @@ help:
 	@echo "  make frontend   — npm ci + build (frontend job)"
 	@echo "  make nix-contract — static Nix/Garnix CI contract"
 	@echo "  make nix-contract-strict — require committed flake.lock for release-grade Nix/Garnix"
+	@echo "  make devcontainer-contract — static PHP devcontainer contract"
 	@echo "  make act        — run workflows via nektos/act (if installed)"
 	@echo "  make pre-push   — alias for ci; run before git push"
 	@echo "  make pre-push-report — verify current HEAD has a local-ci success report"
@@ -80,6 +81,9 @@ nix-contract:
 
 nix-contract-strict:
 	bash scripts/check-nix-garnix-contract.sh --require-lock
+
+devcontainer-contract:
+	bash scripts/tests/test-devcontainer-contract.sh
 
 ## Mirrors: openapi-drift.yml
 drift:
@@ -141,6 +145,7 @@ ci-security:
 script-tests:
 	bash scripts/tests/test-drift-scripts.sh
 	bash scripts/tests/test-ui-polish-contract.sh
+	bash scripts/tests/test-devcontainer-contract.sh
 	bash scripts/tests/test-fop-local-ci-failure-trap.sh
 	bash scripts/tests/test-local-ci-report-check.sh
 

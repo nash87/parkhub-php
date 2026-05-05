@@ -1,0 +1,82 @@
+{
+  "name": "parkhub-php full local CI/CD",
+
+  "// image vs build": [
+    "Default to the prebuilt image published by .github/workflows/devcontainer-publish.yml.",
+    "To test Containerfile edits locally, comment out image and uncomment build."
+  ],
+  "image": "ghcr.io/nash87/parkhub-php-devcontainer:latest",
+
+  "// build": {
+    "context": ".",
+    "dockerfile": "Containerfile"
+  },
+
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/parkhub-php",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/parkhub-php,type=bind,consistency=cached",
+
+  "// Note": [
+    "This devcontainer is a contributor and local-CI image, not a production runtime image.",
+    "It ships PHP 8.4, Node 22, Composer, Helm, Docker CLI, actionlint, mise, and the",
+    "repo-pinned mise tools used by .github/scripts/fop-local-ci.sh and local security gates."
+  ],
+
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "bmewburn.vscode-intelephense-client",
+        "xdebug.php-debug",
+        "astro-build.astro-vscode",
+        "biomejs.biome",
+        "ms-azuretools.vscode-docker",
+        "GitHub.vscode-github-actions",
+        "GitHub.copilot",
+        "ms-playwright.playwright"
+      ],
+      "settings": {
+        "editor.formatOnSave": true,
+        "[php]": { "editor.defaultFormatter": "bmewburn.vscode-intelephense-client" },
+        "[typescript]": { "editor.defaultFormatter": "biomejs.biome" },
+        "[typescriptreact]": { "editor.defaultFormatter": "biomejs.biome" },
+        "[astro]": { "editor.defaultFormatter": "astro-build.astro-vscode" },
+        "files.watcherExclude": {
+          "**/vendor/**": true,
+          "**/node_modules/**": true,
+          "**/parkhub-web/node_modules/**": true,
+          "**/.fop/**": true
+        }
+      }
+    }
+  },
+
+  "forwardPorts": [4321, 5173, 8000, 18113],
+  "portsAttributes": {
+    "4321": { "label": "astro preview", "onAutoForward": "notify" },
+    "5173": { "label": "vite dev", "onAutoForward": "notify" },
+    "8000": { "label": "laravel", "onAutoForward": "notify" },
+    "18113": { "label": "design-smoke php server", "onAutoForward": "silent" }
+  },
+
+  "mounts": [
+    "source=parkhub-php-composer-cache,target=/home/vscode/.composer/cache,type=volume",
+    "source=parkhub-php-npm-cache,target=/home/vscode/.npm,type=volume",
+    "source=parkhub-php-playwright-cache,target=/home/vscode/.cache/ms-playwright,type=volume"
+  ],
+
+  "postCreateCommand": "bash -lc 'mise trust && mise install && composer install --prefer-dist --no-interaction --no-progress && npm ci && npm ci --prefix parkhub-web && lefthook install --reset-hooks-path'",
+
+  "postStartCommand": "bash -lc 'echo \"parkhub-php devcontainer ready. Run: .github/scripts/fop-local-ci.sh --profile pr --post-status\"'",
+
+  "remoteEnv": {
+    "PATH": "/home/vscode/.local/share/mise/shims:${containerEnv:PATH}",
+    "DB_CONNECTION": "sqlite",
+    "DB_DATABASE": "database/database.sqlite",
+    "FOP_LOCAL_CI_DIRECT": "1"
+  }
+}
