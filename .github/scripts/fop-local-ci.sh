@@ -78,6 +78,46 @@ context="fop/local-ci/${profile}"
 report_dir="$repo_root/.fop/reports"
 report_path="$report_dir/local-ci-${profile}-${sha}.json"
 started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+diff_paths=""
+diff_touch_design_smoke=0
+
+compute_design_smoke_gate() {
+  if [[ "${FOP_LOCAL_CI_NO_DIFF_AWARE:-}" == "1" ]] || [[ "$profile" != "pr" ]]; then
+    diff_touch_design_smoke=1
+    return 0
+  fi
+
+  local base_ref
+  for candidate in github/main upstream/main origin/main main; do
+    if git rev-parse --verify --quiet "$candidate" >/dev/null; then
+      base_ref="$candidate"
+      break
+    fi
+  done
+
+  if [[ -z "${base_ref:-}" ]]; then
+    printf 'ℹ design-smoke gate: no base ref resolvable; enabling\n'
+    diff_touch_design_smoke=1
+    return 0
+  fi
+
+  local merge_base
+  merge_base="$(git merge-base "$base_ref" HEAD 2>/dev/null || echo "$base_ref")"
+  diff_paths="$(git diff --name-only "${merge_base}..HEAD" 2>/dev/null || true)"
+
+  if [[ -z "$diff_paths" ]]; then
+    printf 'ℹ design-smoke gate: empty diff vs %s; enabling\n' "$base_ref"
+    diff_touch_design_smoke=1
+    return 0
+  fi
+
+  if grep -qE '^(parkhub-web/(src/(design-v5|views|components|context|api|lib|styles)/|src/(App|main)\.tsx|package(-lock)?\.json|astro\.config\.mjs|playwright\.config\.ts)|resources/js/|e2e/|playwright\.config\.ts|package(-lock)?\.json)$' <<<"$diff_paths"; then
+    diff_touch_design_smoke=1
+  fi
+
+  printf 'ℹ design-smoke gate (vs %s): enabled=%d (%d files)\n' \
+    "$base_ref" "$diff_touch_design_smoke" "$(wc -l <<<"$diff_paths")"
+}
 
 status_repo() {
   if [[ -n "${FOP_LOCAL_CI_STATUS_REPO:-}" ]]; then
@@ -238,6 +278,8 @@ mark_failure() {
 }
 trap 'mark_failure "$LINENO"' ERR
 
+compute_design_smoke_gate
+
 post_commit_status "pending" "fop local ${profile} running"
 
 run_direct "working tree whitespace" "git diff --check"
@@ -264,6 +306,12 @@ run_step "frontend npm install" "npm ci && npm ci --prefix parkhub-web"
 run_step "frontend vitest" "cd parkhub-web && npm test"
 
 run_step "frontend build" "cd parkhub-web && npm run build && cd .. && npm run build"
+
+if (( diff_touch_design_smoke )); then
+  run_step_heavy "v5 design smoke" "npm run test:e2e:design-smoke"
+else
+  skip_step "v5 design smoke" "diff-aware: no v5 route/design/e2e files touched"
+fi
 
 # tsc --noEmit on parkhub-web is not yet green on main as of 4.15.0 —
 # the `chore/web-tsc-phase4c-*` series (PRs #379..#382 and ongoing) is
