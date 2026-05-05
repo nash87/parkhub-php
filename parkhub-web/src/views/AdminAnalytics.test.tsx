@@ -1,29 +1,37 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 
-const mockUseTheme = vi.fn();
-
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en', changeLanguage: vi.fn() } }),
+  useTranslation: () => ({
+    // Mirror i18next's real behavior: the second arg is the English fallback,
+    // and an opts object's interpolation values replace `{{name}}` placeholders.
+    t: (key: string, defaultOrOpts?: string | Record<string, unknown>, opts?: Record<string, unknown>) => {
+      const isFallback = typeof defaultOrOpts === 'string';
+      let text = isFallback ? defaultOrOpts : key;
+      const interp = isFallback ? opts : (defaultOrOpts as Record<string, unknown> | undefined);
+      if (interp) {
+        for (const [k, v] of Object.entries(interp)) {
+          text = text.replace(new RegExp(`{{\\s*${k}\\s*}}`, 'g'), String(v));
+        }
+      }
+      return text;
+    },
+    i18n: { language: 'en', changeLanguage: vi.fn() },
+  }),
 }));
 
 vi.mock('../api/client', () => ({
   getInMemoryToken: () => 'test-token',
 }));
 
-vi.mock('../context/ThemeContext', () => ({
-  useTheme: () => mockUseTheme(),
-}));
-
 vi.mock('@phosphor-icons/react', () => ({
-  ChartBar: (p: any) => <span {...p} />,
-  TrendUp: (p: any) => <span {...p} />,
-  Users: (p: any) => <span {...p} />,
-  Clock: (p: any) => <span {...p} />,
-  CurrencyDollar: (p: any) => <span {...p} />,
-  Export: (p: any) => <span {...p} />,
-  CalendarBlank: (p: any) => <span {...p} />,
+  ChartBarIcon: (p: any) => <span {...p} />,
+  TrendUpIcon: (p: any) => <span {...p} />,
+  UsersIcon: (p: any) => <span {...p} />,
+  ClockIcon: (p: any) => <span {...p} />,
+  CurrencyDollarIcon: (p: any) => <span {...p} />,
+  ExportIcon: (p: any) => <span {...p} />,
+  CalendarBlankIcon: (p: any) => <span {...p} />,
 }));
 
 import { AdminAnalyticsPage } from './AdminAnalytics';
@@ -57,8 +65,6 @@ const mockData = {
 
 beforeEach(() => {
   vi.restoreAllMocks();
-  mockUseTheme.mockReset();
-  mockUseTheme.mockReturnValue({ designTheme: 'marble' });
 });
 
 describe('AdminAnalyticsPage', () => {
@@ -68,20 +74,19 @@ describe('AdminAnalyticsPage', () => {
     });
     render(<AdminAnalyticsPage />);
     expect(screen.getByText('Analytics')).toBeTruthy();
-    expect(screen.getByTestId('admin-analytics')).toHaveAttribute('data-surface', 'marble');
   });
 
-  it('switches to the void surface when the void theme is active', async () => {
-    mockUseTheme.mockReturnValue({ designTheme: 'void' });
+  it('uses operational analytics copy instead of decorative surface labels', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       json: () => Promise.resolve(mockData),
     });
 
     render(<AdminAnalyticsPage />);
 
-    await waitFor(() => {
-      expect(screen.getByTestId('admin-analytics')).toHaveAttribute('data-surface', 'void');
-    });
+    expect(screen.getByText('USAGE & TRENDS')).toBeTruthy();
+    expect(screen.queryByText('Void analytics deck')).toBeNull();
+    expect(screen.queryByText('Marble analytics deck')).toBeNull();
+    expect(screen.queryByText('Observatory')).toBeNull();
   });
 
   it('shows loading skeletons initially', () => {
