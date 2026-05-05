@@ -305,7 +305,7 @@ run_step "frontend npm install" "npm ci && npm ci --prefix parkhub-web"
 
 run_step "frontend vitest" "cd parkhub-web && npm test"
 
-run_step "frontend build" "cd parkhub-web && npm run build && cd .. && npm run build"
+run_step "frontend build" "cd parkhub-web && CI=true npm run build && cd .. && CI=true npm run build"
 
 if (( diff_touch_design_smoke )); then
   run_step_heavy "frontend route + v5 design smoke" "npm run test:e2e:design-smoke"
@@ -368,7 +368,7 @@ if [[ "$profile" == "full" || "$profile" == "cd" ]]; then
 
   run_step_heavy "playwright chromium browser install" "npx playwright install --with-deps chromium"
 
-  run_step_heavy "playwright chromium e2e" "e2e_db=\"\${FOP_LOCAL_CI_E2E_DB:-/tmp/parkhub-e2e-\$\$.sqlite}\"; rm -f \"\$e2e_db\"; export DB_CONNECTION=sqlite DB_DATABASE=\"\$e2e_db\" DEMO_MODE=true PARKHUB_ADMIN_PASSWORD=demo PARKHUB_DISABLE_RATE_LIMITS=true E2E_BASE_URL=http://127.0.0.1:8082; ./scripts/ci/bootstrap-laravel.sh && php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force --no-interaction && npm run build:php --prefix parkhub-web && pid=''; cleanup() { if [[ -n \"\${pid:-}\" ]]; then kill \"\$pid\" 2>/dev/null || true; fi; rm -f \"\$e2e_db\"; }; trap cleanup EXIT; { php artisan serve --host=127.0.0.1 --port=8082 >/tmp/parkhub-e2e.log 2>&1 & pid=\$!; }; ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60 && npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium"
+  run_step_heavy "playwright chromium e2e" "e2e_db=\"\${FOP_LOCAL_CI_E2E_DB:-/tmp/parkhub-e2e-\$\$.sqlite}\"; rm -f \"\$e2e_db\"; export DB_CONNECTION=sqlite DB_DATABASE=\"\$e2e_db\" DEMO_MODE=true PARKHUB_ADMIN_PASSWORD=demo PARKHUB_DISABLE_RATE_LIMITS=true E2E_BASE_URL=http://127.0.0.1:8082; ./scripts/ci/bootstrap-laravel.sh && php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force --no-interaction && CI=true npm run build:php --prefix parkhub-web && pid=''; cleanup() { if [[ -n \"\${pid:-}\" ]]; then kill \"\$pid\" 2>/dev/null || true; fi; rm -f \"\$e2e_db\"; }; trap cleanup EXIT; { php artisan serve --host=127.0.0.1 --port=8082 >/tmp/parkhub-e2e.log 2>&1 & pid=\$!; }; ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60 && npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium"
 fi
 
 if [[ "$profile" == "cd" ]]; then
