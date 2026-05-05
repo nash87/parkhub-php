@@ -59,7 +59,7 @@ export function LoginPage() {
 
   return (
     <main className="min-h-dvh bg-white dark:bg-surface-950 flex">
-      {/* Left panel — premium branding with animated gradient */}
+      {/* Left panel — product branding */}
       <div className="hidden lg:flex lg:w-[45%] bg-surface-950 dark:bg-surface-900 relative items-end p-12 overflow-hidden">
         {/* Animated gradient strip at top */}
         <motion.div
@@ -68,10 +68,6 @@ export function LoginPage() {
           animate={{ backgroundPosition: ['0% 0%', '200% 0%'] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
         />
-
-        {/* Decorative gradient orbs */}
-        <div className="absolute top-[20%] right-[10%] w-64 h-64 rounded-full bg-gradient-to-br from-primary-500/15 to-accent-500/10 blur-3xl" />
-        <div className="absolute bottom-[30%] left-[5%] w-48 h-48 rounded-full bg-gradient-to-tr from-primary-400/10 to-cyan-400/8 blur-3xl" />
 
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{

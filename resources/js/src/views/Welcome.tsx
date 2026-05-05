@@ -50,10 +50,6 @@ export function WelcomePage() {
 
   return (
     <div className="min-h-dvh mesh-gradient-animated relative overflow-hidden">
-      {/* Decorative gradient orbs */}
-      <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-gradient-to-br from-primary-400/20 via-primary-300/10 to-transparent dark:from-primary-600/10 dark:via-primary-500/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-[-15%] left-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-tr from-accent-400/15 via-accent-300/8 to-transparent dark:from-accent-600/8 dark:via-accent-500/3 blur-3xl pointer-events-none" />
-
       {/* Top bar */}
       <header className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-5">
         <motion.div
