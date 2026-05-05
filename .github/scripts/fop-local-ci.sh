@@ -308,9 +308,9 @@ run_step "frontend vitest" "cd parkhub-web && npm test"
 run_step "frontend build" "cd parkhub-web && npm run build && cd .. && npm run build"
 
 if (( diff_touch_design_smoke )); then
-  run_step_heavy "v5 design smoke" "npm run test:e2e:design-smoke"
+  run_step_heavy "frontend route + v5 design smoke" "npm run test:e2e:design-smoke"
 else
-  skip_step "v5 design smoke" "diff-aware: no v5 route/design/e2e files touched"
+  skip_step "frontend route + v5 design smoke" "diff-aware: no route/design/e2e files touched"
 fi
 
 # tsc --noEmit on parkhub-web is not yet green on main as of 4.15.0 —
