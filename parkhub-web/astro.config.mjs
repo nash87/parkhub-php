@@ -49,6 +49,9 @@ export default defineConfig({
   integrations: [react({ babel: { plugins: [reactCompiler] } }), swBuildHashIntegration],
   vite: {
     plugins: [tailwindcss()],
+    resolve: {
+      tsconfigPaths: false,
+    },
     define: {
       'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || ''),
       'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion),

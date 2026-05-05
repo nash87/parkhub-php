@@ -26,7 +26,7 @@ SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 MAKEFLAGS += --no-print-directory
 
-.PHONY: help ci ci-post full cd release-preflight ci-security script-tests lint test static-analysis drift frontend act pre-push clean
+.PHONY: help ci ci-post full cd release-preflight ci-security script-tests lint test static-analysis drift frontend act pre-push pre-push-report clean
 
 help:
 	@echo "parkhub-php local-first CI/CD"
@@ -45,6 +45,7 @@ help:
 	@echo "  make frontend   — npm ci + build (frontend job)"
 	@echo "  make act        — run workflows via nektos/act (if installed)"
 	@echo "  make pre-push   — alias for ci; run before git push"
+	@echo "  make pre-push-report — verify current HEAD has a local-ci success report"
 
 ## Mirrors: backend-quality job (.github/workflows/ci.yml)
 lint:
@@ -129,8 +130,12 @@ ci-security:
 script-tests:
 	bash scripts/tests/test-drift-scripts.sh
 	bash scripts/tests/test-fop-local-ci-failure-trap.sh
+	bash scripts/tests/test-local-ci-report-check.sh
 
 pre-push: ci
+
+pre-push-report:
+	bash scripts/check-local-ci-report.sh pr
 
 ## Run the real workflows locally with nektos/act
 act:
