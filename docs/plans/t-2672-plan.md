@@ -5,7 +5,7 @@ type: "handoff"
 priority: "high"
 status: "in_progress"
 task_id: "T-2705"
-updated: "2026-05-05 02:41 CEST"
+updated: "2026-05-05 14:33 CEST"
 ---
 
 # T-2705 ParkHub CI and local-dev reconciliation handoff
@@ -492,7 +492,88 @@ Recoverable patch copy:
 
 ## Resume commands
 
-Post-`2026-05-05 01:41 CEST` external-action sequence:
+Live update `2026-05-05 05:42 CEST`:
+
+- PHP PR #443 was unblocked by rerunning failed run `25342004199`; `fop local
+  CI attestation` and `Required checks` then passed.
+- PHP PR #443 merged at `2026-05-05T03:40:22Z`, merge commit
+  `0692b9862af54f06a6ffc4e7b7d9e201a23c98fb`.
+- PHP PR #444 was updated after #443 merged. Current head:
+  `00dbf56821edea8c487ef37362a28793a7451657`.
+- Do not start the #444 local gate while `fop guard preflight` is red. At this
+  checkpoint, active fop job `13689` (`cargo clippy --all-targets
+  --all-features`) owns the build slot.
+- Follow-up queue check: the active job cleared and `fop guard preflight`
+  returned green, but `fop queue queue` still showed one pending critical cargo
+  test job. Defer #444's heavy local gate until the pending critical job clears
+  or an operator explicitly accepts queueing behind it.
+
+Live update `2026-05-05 14:33 CEST`:
+
+- ParkHub all-route UI/UX work continued in dedicated PHP/Rust design-smoke
+  worktrees while GitHub push/PR/browser host actions were approval-gated.
+- PHP UI branch:
+  - worktree: `/var/home/florian/dev/parkhub-php.design-smoke`
+  - branch: `t-design-smoke-pr-gate`
+  - head: `ae4df06` `style: professionalize theme labels`
+  - status: clean, ahead 21 vs local `github/main`.
+- Rust UI branch:
+  - worktree: `/var/home/florian/dev/parkhub-rust.design-smoke`
+  - branch: `t-design-smoke-pr-gate`
+  - head: `3278c726` `style: professionalize theme labels`
+  - status: clean, ahead 20 vs local `github/main`.
+- UI changes since the earlier handoff:
+  - broad route-copy cleanup across public, protected, and admin pages;
+  - PHP `/admin/users` normalized to the shared compact admin hero;
+  - public/protected/admin route smoke now exact-compares helper route arrays
+    against `parkhub-web/src/App.tsx` instead of count-only matching;
+  - every lazy router/shell module imported by `App.tsx` must have colocated
+    component coverage;
+  - user-facing theme labels no longer expose `Marble`/`Void` jargon. Stored
+    IDs stay compatible, but UI labels now show `Standard`, `Operations Dark`,
+    `Light`, `Dark`, and `Focus Dark`.
+- UI verification:
+  - PHP focused theme/settings/profile Vitest: `8` files / `112` tests passed.
+  - Rust focused theme/settings/profile Vitest: `8` files / `109` tests passed.
+  - PHP route-contract Playwright slice: `2` tests passed through fop.
+  - Rust route-contract Playwright slice: `2` tests passed through fop.
+  - PHP/Rust local-CI PR dry-runs confirm `frontend route + v5 design smoke`
+    is enabled for the current diffs.
+  - PHP/Rust `git diff --check`: clean on the UI branches.
+- Nix/Garnix baseline:
+  - PHP worktree `/var/home/florian/dev/parkhub-php.nix-garnix`, head
+    `4774e84`, clean/ahead 1, `make nix-contract` passed through fop.
+  - Rust worktree `/var/home/florian/dev/parkhub-rust.nix-garnix`, head
+    `8860b016`, clean/ahead 1, `make nix-contract` passed through fop.
+  - This shell still has no `nix` or `garnix` on PATH, so real
+    `nix flake lock` / `nix flake check` remains host-tooling work.
+- PHP image-security branch:
+  - worktree: `/var/home/florian/dev/parkhub-php.trivy-runtime-prune`
+  - branch: `fix/trivy-runtime-build-deps`
+  - head after local rebase: `a63d544`
+  - status: clean, ahead 1 vs local `github/main`;
+  - `trivy config --severity HIGH,CRITICAL --exit-code 1 Dockerfile` passed
+    through fop with `0` Dockerfile misconfigurations.
+- fop/BFF integration:
+  - fop-web-backend ParkHub BFF branch
+    `/var/home/florian/dev/fop-web-backend.t-2741-parkhub-bff` has
+    `ad02aa6` advertising live ParkHub task metadata in `/api/pages/parkhub`.
+  - fop-web-ui branch `/var/home/florian/dev/fop-web-ui.t-2741-parkhub-status`
+    has `263a6029` wiring `/dev/parkhub` to BFF.
+  - Focused BFF cargo test is still blocked by sandbox DNS/offload write limits
+    until host approval resets.
+- fop task-store drift:
+  - ParkHub task `T-2742` was recreated/claimed during this pass but vanished
+    again from `fop tasks get` and `fop tasks list`. Treat this doc, the
+    Obsidian note, and `/var/home/florian/dev/_handoffs/parkhub/2026-05-05-codex-to-left-tab.md`
+    as durable continuation state until fop task persistence is repaired.
+- Still blocked by host/approval reset:
+  - full browser replay against `parkhub-rust.test` and `parkhub-php.test`;
+  - GitHub push/PR/status/merge actions;
+  - image build + Trivy image proof;
+  - real Nix/Garnix checks.
+
+Post-`2026-05-05 05:35 CEST` external-action sequence:
 
 ```bash
 date '+%Y-%m-%d %H:%M:%S %Z'
@@ -500,63 +581,38 @@ fop queue status
 fop guard preflight
 ```
 
-1. Verify and merge PHP Dependabot PR #445 if GitHub is clean:
+1. Verify PHP Dependabot PR #443 remains merged:
 
 ```bash
-gh pr view 445 --repo nash87/parkhub-php \
+gh pr view 443 --repo nash87/parkhub-php \
+  --json number,state,mergedAt,mergeCommit,headRefOid,title,url
+```
+
+2. Gate and merge PHP Dependabot PR #444:
+
+```bash
+cd /var/home/florian/dev/parkhub-php.dependabot-ci
+gh pr view 444 --repo nash87/parkhub-php \
+  --json number,title,headRefOid,headRefName,mergeStateStatus,statusCheckRollup,url
+
+git fetch github dependabot/npm_and_yarn/parkhub-web/vite-8.0.10
+git cat-file -e 00dbf56821edea8c487ef37362a28793a7451657^{commit}
+
+git checkout --detach 00dbf56821edea8c487ef37362a28793a7451657
+FOP_LOCAL_CI_STATUS_REPO=nash87/parkhub-php .github/scripts/fop-local-ci.sh --profile pr --post-status
+
+gh run rerun 25356631391 --repo nash87/parkhub-php --failed
+gh run watch 25356631391 --repo nash87/parkhub-php --exit-status
+
+gh pr view 444 --repo nash87/parkhub-php \
   --json number,title,headRefOid,mergeStateStatus,statusCheckRollup,url
 
-gh api repos/nash87/parkhub-php/commits/679ea5b91d8da219e5e00d175ba0ebd2f3351cfe/status \
-  --jq '{state:.state, contexts:[.statuses[] | {context,state,description,updated_at}]}'
-
-# Only after mergeStateStatus is clean and fop/local-ci/pr is success:
-gh pr merge 445 --repo nash87/parkhub-php --squash --auto \
-  --match-head-commit 679ea5b91d8da219e5e00d175ba0ebd2f3351cfe
+# Merge only with the current matching head SHA after required checks pass.
+gh pr merge 444 --repo nash87/parkhub-php --squash --auto \
+  --match-head-commit 00dbf56821edea8c487ef37362a28793a7451657
 ```
 
-2. Fetch exact rebased heads for PHP Dependabot PRs #441-#444:
-
-```bash
-cd /var/home/florian/dev/parkhub-php.dependabot-ci
-git fetch github \
-  dependabot/npm_and_yarn/npm-tooling-deps-22a1f04088 \
-  dependabot/npm_and_yarn/globals-17.6.0 \
-  dependabot/npm_and_yarn/parkhub-web/npm-deps-9000fc1015 \
-  dependabot/npm_and_yarn/parkhub-web/vite-8.0.10
-
-git cat-file -e 02773f832105a6e586841005677822aa1d440687^{commit}
-git cat-file -e 23b58ad998f59f354303f93aac6b2e294223d467^{commit}
-git cat-file -e 642ead927f7293c36d2b4fb282bf3056be0d63b4^{commit}
-git cat-file -e 3cc9482df36cb138adbcd009d602aec7184fc204^{commit}
-```
-
-3. Run/post the PHP local PR gate serially for #441-#444:
-
-```bash
-cd /var/home/florian/dev/parkhub-php.dependabot-ci
-
-git checkout --detach 02773f832105a6e586841005677822aa1d440687
-FOP_LOCAL_CI_STATUS_REPO=nash87/parkhub-php .github/scripts/fop-local-ci.sh --profile pr --post-status
-
-git checkout --detach 23b58ad998f59f354303f93aac6b2e294223d467
-FOP_LOCAL_CI_STATUS_REPO=nash87/parkhub-php .github/scripts/fop-local-ci.sh --profile pr --post-status
-
-git checkout --detach 642ead927f7293c36d2b4fb282bf3056be0d63b4
-FOP_LOCAL_CI_STATUS_REPO=nash87/parkhub-php .github/scripts/fop-local-ci.sh --profile pr --post-status
-
-git checkout --detach 3cc9482df36cb138adbcd009d602aec7184fc204
-FOP_LOCAL_CI_STATUS_REPO=nash87/parkhub-php .github/scripts/fop-local-ci.sh --profile pr --post-status
-```
-
-After each gate, re-query that PR and merge only with the matching head SHA once
-GitHub reports clean branch protection:
-
-```bash
-gh pr list --repo nash87/parkhub-php --state open \
-  --json number,title,headRefOid,mergeStateStatus,statusCheckRollup
-```
-
-4. Prove and open the PHP image-security PR:
+3. Prove and open the PHP image-security PR:
 
 ```bash
 cd /var/home/florian/dev/parkhub-php.trivy-runtime-prune
@@ -575,7 +631,7 @@ gh pr create --repo nash87/parkhub-php --base main \
   --body-file .fop/pr-bodies/fix-trivy-runtime-build-deps.md
 ```
 
-5. Push/open the docs handoff PR:
+4. Push/open the docs handoff PR:
 
 ```bash
 cd /var/home/florian/dev/parkhub-php.t-2705-handoff-docs
@@ -588,7 +644,7 @@ gh pr create --repo nash87/parkhub-php --base main \
   --body-file .fop/pr-bodies/docs-t-2705-handoff-status.md
 ```
 
-6. Keep Flux PR #178 review-only:
+5. Keep Flux PR #178 review-only:
 
 - Verify with `tea pulls --login gitea-test --repo florian/flux-infra --output tsv`.
 - Do not auto-merge or reconcile production from this lane.
@@ -597,10 +653,10 @@ gh pr create --repo nash87/parkhub-php --base main \
 
 - GitHub confirms Rust has no unexpected open PRs and Rust security alerts are
   still clean.
-- PHP #445 is merged or has a documented non-source blocker after its successful
-  local PR gate.
-- PHP #441-#444 exact heads are fetched, locally gated, and merged only after
-  GitHub branch protection is clean.
+- PHP #445, #441, and #442 remain merged in GitHub.
+- PHP #443 is merged.
+- PHP #444 is locally gated and merged only after GitHub branch protection is
+  clean for head `00dbf56821edea8c487ef37362a28793a7451657`.
 - PHP image-security branch has host Podman build proof, Trivy image proof, and
   a GitHub PR.
 - Docs handoff branch has a GitHub PR.
