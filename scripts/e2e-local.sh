@@ -42,7 +42,18 @@ cleanup() {
 }
 trap cleanup EXIT
 
-./scripts/ci/wait-for-url.sh "${E2E_BASE_URL}/api/v1/health/live" 60
+sleep 1
+if ! kill -0 "${SERVER_PID}" 2>/dev/null; then
+  echo "Laravel app exited before the health check became reachable" >&2
+  tail -n 80 "${SERVER_LOG}" >&2 || true
+  exit 1
+fi
+
+if ! ./scripts/ci/wait-for-url.sh "${E2E_BASE_URL}/api/v1/health/live" 60; then
+  echo "Laravel app did not become healthy on ${E2E_BASE_URL}" >&2
+  tail -n 80 "${SERVER_LOG}" >&2 || true
+  exit 1
+fi
 
 echo "== Playwright against ${E2E_BASE_URL} =="
 npx playwright test "$@"
