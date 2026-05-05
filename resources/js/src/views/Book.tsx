@@ -139,7 +139,7 @@ export function BookPage() {
           </button>
         )}
         <div>
-          <h1 className="text-2xl font-bold text-surface-900 dark:text-white" style={{ letterSpacing: '-0.02em' }}>
+          <h1 className="text-2xl font-bold text-surface-900 dark:text-white" style={{ letterSpacing: '0' }}>
             {t('book.title')}
           </h1>
           <p className="text-sm text-surface-500 dark:text-surface-400 mt-0.5">{t(`book.step${step}Label`)}</p>

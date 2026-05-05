@@ -89,7 +89,7 @@ export function ParkingHistoryPage() {
       >
         <motion.div
           variants={fadeUp}
-          className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+          className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
             isVoid
               ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
               : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
@@ -97,7 +97,7 @@ export function ParkingHistoryPage() {
         >
           <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
-              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
                 isVoid
                   ? 'bg-cyan-500/10 text-cyan-100'
                   : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -108,7 +108,7 @@ export function ParkingHistoryPage() {
 
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h1 className="text-3xl font-black tracking-[-0.04em]">{t('history.title')}</h1>
+                  <h1 className="text-3xl font-black tracking-normal">{t('history.title')}</h1>
                   <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
                     {t('history.subtitle')}
                   </p>
@@ -142,12 +142,12 @@ export function ParkingHistoryPage() {
               </div>
             </div>
 
-            <div className={`rounded-[24px] border p-5 ${
+            <div className={`rounded-lg border p-5 ${
               isVoid
                 ? 'border-white/10 bg-white/[0.04]'
                 : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
             }`}>
-              <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
                 Active window
               </p>
               <div className="mt-4 space-y-3">
@@ -196,7 +196,7 @@ export function ParkingHistoryPage() {
 
         {stats && (
           <motion.div variants={fadeUp} className="grid grid-cols-1 gap-4 md:grid-cols-[1.1fr_0.9fr]">
-            <div className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+            <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
               <div className="mb-4 flex items-center gap-2">
                 <TrendUp weight="regular" className="h-4 w-4 text-primary-600 dark:text-primary-400" />
                 <h2 className="text-sm font-semibold text-surface-900 dark:text-white">{t('history.monthlyTrend')}</h2>
@@ -215,7 +215,7 @@ export function ParkingHistoryPage() {
               </div>
             </div>
 
-            <div className={`rounded-[24px] border p-5 ${
+            <div className={`rounded-lg border p-5 ${
               isVoid
                 ? 'border-slate-800 bg-slate-950/85'
                 : 'border-surface-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] dark:border-surface-800 dark:bg-surface-950/80'
@@ -234,7 +234,7 @@ export function ParkingHistoryPage() {
                 </span>
               </div>
 
-              <div className="flex h-32 items-center justify-center rounded-[20px] border border-dashed border-surface-200 dark:border-surface-800">
+              <div className="flex h-32 items-center justify-center rounded-lg border border-dashed border-surface-200 dark:border-surface-800">
                 <div className="text-center">
                   <p className="text-4xl font-bold text-primary-600 dark:text-primary-400">
                     {stats.busiest_day ? dayNames[stats.busiest_day] || stats.busiest_day : '—'}
@@ -251,7 +251,7 @@ export function ParkingHistoryPage() {
           </motion.div>
         )}
 
-        <motion.div variants={fadeUp} className="rounded-[24px] border border-surface-200 bg-white p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+        <motion.div variants={fadeUp} className="rounded-lg border border-surface-200 bg-white p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
           <div className="mb-3 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <FunnelSimple weight="regular" className="h-4 w-4 text-surface-500" />
@@ -264,7 +264,7 @@ export function ParkingHistoryPage() {
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <label className="space-y-1.5">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-surface-400 dark:text-surface-500">{t('history.filterLot')}</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('history.filterLot')}</span>
               <select
                 value={filterLot}
                 onChange={(event) => {
@@ -282,7 +282,7 @@ export function ParkingHistoryPage() {
             </label>
 
             <label className="space-y-1.5">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-surface-400 dark:text-surface-500">{t('history.dateFrom')}</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('history.dateFrom')}</span>
               <input
                 type="date"
                 value={filterFrom}
@@ -296,7 +296,7 @@ export function ParkingHistoryPage() {
             </label>
 
             <label className="space-y-1.5">
-              <span className="text-xs font-semibold uppercase tracking-[0.16em] text-surface-400 dark:text-surface-500">{t('history.dateTo')}</span>
+              <span className="text-xs font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('history.dateTo')}</span>
               <input
                 type="date"
                 value={filterTo}
@@ -311,11 +311,11 @@ export function ParkingHistoryPage() {
           </div>
         </motion.div>
 
-        <motion.div variants={fadeUp} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+        <motion.div variants={fadeUp} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-500 dark:text-surface-400">Timeline</p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">{t('history.title')}</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">Timeline</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-normal text-surface-900 dark:text-white">{t('history.title')}</h2>
             </div>
             <span className="rounded-full bg-surface-100 px-3 py-1 text-xs font-semibold text-surface-600 dark:bg-surface-800 dark:text-surface-300">
               {total} total
@@ -327,7 +327,7 @@ export function ParkingHistoryPage() {
               <SpinnerGap weight="bold" className="h-8 w-8 animate-spin text-primary-500" />
             </div>
           ) : bookings.length === 0 ? (
-            <div className="rounded-[20px] border border-dashed border-surface-200 p-16 text-center dark:border-surface-800">
+            <div className="rounded-lg border border-dashed border-surface-200 p-16 text-center dark:border-surface-800">
               <ClockCounterClockwise weight="light" className="mx-auto h-20 w-20 text-surface-200 dark:text-surface-700" />
               <p className="mt-4 text-surface-500 dark:text-surface-400">{t('history.noHistory')}</p>
             </div>
@@ -336,7 +336,7 @@ export function ParkingHistoryPage() {
               {bookings.map((booking) => (
                 <div
                   key={booking.id}
-                  className="flex items-center gap-4 rounded-[22px] border border-surface-200/80 bg-surface-50/70 p-4 transition-colors hover:border-primary-300 hover:bg-white dark:border-surface-800 dark:bg-surface-900/80 dark:hover:border-primary-800 dark:hover:bg-surface-900"
+                  className="flex items-center gap-4 rounded-lg border border-surface-200/80 bg-surface-50/70 p-4 transition-colors hover:border-primary-300 hover:bg-white dark:border-surface-800 dark:bg-surface-900/80 dark:hover:border-primary-800 dark:hover:bg-surface-900"
                 >
                   <div className={`h-2 w-2 flex-shrink-0 rounded-full ${
                     booking.status === 'completed' ? 'bg-green-500' : booking.status === 'cancelled' ? 'bg-red-500' : 'bg-surface-400'
@@ -370,7 +370,7 @@ export function ParkingHistoryPage() {
         </motion.div>
 
         {totalPages > 1 && (
-          <motion.div variants={fadeUp} className="flex items-center justify-between rounded-[20px] border border-surface-200 bg-white px-4 py-3 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+          <motion.div variants={fadeUp} className="flex items-center justify-between rounded-lg border border-surface-200 bg-white px-4 py-3 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
             <span className="text-sm text-surface-500 dark:text-surface-400">
               {t('history.showing', { from: (page - 1) * 10 + 1, to: Math.min(page * 10, total), total })}
             </span>
@@ -418,7 +418,7 @@ function HeroStat({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[22px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? accent
           ? 'border-cyan-500/20 bg-cyan-500/10'
@@ -429,14 +429,14 @@ function HeroStat({
     }`}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+          <p className={`text-[11px] font-semibold uppercase tracking-normal ${
             isVoid
               ? accent ? 'text-cyan-100' : 'text-white/45'
               : accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45'
           }`}>
             {label}
           </p>
-          <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">{value}</p>
+          <p className="mt-3 text-2xl font-semibold tracking-normal">{value}</p>
           <p className={`mt-2 text-xs ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
         </div>
         <div className={`rounded-2xl p-2 ${isVoid ? 'bg-white/[0.06] text-cyan-100' : 'bg-white text-emerald-700 dark:bg-white/10 dark:text-emerald-300'}`}>
@@ -461,13 +461,13 @@ function PanelMetric({
   compact?: boolean;
 }) {
   return (
-    <div className={`rounded-[20px] border px-4 ${compact ? 'py-3' : 'py-4'} ${
+    <div className={`rounded-lg border px-4 ${compact ? 'py-3' : 'py-4'} ${
       isVoid
         ? 'border-white/10 bg-white/[0.03]'
         : 'border-surface-200 bg-white/80 dark:border-surface-800 dark:bg-surface-900/70'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/45' : 'text-surface-400 dark:text-surface-500'}`}>{label}</p>
-      <p className="mt-2 text-lg font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">{value}</p>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-400 dark:text-surface-500'}`}>{label}</p>
+      <p className="mt-2 text-lg font-semibold tracking-normal text-surface-900 dark:text-white">{value}</p>
       <p className={`mt-1 text-xs ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{helper}</p>
     </div>
   );
@@ -483,7 +483,7 @@ function StatCard({
   children: ReactNode;
 }) {
   return (
-    <div className="rounded-[22px] border border-surface-200 bg-white p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+    <div className="rounded-lg border border-surface-200 bg-white p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
       <div className="mb-1 flex items-center gap-2 text-surface-500 dark:text-surface-400">
         {icon}
         <span className="text-xs font-medium">{label}</span>

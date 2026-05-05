@@ -7,8 +7,6 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 const mockGetBookings = vi.fn();
 const mockGetUserStats = vi.fn();
 const mockGetCo2Summary = vi.fn();
-const mockUseNavLayout = vi.fn();
-const mockUseTheme = vi.fn();
 
 vi.mock('react-router-dom', () => ({
   Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
@@ -26,14 +24,6 @@ vi.mock('../context/AuthContext', () => ({
       credits_monthly_quota: 10,
     },
   }),
-}));
-
-vi.mock('../hooks/useNavLayout', () => ({
-  useNavLayout: () => mockUseNavLayout(),
-}));
-
-vi.mock('../context/ThemeContext', () => ({
-  useTheme: () => mockUseTheme(),
 }));
 
 vi.mock('../api/client', () => ({
@@ -110,26 +100,26 @@ vi.mock('framer-motion', () => ({
 }));
 
 vi.mock('@phosphor-icons/react', () => ({
-  CalendarCheck: (props: any) => <span data-testid="icon-calendar-check" {...props} />,
-  Car: (props: any) => <span data-testid="icon-car" {...props} />,
-  Coins: (props: any) => <span data-testid="icon-coins" {...props} />,
-  Clock: (props: any) => <span data-testid="icon-clock" {...props} />,
-  CalendarPlus: (props: any) => <span data-testid="icon-calendar-plus" {...props} />,
-  ArrowRight: (props: any) => <span data-testid="icon-arrow-right" {...props} />,
-  TrendUp: (props: any) => <span data-testid="icon-trend-up" {...props} />,
-  MapPin: (props: any) => <span data-testid="icon-map-pin" {...props} />,
-  ChartLine: (props: any) => <span data-testid="icon-chart-line" {...props} />,
-  Gauge: (props: any) => <span data-testid="icon-gauge" {...props} />,
-  CurrencyDollar: (props: any) => <span data-testid="icon-dollar" {...props} />,
-  Timer: (props: any) => <span data-testid="icon-timer" {...props} />,
-  ArrowUp: (props: any) => <span data-testid="icon-arrow-up" {...props} />,
-  ArrowDown: (props: any) => <span data-testid="icon-arrow-down" {...props} />,
-  CircleDashed: (props: any) => <span data-testid="icon-circle-dashed" {...props} />,
-  Leaf: (props: any) => <span data-testid="icon-leaf" {...props} />,
+  CalendarCheckIcon: (props: any) => <span data-testid="icon-calendar-check" {...props} />,
+  CarIcon: (props: any) => <span data-testid="icon-car" {...props} />,
+  CoinsIcon: (props: any) => <span data-testid="icon-coins" {...props} />,
+  ClockIcon: (props: any) => <span data-testid="icon-clock" {...props} />,
+  CalendarPlusIcon: (props: any) => <span data-testid="icon-calendar-plus" {...props} />,
+  ArrowRightIcon: (props: any) => <span data-testid="icon-arrow-right" {...props} />,
+  TrendUpIcon: (props: any) => <span data-testid="icon-trend-up" {...props} />,
+  MapPinIcon: (props: any) => <span data-testid="icon-map-pin" {...props} />,
+  ChartLineIcon: (props: any) => <span data-testid="icon-chart-line" {...props} />,
+  GaugeIcon: (props: any) => <span data-testid="icon-gauge" {...props} />,
+  CurrencyDollarIcon: (props: any) => <span data-testid="icon-dollar" {...props} />,
+  TimerIcon: (props: any) => <span data-testid="icon-timer" {...props} />,
+  ArrowUpIcon: (props: any) => <span data-testid="icon-arrow-up" {...props} />,
+  ArrowDownIcon: (props: any) => <span data-testid="icon-arrow-down" {...props} />,
+  CircleDashedIcon: (props: any) => <span data-testid="icon-circle-dashed" {...props} />,
+  LeafIcon: (props: any) => <span data-testid="icon-leaf" {...props} />,
 }));
 
 vi.mock('../components/KineticObservatory', () => ({
-  KpiCard: ({ label, value, live, delta, ...rest }: any) => {
+  KpiCard: ({ label, value, suffix, live, delta, ...rest }: any) => {
     // Honor a caller-provided data-testid (Dashboard sets kpi-active-bookings,
     // kpi-credits, kpi-this-month, kpi-total, kpi-co2-saved). Fall back to a
     // label-derived id so tests can still find ad-hoc cards by label.
@@ -137,7 +127,7 @@ vi.mock('../components/KineticObservatory', () => ({
     return (
       <div data-testid={testid}>
         <span>{label}</span>
-        <span>{value}</span>
+        <span>{value}{suffix ?? ''}</span>
         {live && <span data-testid="live-badge">Live</span>}
         {delta && <span data-testid="delta-badge">{delta.value}{delta.suffix || '%'}</span>}
       </div>
@@ -203,10 +193,6 @@ describe('DashboardPage', () => {
     mockGetBookings.mockClear();
     mockGetUserStats.mockClear();
     mockGetCo2Summary.mockClear();
-    mockUseNavLayout.mockReset();
-    mockUseNavLayout.mockReturnValue(['classic', vi.fn()]);
-    mockUseTheme.mockReset();
-    mockUseTheme.mockReturnValue({ designTheme: 'classic' });
     // Default: CO2 endpoint returns a fresh summary. Individual tests
     // can override.
     mockGetCo2Summary.mockResolvedValue({
@@ -236,56 +222,6 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
     expect(screen.getByTestId('dashboard-skeleton')).toBeInTheDocument();
-  });
-
-  it('renders the Marble surface when dock layout is selected', async () => {
-    mockUseNavLayout.mockReturnValue(['dock', vi.fn()]);
-    mockGetBookings.mockResolvedValue({
-      success: true,
-      data: [{
-        id: 'b-1',
-        lot_id: 'lot-1',
-        lot_name: 'HQ West',
-        slot_number: 'A-12',
-        vehicle_plate: 'HB-PH 1',
-        status: 'active',
-        start_time: new Date(Date.now() - 30 * 60_000).toISOString(),
-        end_time: new Date(Date.now() + 90 * 60_000).toISOString(),
-      }],
-    });
-    mockGetUserStats.mockResolvedValue({ success: true, data: { total_bookings: 12, bookings_this_month: 4 } });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => expect(screen.getByTestId('marble-surface')).toBeInTheDocument());
-    expect(screen.getByText(/Today at a glance/i)).toBeInTheDocument();
-    expect(screen.getByText(/Fast chargers available/i)).toBeInTheDocument();
-    expect(screen.getByText(/Operational stream/i)).toBeInTheDocument();
-  });
-
-  it('renders the Void surface when focus layout is selected', async () => {
-    mockUseNavLayout.mockReturnValue(['focus', vi.fn()]);
-    mockGetBookings.mockResolvedValue({
-      success: true,
-      data: [{
-        id: 'b-2',
-        lot_id: 'lot-2',
-        lot_name: 'Garage North',
-        slot_number: 'B-03',
-        vehicle_plate: 'HB-PH 2',
-        status: 'active',
-        start_time: new Date(Date.now() - 15 * 60_000).toISOString(),
-        end_time: new Date(Date.now() + 60 * 60_000).toISOString(),
-      }],
-    });
-    mockGetUserStats.mockResolvedValue({ success: true, data: { total_bookings: 18, bookings_this_month: 7 } });
-
-    render(<DashboardPage />);
-
-    await waitFor(() => expect(screen.getByTestId('void-surface')).toBeInTheDocument());
-    expect(screen.getByText(/Editorial operations/i)).toBeInTheDocument();
-    expect(screen.getByText(/Occupancy board/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Operational stream/i).length).toBeGreaterThanOrEqual(1);
   });
 
   it('renders greeting with user name after loading', async () => {
@@ -326,6 +262,81 @@ describe('DashboardPage', () => {
     expect(within(screen.getByTestId('kpi-total')).getByText('10')).toBeInTheDocument();
     // This Month from userStats
     expect(within(screen.getByTestId('kpi-this-month')).getByText('3')).toBeInTheDocument();
+  });
+
+  it('renders CO2 saved_kg directly when the API provides it', async () => {
+    mockGetBookings.mockResolvedValue({ success: true, data: [] });
+    mockGetUserStats.mockResolvedValue({ success: true, data: null });
+    mockGetCo2Summary.mockResolvedValue({
+      success: true,
+      data: {
+        from: '2026-03-18T00:00:00Z',
+        to: '2026-04-17T00:00:00Z',
+        bookings_counted: 2,
+        total_km: 48,
+        emitted_g: 1200,
+        counterfactual_g: 2900,
+        saved_g: 1700,
+        carpool_saved_g: 0,
+        saved_kg: 1.7,
+      },
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId('kpi-co2-saved')).getByText('1.7 kg')).toBeInTheDocument();
+    });
+  });
+
+  it('falls back from CO2 saved_g to kilograms when saved_kg is missing', async () => {
+    mockGetBookings.mockResolvedValue({ success: true, data: [] });
+    mockGetUserStats.mockResolvedValue({ success: true, data: null });
+    mockGetCo2Summary.mockResolvedValue({
+      success: true,
+      data: {
+        from: '2026-03-18T00:00:00Z',
+        to: '2026-04-17T00:00:00Z',
+        bookings_counted: 2,
+        total_km: 48,
+        emitted_g: 1200,
+        counterfactual_g: 2900,
+        saved_g: 1700,
+        carpool_saved_g: 0,
+      },
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId('kpi-co2-saved')).getByText('1.7 kg')).toBeInTheDocument();
+    });
+  });
+
+  it('does not render NaN for malformed CO2 values', async () => {
+    mockGetBookings.mockResolvedValue({ success: true, data: [] });
+    mockGetUserStats.mockResolvedValue({ success: true, data: null });
+    mockGetCo2Summary.mockResolvedValue({
+      success: true,
+      data: {
+        from: '2026-03-18T00:00:00Z',
+        to: '2026-04-17T00:00:00Z',
+        bookings_counted: 2,
+        total_km: 48,
+        emitted_g: 1200,
+        counterfactual_g: 2900,
+        saved_g: Number.NaN,
+        carpool_saved_g: 0,
+        saved_kg: Number.NaN,
+      },
+    });
+
+    render(<DashboardPage />);
+
+    await waitFor(() => {
+      expect(within(screen.getByTestId('kpi-co2-saved')).getByText('0 kg')).toBeInTheDocument();
+    });
+    expect(screen.queryByText('NaN kg')).not.toBeInTheDocument();
   });
 
   it('shows empty state when no active bookings', async () => {

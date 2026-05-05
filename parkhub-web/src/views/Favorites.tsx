@@ -106,7 +106,7 @@ export function FavoritesPage() {
           variants={item}
           data-testid="favorites-summary-surface"
           data-surface-tone={isVoid ? 'void' : 'marble'}
-          className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+          className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
             isVoid
               ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
               : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
@@ -114,7 +114,7 @@ export function FavoritesPage() {
         >
           <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
                 isVoid
                   ? 'bg-cyan-500/10 text-cyan-100'
                   : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -123,7 +123,7 @@ export function FavoritesPage() {
                 Saved parking
               </div>
 
-              <h1 className="text-3xl font-black tracking-[-0.04em]">{t('favorites.title')}</h1>
+              <h1 className="text-3xl font-black tracking-normal">{t('favorites.title')}</h1>
               <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
                 {t('favorites.subtitle')}
               </p>
@@ -151,15 +151,15 @@ export function FavoritesPage() {
               </div>
             </div>
 
-            <div className={`rounded-[24px] border p-5 ${
+            <div className={`rounded-lg border p-5 ${
               isVoid
                 ? 'border-white/10 bg-white/[0.04]'
                 : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
             }`}>
-              <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
                 {t('favorites.latestLabel', 'Watchlist')}
               </p>
-              <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">
+              <h2 className="mt-2 text-xl font-semibold tracking-normal">
                 {latestFavorite
                   ? t('favorites.latestSavedTitle', 'Latest saved slot')
                   : t('favorites.latestEmpty', 'Ready for your next star')}
@@ -189,7 +189,7 @@ export function FavoritesPage() {
         {enriched.length === 0 ? (
           <motion.div
             variants={item}
-            className={`rounded-[24px] border px-6 py-14 text-center ${
+            className={`rounded-lg border px-6 py-14 text-center ${
               isVoid
                 ? 'border-slate-800 bg-slate-950/85 text-white'
                 : 'border-surface-200 bg-white shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80'
@@ -216,7 +216,7 @@ export function FavoritesPage() {
                   key={favorite.slot_id}
                   variants={item}
                   layout
-                  className={`rounded-[24px] border p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] ${
+                  className={`rounded-lg border p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] ${
                     isVoid
                       ? 'border-slate-800 bg-slate-950/85 text-white'
                       : 'border-surface-200 bg-white dark:border-surface-800 dark:bg-surface-950/80'
@@ -224,7 +224,7 @@ export function FavoritesPage() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <div className={`mt-0.5 flex h-11 w-11 items-center justify-center rounded-[18px] ${
+                      <div className={`mt-0.5 flex h-11 w-11 items-center justify-center rounded-lg ${
                         isAvailable
                           ? 'bg-emerald-500/12 text-emerald-600 dark:text-emerald-300'
                           : isVoid
@@ -236,7 +236,7 @@ export function FavoritesPage() {
 
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-lg font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">
+                          <p className="text-lg font-semibold tracking-normal text-surface-900 dark:text-white">
                             {t('favorites.slot')} {favorite.slot_number || '—'}
                           </p>
                           <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
@@ -319,7 +319,7 @@ function FavoriteHeroStat({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[20px] border px-4 py-3 backdrop-blur ${
+    <div className={`rounded-lg border px-4 py-3 backdrop-blur ${
       isVoid
         ? accent
           ? 'border-cyan-500/30 bg-cyan-500/10'
@@ -328,11 +328,11 @@ function FavoriteHeroStat({
           ? 'border-emerald-200 bg-white/85 dark:border-emerald-900/40 dark:bg-white/[0.04]'
           : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
         {label}
       </p>
       <div className="mt-2 flex items-end justify-between gap-3">
-        <span className="text-2xl font-semibold tracking-[-0.03em]">{value}</span>
+        <span className="text-2xl font-semibold tracking-normal">{value}</span>
         <span className={`text-xs ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</span>
       </div>
     </div>
@@ -341,12 +341,12 @@ function FavoriteHeroStat({
 
 function DetailMetric({ label, value, isVoid }: { label: string; value: string; isVoid: boolean }) {
   return (
-    <div className={`rounded-[18px] border px-4 py-3 ${
+    <div className={`rounded-lg border px-4 py-3 ${
       isVoid
         ? 'border-white/10 bg-slate-950/70'
         : 'border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-900/70'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
         {label}
       </p>
       <p className="mt-2 text-sm font-medium text-surface-900 dark:text-white">{value}</p>

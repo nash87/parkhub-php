@@ -154,7 +154,7 @@ export function BookPage() {
     <div className="space-y-6">
       {confirmed && <ConfettiOverlay />}
 
-      <div className={`overflow-hidden rounded-[2rem] border p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] ${
+      <div className={`overflow-hidden rounded-lg border p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] ${
         isVoid
           ? 'border-slate-800/90 bg-[radial-gradient(circle_at_top_left,_rgba(45,212,191,0.20),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.96))]'
           : 'border-stone-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.18),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.24),_transparent_40%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))]'
@@ -167,7 +167,7 @@ export function BookPage() {
               </button>
             )}
             <div className="space-y-2">
-              <div className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] shadow-sm ${
+              <div className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-normal shadow-sm ${
                 isVoid
                   ? 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
                   : 'border-emerald-200/70 bg-white/85 text-emerald-700 dark:border-emerald-900/60 dark:bg-surface-950/65 dark:text-emerald-300'
@@ -175,7 +175,7 @@ export function BookPage() {
                 {shell.kicker}
               </div>
               <div>
-                <h1 className={`text-3xl font-black ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`} style={{ letterSpacing: '-0.03em' }}>
+                <h1 className={`text-3xl font-black ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`} style={{ letterSpacing: '0' }}>
                   {shell.title}
                 </h1>
                 <p className={`mt-1 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
@@ -185,7 +185,7 @@ export function BookPage() {
             </div>
           </div>
 
-          <nav aria-label={t('book.progress', 'Booking progress')} className={`grid grid-cols-3 gap-2 rounded-[1.5rem] border p-2 shadow-sm backdrop-blur ${
+          <nav aria-label={t('book.progress', 'Booking progress')} className={`grid grid-cols-3 gap-2 rounded-lg border p-2 shadow-sm backdrop-blur ${
             isVoid
               ? 'border-slate-800 bg-slate-950/70'
               : 'border-white/70 bg-white/80 dark:border-surface-800 dark:bg-surface-950/70'
@@ -194,7 +194,7 @@ export function BookPage() {
               <div
                 key={s}
                 aria-current={s === step ? 'step' : undefined}
-                className={`min-w-[92px] rounded-[1.1rem] border px-3 py-3 text-left transition-all ${
+                className={`min-w-[92px] rounded-lg border px-3 py-3 text-left transition-all ${
                   s === step
                     ? 'border-primary-400 bg-primary-600 text-white shadow-lg shadow-primary-500/20'
                     : s < step
@@ -212,7 +212,7 @@ export function BookPage() {
                   }`}>
                     {s < step ? <Check weight="bold" className="h-3.5 w-3.5" aria-hidden="true" /> : s}
                   </div>
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.2em]">{t(`book.stepName${s}`)}</span>
+                  <span className="text-[11px] font-semibold uppercase tracking-normal">{t(`book.stepName${s}`)}</span>
                 </div>
                 <p className={`text-xs leading-5 ${
                   s === step
@@ -370,7 +370,7 @@ function RecommendationsSection({ lots, onSelect, t }: { lots: ParkingLot[]; onS
               whileHover={{ scale: 1.01 }}
               whileTap={{ scale: 0.99 }}
               onClick={() => lot && onSelect(lot)}
-              className="rounded-[1.4rem] border border-amber-200 bg-white/90 p-4 text-left shadow-[0_18px_50px_-38px_rgba(245,158,11,0.45)] transition-all hover:border-amber-400 dark:border-amber-800/50 dark:bg-surface-950/80"
+              className="rounded-lg border border-amber-200 bg-white/90 p-4 text-left shadow-[0_18px_50px_-38px_rgba(245,158,11,0.45)] transition-all hover:border-amber-400 dark:border-amber-800/50 dark:bg-surface-950/80"
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -440,7 +440,7 @@ function StepSelectLot({ lots, loading, onSelect, t }: {
                 whileHover={{ scale: 1.01, y: -2 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => onSelect(lot)}
-                className="group rounded-[1.75rem] border border-surface-200 bg-white p-5 text-left shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] transition-all hover:border-primary-400/60 hover:shadow-[0_24px_60px_-34px_rgba(20,184,166,0.45)] dark:border-surface-800 dark:bg-surface-950/80 dark:hover:border-primary-700/60"
+                className="group rounded-lg border border-surface-200 bg-white p-5 text-left shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] transition-all hover:border-primary-400/60 hover:shadow-[0_24px_60px_-34px_rgba(20,184,166,0.45)] dark:border-surface-800 dark:bg-surface-950/80 dark:hover:border-primary-700/60"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -453,7 +453,7 @@ function StepSelectLot({ lots, loading, onSelect, t }: {
                     )}
                   </div>
                   {openNow != null && (
-                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] ${
+                    <span className={`rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-normal ${
                       openNow
                         ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
@@ -463,14 +463,14 @@ function StepSelectLot({ lots, loading, onSelect, t }: {
                   )}
                 </div>
 
-                <div className="mt-5 rounded-[1.25rem] bg-surface-50 p-4 dark:bg-surface-900/70">
+                <div className="mt-5 rounded-lg bg-surface-50 p-4 dark:bg-surface-900/70">
                   <div className="flex items-end justify-between gap-4">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('book.available', 'Available')}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.available', 'Available')}</p>
                       <p className="mt-1 text-3xl font-black text-surface-900 dark:text-white">{lot.available_slots}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('book.occupancy', 'Occupancy')}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.occupancy', 'Occupancy')}</p>
                       <p className="mt-1 text-lg font-bold text-surface-700 dark:text-surface-200">{occupancy}%</p>
                     </div>
                   </div>
@@ -485,7 +485,7 @@ function StepSelectLot({ lots, loading, onSelect, t }: {
 
                 <div className="mt-4 flex items-center justify-between">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('book.rate', 'Rate')}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.rate', 'Rate')}</p>
                     <p className="mt-1 text-sm font-semibold text-surface-900 dark:text-white">
                       {lot.hourly_rate != null ? `${lot.currency || '€'}${Number(lot.hourly_rate).toFixed(2)}/h` : t('book.rateOnRequest', 'Rate on request')}
                     </p>
@@ -500,9 +500,9 @@ function StepSelectLot({ lots, loading, onSelect, t }: {
         </div>
       </div>
 
-      <aside className="rounded-[1.75rem] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-surface-400 dark:text-surface-500">{t('book.selectionGuide', 'Selection guide')}</p>
-        <h2 className="mt-2 text-xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '-0.03em' }}>
+      <aside className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
+        <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.selectionGuide', 'Selection guide')}</p>
+        <h2 className="mt-2 text-xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '0' }}>
           {t('book.step1AsideTitle', 'Find the right lot')}
         </h2>
         <p className="mt-2 text-sm leading-6 text-surface-600 dark:text-surface-300">
@@ -566,11 +566,11 @@ function StepSelectSlot({ lot, slots, loading, selectedSlot, onSelectSlot,
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_360px]">
       <div className="space-y-6">
-        <div className="rounded-[1.75rem] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-surface-400 dark:text-surface-500">{t('book.plannerLabel', 'Planner')}</p>
-              <h2 className="mt-2 text-2xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '-0.03em' }}>{lot.name}</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.plannerLabel', 'Planner')}</p>
+              <h2 className="mt-2 text-2xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '0' }}>{lot.name}</h2>
               <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{t('book.availableSlots', { count: available.length, total: slots.length })}</p>
             </div>
             {dynamicPrice?.dynamic_pricing_active && (
@@ -596,19 +596,19 @@ function StepSelectSlot({ lot, slots, loading, selectedSlot, onSelectSlot,
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <div className="rounded-[1.25rem] bg-surface-50 p-4 dark:bg-surface-900/70">
+            <div className="rounded-lg bg-surface-50 p-4 dark:bg-surface-900/70">
               <label htmlFor="book-start-time" className="block text-sm font-medium text-surface-700 dark:text-surface-300">
                 <Clock weight="regular" className="mr-1 inline h-4 w-4" aria-hidden="true" />
                 {t('book.startTime')}
               </label>
               <input id="book-start-time" type="datetime-local" value={startDate} onChange={(event) => onStartDateChange(event.target.value)} className="input mt-3 text-sm" />
               <div className="mt-3 rounded-2xl border border-white/70 bg-white/90 px-4 py-3 text-sm text-surface-600 shadow-sm dark:border-surface-800 dark:bg-surface-950/80 dark:text-surface-300">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.22em] text-surface-400 dark:text-surface-500">{t('book.window', 'Window')}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.window', 'Window')}</div>
                 <div className="mt-1 font-semibold text-surface-900 dark:text-white">{formatDateTimeSummary(start)} - {formatTimeOnly(end)}</div>
               </div>
             </div>
 
-            <div className="rounded-[1.25rem] bg-surface-50 p-4 dark:bg-surface-900/70">
+            <div className="rounded-lg bg-surface-50 p-4 dark:bg-surface-900/70">
               <span id="duration-label" className="block text-sm font-medium text-surface-700 dark:text-surface-300">{t('book.duration')}</span>
               <div className="mt-3 flex gap-2" role="group" aria-labelledby="duration-label">
                 {DURATIONS.map((item) => (
@@ -638,7 +638,7 @@ function StepSelectSlot({ lot, slots, loading, selectedSlot, onSelectSlot,
           </div>
 
           {vehicles.length > 0 && (
-            <div className="mt-4 rounded-[1.25rem] bg-surface-50 p-4 dark:bg-surface-900/70">
+            <div className="mt-4 rounded-lg bg-surface-50 p-4 dark:bg-surface-900/70">
               <label htmlFor="book-vehicle" className="block text-sm font-medium text-surface-700 dark:text-surface-300">
                 <Car weight="regular" className="mr-1 inline h-4 w-4" aria-hidden="true" />
                 {t('book.vehicle')}
@@ -651,11 +651,11 @@ function StepSelectSlot({ lot, slots, loading, selectedSlot, onSelectSlot,
           )}
         </div>
 
-        <div className="rounded-[1.75rem] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
+        <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-surface-400 dark:text-surface-500">{t('book.slotPlannerLabel', 'Slot planner')}</p>
-              <h3 className="mt-2 text-xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '-0.03em' }}>{t('book.selectSlot')}</h3>
+              <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.slotPlannerLabel', 'Slot planner')}</p>
+              <h3 className="mt-2 text-xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '0' }}>{t('book.selectSlot')}</h3>
             </div>
             <div className="flex flex-wrap gap-2 text-xs text-surface-500 dark:text-surface-400">
               {[
@@ -679,10 +679,10 @@ function StepSelectSlot({ lot, slots, loading, selectedSlot, onSelectSlot,
           ) : (
             <div className="mt-5 space-y-5">
               {groupedSlots.map((group) => (
-                <div key={group.zone} className="rounded-[1.25rem] border border-surface-200 bg-surface-50/90 p-4 dark:border-surface-800 dark:bg-surface-900/50">
+                <div key={group.zone} className="rounded-lg border border-surface-200 bg-surface-50/90 p-4 dark:border-surface-800 dark:bg-surface-900/50">
                   <div className="mb-3 flex items-center justify-between">
                     <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-surface-400 dark:text-surface-500">{t('book.zone', 'Zone')} {group.zone}</p>
+                      <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.zone', 'Zone')} {group.zone}</p>
                       <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{group.availableCount}/{group.slots.length} {t('book.available', 'Available')}</p>
                     </div>
                   </div>
@@ -733,17 +733,17 @@ function StepSelectSlot({ lot, slots, loading, selectedSlot, onSelectSlot,
         </div>
       </div>
 
-      <aside className="rounded-[1.75rem] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-surface-400 dark:text-surface-500">{t('book.liveEstimate', 'Live estimate')}</p>
-        <h3 className="mt-2 text-2xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '-0.03em' }}>{t('book.summaryTitle', 'Booking summary')}</h3>
+      <aside className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
+        <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.liveEstimate', 'Live estimate')}</p>
+        <h3 className="mt-2 text-2xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '0' }}>{t('book.summaryTitle', 'Booking summary')}</h3>
         <p className="mt-2 text-sm leading-6 text-surface-600 dark:text-surface-300">{t('book.summaryHint', 'Review the live estimate before you continue')}</p>
 
-        <div className={`mt-5 rounded-[1.5rem] border px-4 py-4 ${
+        <div className={`mt-5 rounded-lg border px-4 py-4 ${
           selectedSlot
             ? 'border-primary-200 bg-primary-50 dark:border-primary-900/60 dark:bg-primary-950/35'
             : 'border-dashed border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-900/60'
         }`}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('book.selectedSlot', 'Selected slot')}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.selectedSlot', 'Selected slot')}</p>
           <div className="mt-2 flex items-end justify-between gap-3">
             <div>
               <p className="text-3xl font-black text-surface-900 dark:text-white">{selectedSlot?.slot_number || '—'}</p>
@@ -802,12 +802,12 @@ function StepConfirm({ lot, slot, start, end, duration, estimatedCost, vehicle, 
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_360px]">
-      <div className="rounded-[1.75rem] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
-        <div className="rounded-[1.5rem] bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.18),_transparent_38%),linear-gradient(135deg,rgba(15,23,42,0.02),rgba(20,184,166,0.08))] p-6 dark:bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.24),_transparent_40%),linear-gradient(135deg,rgba(15,23,42,0.6),rgba(20,184,166,0.12))]">
-          <div className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-primary-700 shadow-sm dark:bg-surface-950/70 dark:text-primary-300">
+      <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
+        <div className="rounded-lg bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.18),_transparent_38%),linear-gradient(135deg,rgba(15,23,42,0.02),rgba(20,184,166,0.08))] p-6 dark:bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.24),_transparent_40%),linear-gradient(135deg,rgba(15,23,42,0.6),rgba(20,184,166,0.12))]">
+          <div className="inline-flex rounded-full bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-normal text-primary-700 shadow-sm dark:bg-surface-950/70 dark:text-primary-300">
             {t('book.finalReview', 'Final review')}
           </div>
-          <h2 className="mt-3 text-3xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '-0.03em' }}>
+          <h2 className="mt-3 text-3xl font-black text-surface-900 dark:text-white" style={{ letterSpacing: '0' }}>
             {t('book.readyTitle', 'Ready to confirm')}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-6 text-surface-600 dark:text-surface-300">
@@ -816,13 +816,13 @@ function StepConfirm({ lot, slot, start, end, duration, estimatedCost, vehicle, 
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[1.25rem] border border-surface-200 bg-surface-50 p-4 dark:border-surface-800 dark:bg-surface-900/60">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('book.slot')}</p>
+          <div className="rounded-lg border border-surface-200 bg-surface-50 p-4 dark:border-surface-800 dark:bg-surface-900/60">
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.slot')}</p>
             <p className="mt-2 text-3xl font-black text-surface-900 dark:text-white">{slot.slot_number}</p>
             <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{lot.name}</p>
           </div>
-          <div className="rounded-[1.25rem] border border-surface-200 bg-surface-50 p-4 dark:border-surface-800 dark:bg-surface-900/60">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('book.estimatedCost')}</p>
+          <div className="rounded-lg border border-surface-200 bg-surface-50 p-4 dark:border-surface-800 dark:bg-surface-900/60">
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('book.estimatedCost')}</p>
             <p className="mt-2 text-3xl font-black text-surface-900 dark:text-white">{estimatedCost ? `${lot.currency || '€'}${estimatedCost}` : '—'}</p>
             <p className="mt-1 text-sm text-surface-500 dark:text-surface-400">{t('book.duration')} · {duration}h</p>
           </div>
@@ -836,7 +836,7 @@ function StepConfirm({ lot, slot, start, end, duration, estimatedCost, vehicle, 
         </div>
       </div>
 
-      <aside className="rounded-[1.75rem] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
+      <aside className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-36px_rgba(15,23,42,0.6)] dark:border-surface-800 dark:bg-surface-950/80">
         <div className="glass-card divide-y divide-surface-100 dark:divide-surface-800" role="region" aria-label={t('book.summary', 'Booking summary')}>
           <SummaryRow label={t('book.lot')} value={lot.name} />
           <SummaryRow label={t('book.slot')} value={slot.slot_number} />
@@ -882,8 +882,8 @@ function SummaryBlock({ label, value, emphasis }: { label: string; value: string
 
 function SummaryTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[1.1rem] border border-surface-200 bg-white px-4 py-3 dark:border-surface-800 dark:bg-surface-950/80">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{label}</p>
+    <div className="rounded-lg border border-surface-200 bg-white px-4 py-3 dark:border-surface-800 dark:bg-surface-950/80">
+      <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{label}</p>
       <p className="mt-2 text-sm font-semibold text-surface-900 dark:text-white">{value}</p>
     </div>
   );
@@ -897,7 +897,7 @@ function getSurfaceVariant(designTheme: string, navLayout: ReturnType<typeof use
 function getStepShell(step: Step, surfaceVariant: 'marble' | 'void', t: TFunction) {
   if (surfaceVariant === 'void') {
     return {
-      kicker: 'Booking studio',
+      kicker: 'Booking',
       title: t('book.title'),
       description: '3-step reservation flow',
     };

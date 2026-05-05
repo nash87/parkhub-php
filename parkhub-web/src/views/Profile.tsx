@@ -207,7 +207,7 @@ export function ProfilePage() {
         variants={item}
         data-testid="profile-summary-surface"
         data-surface-tone={summaryTone}
-        className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+        className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
           isVoid
             ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
             : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
@@ -215,7 +215,7 @@ export function ProfilePage() {
       >
         <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'bg-cyan-500/10 text-cyan-100'
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -224,7 +224,7 @@ export function ProfilePage() {
               Identity profile
             </div>
 
-            <h1 className="text-3xl font-black tracking-[-0.04em]">{t('profile.title', 'Profil')}</h1>
+            <h1 className="text-3xl font-black tracking-normal">{t('profile.title', 'Profil')}</h1>
             <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
               {t('profile.subtitle', 'Persönliche Daten verwalten')}
             </p>
@@ -243,13 +243,13 @@ export function ProfilePage() {
             </div>
           </div>
 
-          <div className={`rounded-[24px] border p-5 ${
+          <div className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
           }`}>
             <div className="flex items-start gap-4">
-              <div className={`flex h-16 w-16 items-center justify-center rounded-[20px] text-xl font-bold ${
+              <div className={`flex h-16 w-16 items-center justify-center rounded-lg text-xl font-bold ${
                 isVoid
                   ? 'bg-cyan-500/12 text-cyan-100'
                   : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
@@ -259,7 +259,7 @@ export function ProfilePage() {
 
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-semibold tracking-[-0.03em]">{user?.name}</h2>
+                  <h2 className="text-xl font-semibold tracking-normal">{user?.name}</h2>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
                     isVoid
                       ? 'bg-white/8 text-cyan-100'
@@ -315,13 +315,13 @@ export function ProfilePage() {
       </motion.div>
 
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+        <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-500 dark:text-surface-400">
+              <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">
                 {t('profile.identityLabel', 'Identity')}
               </p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">
+              <h2 className="mt-1 text-xl font-semibold tracking-normal text-surface-900 dark:text-white">
                 {t('profile.personalDetails', 'Persönliche Daten')}
               </h2>
             </div>
@@ -382,16 +382,16 @@ export function ProfilePage() {
           <motion.div
             variants={item}
             data-testid="accessibility-section"
-            className={`rounded-[24px] border p-5 ${
+            className={`rounded-lg border p-5 ${
               isVoid
                 ? 'border-slate-800 bg-slate-950/85 text-white'
                 : 'border-surface-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] dark:border-surface-800 dark:bg-surface-950/80'
             }`}
           >
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
               {t('accessible.needsLabel', 'Accessibility')}
             </p>
-            <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">
+            <h3 className="mt-2 text-lg font-semibold tracking-normal text-surface-900 dark:text-white">
               {t('accessible.needs', 'Accessibility Needs')}
             </h3>
             <p className={`mt-2 text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
@@ -419,14 +419,14 @@ export function ProfilePage() {
             </select>
           </motion.div>
 
-          <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+          <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
             <div className="flex items-start gap-3">
               <div className="mt-0.5 rounded-2xl bg-primary-500/10 p-3 text-primary-600 dark:text-primary-300">
                 <MapPin weight="fill" className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-lg font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">
+                  <h3 className="text-lg font-semibold tracking-normal text-surface-900 dark:text-white">
                     {t('geofence.autoCheckIn')}
                   </h3>
                   <div className="group relative">
@@ -438,7 +438,7 @@ export function ProfilePage() {
                 </div>
                 <p className="mt-1 text-sm text-surface-600 dark:text-surface-300">{t('geofence.autoCheckInDesc')}</p>
 
-                <div className="mt-4 flex items-center justify-between gap-3 rounded-[18px] border border-surface-200 bg-surface-50 px-4 py-3 dark:border-surface-800 dark:bg-surface-900/70">
+                <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-surface-200 bg-surface-50 px-4 py-3 dark:border-surface-800 dark:bg-surface-900/70">
                   <div>
                     <p className="text-sm font-medium text-surface-900 dark:text-white">
                       {geofenceEnabled ? t('geofence.enabled') : t('geofence.disabled')}
@@ -470,13 +470,13 @@ export function ProfilePage() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-        <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+        <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
           <button onClick={() => setPwOpen(!pwOpen)} className="flex w-full items-center justify-between gap-3" aria-expanded={pwOpen}>
             <div className="text-left">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-500 dark:text-surface-400">
+              <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">
                 {t('profile.securityLabel', 'Security')}
               </p>
-              <h3 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">
+              <h3 className="mt-1 text-xl font-semibold tracking-normal text-surface-900 dark:text-white">
                 {t('profile.changePassword', 'Passwort ändern')}
               </h3>
             </div>
@@ -545,15 +545,15 @@ export function ProfilePage() {
           )}
         </motion.div>
 
-        <motion.div variants={item} className={`rounded-[24px] border p-5 ${
+        <motion.div variants={item} className={`rounded-lg border p-5 ${
           isVoid
             ? 'border-slate-800 bg-slate-950/85 text-white'
             : 'border-surface-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] dark:border-surface-800 dark:bg-surface-950/80'
         }`}>
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+          <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
             {t('gdpr.summaryLabel', 'Data rights')}
           </p>
-          <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">
+          <h3 className="mt-2 text-xl font-semibold tracking-normal text-surface-900 dark:text-white">
             DSGVO / GDPR
           </h3>
           <p className={`mt-2 text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
@@ -583,19 +583,19 @@ export function ProfilePage() {
         </motion.div>
       </div>
 
-      <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+      <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
         <ProfileThemeSection />
       </motion.div>
 
-      <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+      <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
         <TwoFactorSetupComponent />
       </motion.div>
 
-      <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+      <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
         <NotificationPreferencesComponent />
       </motion.div>
 
-      <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+      <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
         <LoginHistoryComponent />
       </motion.div>
 
@@ -625,7 +625,7 @@ function HeroStat({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[20px] border px-4 py-3 backdrop-blur ${
+    <div className={`rounded-lg border px-4 py-3 backdrop-blur ${
       isVoid
         ? accent
           ? 'border-cyan-500/30 bg-cyan-500/10'
@@ -634,11 +634,11 @@ function HeroStat({
           ? 'border-emerald-200 bg-white/85 dark:border-emerald-900/40 dark:bg-white/[0.04]'
           : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
         {label}
       </p>
       <div className="mt-2 flex items-end justify-between gap-3">
-        <span className="text-2xl font-semibold tracking-[-0.03em]">{value}</span>
+        <span className="text-2xl font-semibold tracking-normal">{value}</span>
         <span className={`text-xs ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</span>
       </div>
     </div>
@@ -647,23 +647,23 @@ function HeroStat({
 
 function PanelMetric({ label, value, isVoid }: { label: string; value: string; isVoid: boolean }) {
   return (
-    <div className={`rounded-[18px] border px-4 py-3 ${
+    <div className={`rounded-lg border px-4 py-3 ${
       isVoid
         ? 'border-white/10 bg-slate-950/70'
         : 'border-surface-200 bg-white/80 dark:border-surface-800 dark:bg-surface-900/70'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.16em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
         {label}
       </p>
-      <p className="mt-2 text-lg font-semibold tracking-[-0.02em]">{value}</p>
+      <p className="mt-2 text-lg font-semibold tracking-normal">{value}</p>
     </div>
   );
 }
 
 function ReadOnlyMetric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[18px] border border-surface-200 bg-surface-50 px-4 py-3 dark:border-surface-800 dark:bg-surface-900/70">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-surface-500 dark:text-surface-400">
+    <div className="rounded-lg border border-surface-200 bg-surface-50 px-4 py-3 dark:border-surface-800 dark:bg-surface-900/70">
+      <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">
         {label}
       </p>
       <p className="mt-2 text-sm font-medium text-surface-900 dark:text-white">{value}</p>

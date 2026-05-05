@@ -59,14 +59,14 @@ export function ParkingPassPage() {
       data-testid="parking-pass-shell"
       data-surface={isVoid ? 'void' : 'marble'}
     >
-      <section className={`overflow-hidden rounded-[30px] border px-6 py-6 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] ${
+      <section className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] ${
         isVoid
           ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
           : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.14),_transparent_34%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.22),_transparent_36%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
       }`}>
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
           <div className="space-y-5">
-            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
                 : 'border-emerald-200/80 bg-white/80 text-emerald-700 dark:border-emerald-900/60 dark:bg-white/10 dark:text-emerald-300'
@@ -77,7 +77,7 @@ export function ParkingPassPage() {
 
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-black tracking-[-0.04em]">{t('parkingPass.title')}</h1>
+                <h1 className="text-3xl font-black tracking-normal">{t('parkingPass.title')}</h1>
                 <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
                   {t('parkingPass.subtitle')}
                 </p>
@@ -102,12 +102,12 @@ export function ParkingPassPage() {
             </div>
           </div>
 
-          <div className={`rounded-[24px] border p-5 ${
+          <div className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
           }`}>
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
               {t('parkingPass.opsLabel', 'Pass readiness')}
             </p>
             <div className="mt-4 space-y-3">
@@ -135,7 +135,7 @@ export function ParkingPassPage() {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`rounded-[24px] border p-4 ${
+          className={`rounded-lg border p-4 ${
             isVoid
               ? 'border-cyan-500/20 bg-cyan-500/10'
               : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
@@ -156,7 +156,7 @@ export function ParkingPassPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className={`rounded-[28px] border p-6 shadow-xl max-w-sm mx-auto ${
+          className={`rounded-lg border p-6 shadow-xl max-w-sm mx-auto ${
             isVoid
               ? 'border-cyan-500/20 bg-[linear-gradient(180deg,rgba(34,211,238,0.14),rgba(15,23,42,0.95))] text-white'
               : 'border-emerald-200 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(15,118,110,0.95))] text-white dark:border-emerald-900/60'
@@ -165,7 +165,7 @@ export function ParkingPassPage() {
           <div className="text-center space-y-4">
             <div className="flex items-center justify-center gap-2 text-primary-100">
               <Ticket size={20} />
-              <span className="text-sm font-medium uppercase tracking-wide">
+              <span className="text-sm font-medium uppercase tracking-normal">
                 {t('parkingPass.digitalPass')}
               </span>
             </div>
@@ -226,7 +226,7 @@ export function ParkingPassPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   onClick={() => setSelectedPass(pass)}
-                  className={`cursor-pointer rounded-[24px] border p-5 transition hover:-translate-y-0.5 hover:shadow-lg ${
+                  className={`cursor-pointer rounded-lg border p-5 transition hover:-translate-y-0.5 hover:shadow-lg ${
                     isVoid
                       ? 'border-slate-800 bg-slate-950/85 text-white'
                       : 'border-surface-200 bg-white text-surface-900 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80 dark:text-white'
@@ -252,16 +252,16 @@ export function ParkingPassPage() {
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
-                      <div className={`rounded-[18px] border px-3 py-3 ${
+                      <div className={`rounded-lg border px-3 py-3 ${
                         isVoid ? 'border-white/10 bg-white/[0.04]' : 'border-surface-100 bg-surface-50 dark:border-surface-800 dark:bg-surface-900/70'
                       }`}>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('parkingPass.digitalPass')}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('parkingPass.digitalPass')}</p>
                         <p className="mt-2 text-sm font-semibold">{pass.user_name}</p>
                       </div>
-                      <div className={`rounded-[18px] border px-3 py-3 ${
+                      <div className={`rounded-lg border px-3 py-3 ${
                         isVoid ? 'border-white/10 bg-white/[0.04]' : 'border-surface-100 bg-surface-50 dark:border-surface-800 dark:bg-surface-900/70'
                       }`}>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-400 dark:text-surface-500">{t('parkingPass.validUntil')}</p>
+                        <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{t('parkingPass.validUntil')}</p>
                         <p className="mt-2 text-sm font-semibold">{formatDate(pass.valid_until)}</p>
                       </div>
                     </div>
@@ -306,7 +306,7 @@ function PassStatCard({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[22px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? accent
           ? 'border-cyan-500/20 bg-cyan-500/10'
@@ -315,14 +315,14 @@ function PassStatCard({
           ? 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-900/60'
           : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${
         isVoid
           ? accent ? 'text-cyan-100' : 'text-white/45'
           : accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45'
       }`}>
         {label}
       </p>
-      <p className={`mt-3 text-3xl font-black tracking-[-0.05em] ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
+      <p className={`mt-3 text-3xl font-black tracking-normal ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
       <p className={`mt-1 text-xs ${isVoid ? 'text-white/60' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
     </div>
   );
@@ -342,7 +342,7 @@ function PassDigestLine({
   isVoid: boolean;
 }) {
   return (
-    <div className={`rounded-[20px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? 'border-white/10 bg-white/[0.03]'
         : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.03]'
@@ -354,7 +354,7 @@ function PassDigestLine({
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>{title}</p>
+          <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>{title}</p>
           <p className={`mt-2 text-sm font-semibold ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{body}</p>
           <p className={`mt-1 text-xs ${isVoid ? 'text-white/60' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
         </div>

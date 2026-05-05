@@ -123,7 +123,7 @@ export function SettingsPage() {
       <section
         data-testid="settings-shell"
         data-surface={surfaceTone}
-        className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+        className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
           isVoid
             ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
             : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
@@ -131,7 +131,7 @@ export function SettingsPage() {
       >
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'bg-cyan-500/10 text-cyan-100'
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -140,7 +140,7 @@ export function SettingsPage() {
               {scope === 'user' ? 'Preference center' : 'Workspace command deck'}
             </div>
 
-            <h1 className="text-3xl font-black tracking-[-0.04em]">
+            <h1 className="text-3xl font-black tracking-normal">
               {t('settings.title', 'Settings')}
             </h1>
             <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
@@ -151,7 +151,7 @@ export function SettingsPage() {
               {appearanceSignals.map((signal, index) => (
                 <div
                   key={signal.label}
-                  className={`rounded-[20px] border p-4 ${
+                  className={`rounded-lg border p-4 ${
                     isVoid
                       ? index === 0
                         ? 'border-cyan-400/20 bg-cyan-400/10'
@@ -161,10 +161,10 @@ export function SettingsPage() {
                         : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
                   }`}
                 >
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/55' : 'text-surface-500 dark:text-white/45'}`}>
+                  <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/55' : 'text-surface-500 dark:text-white/45'}`}>
                     {signal.label}
                   </p>
-                  <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">
+                  <p className="mt-2 text-lg font-semibold tracking-normal">
                     {signal.value}
                   </p>
                   <p className={`mt-1 text-xs ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
@@ -175,7 +175,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          <div className={`rounded-[24px] border p-5 ${
+          <div className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
@@ -216,7 +216,7 @@ export function SettingsPage() {
                     <s.icon weight="bold" className="h-3.5 w-3.5" />
                     {s.label}
                     {s.k === 'workspace' && (
-                      <span className={`rounded px-1 text-[9px] font-bold uppercase tracking-wider ${
+                      <span className={`rounded px-1 text-[9px] font-bold uppercase tracking-normal ${
                         isVoid
                           ? 'bg-cyan-400/15 text-cyan-100'
                           : 'bg-primary-500/15 text-primary-600 dark:text-primary-300'
@@ -230,15 +230,15 @@ export function SettingsPage() {
             </div>
 
             <div className="mt-5 space-y-3">
-              <div className={`rounded-[20px] border p-4 ${
+              <div className={`rounded-lg border p-4 ${
                 isVoid
                   ? 'border-white/10 bg-slate-950/40'
                   : 'border-stone-200 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
               }`}>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
                   {scopeLabel}
                 </p>
-                <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">
+                <p className="mt-2 text-lg font-semibold tracking-normal">
                   {scope === 'user'
                     ? t('settings.scopePersonalSummary', 'Your preferences, shortcuts, and personal routes')
                     : t('settings.scopeWorkspaceSummary', 'Admin surfaces, policies, and workspace controls')}
@@ -248,12 +248,12 @@ export function SettingsPage() {
                 </p>
               </div>
 
-              <div className={`rounded-[20px] border p-4 ${
+              <div className={`rounded-lg border p-4 ${
                 isVoid
                   ? 'border-white/10 bg-white/[0.03]'
                   : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
               }`}>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
                   {t('settings.linkPreview', 'Quick links')}
                 </p>
                 <div className="mt-3 space-y-2">

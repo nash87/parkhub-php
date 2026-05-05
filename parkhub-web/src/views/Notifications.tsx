@@ -142,14 +142,14 @@ export function NotificationsPage() {
 
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-      <section className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+      <section className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
         isVoid
           ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
           : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
       }`}>
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'bg-cyan-500/10 text-cyan-100'
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -158,7 +158,7 @@ export function NotificationsPage() {
               Notification center
             </div>
 
-            <h1 className="text-3xl font-black tracking-[-0.04em]">{t('notifications.title')}</h1>
+            <h1 className="text-3xl font-black tracking-normal">{t('notifications.title')}</h1>
             <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
               {unreadCount > 0
                 ? t('notifications.unreadCount', { count: unreadCount })
@@ -188,12 +188,12 @@ export function NotificationsPage() {
             </div>
           </div>
 
-          <div className={`rounded-[24px] border p-5 ${
+          <div className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
           }`}>
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
               {t('notifications.opsLabel', 'Ops focus')}
             </p>
             <div className="mt-4 space-y-3">
@@ -229,13 +229,13 @@ export function NotificationsPage() {
       </section>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+        <section className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-500 dark:text-surface-400">
+              <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">
                 {t('notifications.inboxLabel', 'Inbox')}
               </p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">
+              <h2 className="mt-1 text-xl font-semibold tracking-normal text-surface-900 dark:text-white">
                 {t('notifications.title')}
               </h2>
             </div>
@@ -245,7 +245,7 @@ export function NotificationsPage() {
           </div>
 
           {sortedNotifications.length === 0 ? (
-            <div className="rounded-[20px] border border-dashed border-surface-200 px-6 py-10 text-center dark:border-surface-800">
+            <div className="rounded-lg border border-dashed border-surface-200 px-6 py-10 text-center dark:border-surface-800">
               <Bell weight="light" className="mx-auto h-12 w-12 text-surface-300 dark:text-surface-700" />
               <p className="mt-4 text-sm text-surface-500 dark:text-surface-400">{t('notifications.empty')}</p>
             </div>
@@ -264,7 +264,7 @@ export function NotificationsPage() {
                       exit={{ opacity: 0, x: -50 }}
                       onClick={() => { if (!n.read) markAsRead(n.id); }}
                       aria-label={`${n.title} — ${n.read ? t('notifications.allRead') : t('notifications.unread')}`}
-                      className={`w-full rounded-[20px] border p-4 text-left transition-all hover:shadow-md ${
+                      className={`w-full rounded-lg border p-4 text-left transition-all hover:shadow-md ${
                         n.read
                           ? 'border-surface-200 bg-surface-50/80 opacity-70 dark:border-surface-800 dark:bg-surface-900/50'
                           : 'border-primary-200 bg-white shadow-[0_14px_40px_-28px_rgba(16,185,129,0.45)] dark:border-primary-900/60 dark:bg-surface-950/70'
@@ -301,12 +301,12 @@ export function NotificationsPage() {
           )}
         </section>
 
-        <section className={`rounded-[24px] border p-5 ${
+        <section className={`rounded-lg border p-5 ${
           isVoid
             ? 'border-slate-800 bg-slate-950/85'
             : 'border-surface-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] dark:border-surface-800 dark:bg-surface-950/80'
         }`}>
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+          <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
             {t('notifications.summaryLabel', 'Queue summary')}
           </p>
 
@@ -352,7 +352,7 @@ function NotificationHeroStat({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[22px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? accent
           ? 'border-cyan-500/20 bg-cyan-500/10'
@@ -361,14 +361,14 @@ function NotificationHeroStat({
         ? 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-900/60'
         : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${
         isVoid
           ? (accent ? 'text-cyan-100' : 'text-white/45')
           : (accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45')
       }`}>
         {label}
       </p>
-      <p className={`mt-3 text-3xl font-black tracking-[-0.05em] ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
+      <p className={`mt-3 text-3xl font-black tracking-normal ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
       <p className={`mt-1 text-xs ${isVoid ? 'text-white/60' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
     </div>
   );
@@ -389,7 +389,7 @@ function NotificationDigestCard({
 }) {
   const isVoid = tone === 'void';
   return (
-    <div className={`rounded-[20px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? 'border-white/10 bg-white/[0.03]'
         : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.03]'
@@ -401,7 +401,7 @@ function NotificationDigestCard({
           {icon}
         </div>
         <div className="min-w-0 flex-1">
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>{title}</p>
+          <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>{title}</p>
           <p className={`mt-2 text-sm font-semibold ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{body}</p>
           <p className={`mt-1 text-xs ${isVoid ? 'text-white/60' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
         </div>

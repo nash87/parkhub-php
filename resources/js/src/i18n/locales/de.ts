@@ -579,7 +579,7 @@ export default {
       bookingConfirm: 'Buchungsbestatigungen',
       bookingReminder: 'Buchungserinnerungen',
       bookingCancelled: 'Buchungsstornierungen',
-      stub: 'Demnachst verfugbar',
+      stub: 'Anbieter erforderlich',
       prefsSaved: 'Benachrichtigungseinstellungen gespeichert',
       prefsSaveFailed: 'Einstellungen konnten nicht gespeichert werden',
     },

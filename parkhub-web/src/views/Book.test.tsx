@@ -218,7 +218,7 @@ describe('BookPage', () => {
     render(<BookPage />);
 
     await waitFor(() => {
-      expect(screen.getByText('Booking studio')).toBeInTheDocument();
+      expect(screen.getByText('Booking')).toBeInTheDocument();
     });
     expect(screen.getByText('3-step reservation flow')).toBeInTheDocument();
   });

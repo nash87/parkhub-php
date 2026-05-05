@@ -268,14 +268,14 @@ export function CalendarPage() {
       data-testid="calendar-shell"
       data-surface={surfaceVariant}
     >
-      <section className={`overflow-hidden rounded-[30px] border p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] ${
+      <section className={`overflow-hidden rounded-lg border p-5 shadow-[0_24px_70px_-42px_rgba(15,23,42,0.45)] ${
         isVoid
           ? 'border-slate-800/90 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
           : 'border-stone-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.15),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(20,184,166,0.24),_transparent_40%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
       }`}>
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div className="space-y-4">
-            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${
+            <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'border-cyan-400/30 bg-cyan-500/10 text-cyan-100'
                 : 'border-emerald-200/80 bg-white/80 text-emerald-700 dark:border-emerald-900/50 dark:bg-surface-950/60 dark:text-emerald-300'
@@ -284,7 +284,7 @@ export function CalendarPage() {
               Schedule planning
             </div>
             <div>
-              <h1 className="text-3xl font-black tracking-[-0.04em]">{t('calendar.title', 'Calendar')}</h1>
+              <h1 className="text-3xl font-black tracking-normal">{t('calendar.title', 'Calendar')}</h1>
               <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
                 {t(
                   'calendar.subtitle',
@@ -314,14 +314,14 @@ export function CalendarPage() {
             </div>
           </div>
 
-          <div className={`w-full max-w-xl rounded-[24px] border p-4 backdrop-blur ${
+          <div className={`w-full max-w-xl rounded-lg border p-4 backdrop-blur ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
           }`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.22em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
                   {t('calendar.controlKicker', 'Schedule controls')}
                 </p>
                 <p className={`mt-1 text-sm ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
@@ -346,11 +346,11 @@ export function CalendarPage() {
               </div>
             </div>
 
-            <div className={`mt-4 flex flex-col gap-3 rounded-[20px] border p-3 sm:flex-row sm:items-center sm:justify-between ${
+            <div className={`mt-4 flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between ${
               isVoid ? 'border-slate-800 bg-slate-950/70' : 'border-white/70 bg-white/75 dark:border-surface-800 dark:bg-surface-950/65'
             }`}>
               <div>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
                   {t('calendar.currentMonth', 'Current month')}
                 </p>
                 <span aria-live="polite" className={`mt-1 block text-lg font-semibold ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>
@@ -375,14 +375,14 @@ export function CalendarPage() {
       </section>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.9fr)]">
-        <section className={`overflow-hidden rounded-[26px] border ${
+        <section className={`overflow-hidden rounded-lg border ${
           isVoid
             ? 'border-slate-800 bg-slate-950/90'
             : 'border-surface-200 bg-white dark:border-surface-800 dark:bg-surface-950/80'
         }`}>
           <div className={`grid grid-cols-7 border-b ${isVoid ? 'border-slate-800' : 'border-surface-200 dark:border-surface-800'}`}>
             {WEEKDAYS.map(day => (
-              <div key={day} className={`p-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] ${
+              <div key={day} className={`p-3 text-center text-[11px] font-semibold uppercase tracking-normal ${
                 isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'
               }`}>{day}</div>
             ))}
@@ -473,17 +473,17 @@ export function CalendarPage() {
         </section>
 
         <aside className="space-y-4">
-          <section className={`rounded-[26px] border p-5 ${
+          <section className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-slate-800 bg-slate-950/90 text-white'
               : 'border-surface-200 bg-white text-surface-900 dark:border-surface-800 dark:bg-surface-950/80 dark:text-white'
           }`}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
                   {selectedDate ? t('calendar.selectedDay', 'Selected day') : t('calendar.dayInspector', 'Day inspector')}
                 </p>
-                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em]">
+                <h2 className="mt-1 text-xl font-semibold tracking-normal">
                   {selectedDate
                     ? selectedDate.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
                     : t('calendar.selectDayTitle', 'Pick a date')}
@@ -500,7 +500,7 @@ export function CalendarPage() {
 
             {selectedDate ? (
               selectedEvents.length === 0 ? (
-                <div className={`mt-5 rounded-[22px] border p-8 text-center ${
+                <div className={`mt-5 rounded-lg border p-8 text-center ${
                   isVoid ? 'border-slate-800 bg-slate-900/80' : 'border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-900/60'
                 }`}>
                   <CalendarBlank weight="light" className={`mx-auto mb-2 h-10 w-10 ${isVoid ? 'text-slate-600' : 'text-surface-300 dark:text-surface-600'}`} />
@@ -509,7 +509,7 @@ export function CalendarPage() {
               ) : (
                 <div className="mt-5 space-y-3">
                   {selectedEvents.map(e => (
-                    <div key={e.id} className={`rounded-[20px] border p-4 ${
+                    <div key={e.id} className={`rounded-lg border p-4 ${
                       isVoid ? 'border-slate-800 bg-slate-900/90' : 'border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-900/70'
                     }`}>
                       <div className="flex items-start gap-3">
@@ -539,7 +539,7 @@ export function CalendarPage() {
                 </div>
               )
             ) : (
-              <div className={`mt-5 rounded-[22px] border p-8 text-center ${
+              <div className={`mt-5 rounded-lg border p-8 text-center ${
                 isVoid ? 'border-slate-800 bg-slate-900/80' : 'border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-900/60'
               }`}>
                 <p className={`text-sm ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{t('calendar.selectDay', 'Click a day to see entries')}</p>
@@ -547,17 +547,17 @@ export function CalendarPage() {
             )}
           </section>
 
-          <section className={`rounded-[26px] border p-5 ${
+          <section className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-slate-800 bg-slate-950/90 text-white'
               : 'border-surface-200 bg-white text-surface-900 dark:border-surface-800 dark:bg-surface-950/80 dark:text-white'
           }`}>
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
                   {t('calendar.upNext', 'Up next')}
                 </p>
-                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em]">{t('calendar.upNextTitle', 'Upcoming entries')}</h2>
+                <h2 className="mt-1 text-xl font-semibold tracking-normal">{t('calendar.upNextTitle', 'Upcoming entries')}</h2>
               </div>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
                 isVoid ? 'bg-slate-900 text-slate-300' : 'bg-surface-100 text-surface-600 dark:bg-surface-800 dark:text-surface-300'
@@ -573,7 +573,7 @@ export function CalendarPage() {
             ) : (
               <div className="mt-4 space-y-3">
                 {upcomingEvents.map((event) => (
-                  <div key={event.id} className={`rounded-[20px] border px-4 py-3 ${
+                  <div key={event.id} className={`rounded-lg border px-4 py-3 ${
                     isVoid ? 'border-slate-800 bg-slate-900/90' : 'border-surface-200 bg-surface-50 dark:border-surface-800 dark:bg-surface-900/70'
                   }`}>
                     <div className="flex items-center justify-between gap-3">
@@ -729,13 +729,13 @@ function SurfaceStat({
   isVoid: boolean;
 }) {
   return (
-    <div className={`rounded-[22px] border p-4 ${
+    <div className={`rounded-lg border p-4 ${
       isVoid
         ? 'border-white/10 bg-white/[0.04]'
         : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>{label}</p>
-      <p className="mt-3 text-2xl font-black tracking-[-0.04em]">{value}</p>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>{label}</p>
+      <p className="mt-3 text-2xl font-black tracking-normal">{value}</p>
       <p className={`mt-2 text-xs leading-5 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>{meta}</p>
     </div>
   );

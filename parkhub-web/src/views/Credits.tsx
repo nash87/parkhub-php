@@ -61,7 +61,7 @@ export function CreditsPage() {
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       <motion.section
         variants={item}
-        className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+        className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
           isVoid
             ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
             : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
@@ -69,7 +69,7 @@ export function CreditsPage() {
       >
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'bg-cyan-500/10 text-cyan-100'
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -78,7 +78,7 @@ export function CreditsPage() {
               Credit ledger
             </div>
 
-            <h1 className="text-3xl font-black tracking-[-0.04em]">{t('credits.title')}</h1>
+            <h1 className="text-3xl font-black tracking-normal">{t('credits.title')}</h1>
             <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
               {t('credits.subtitle')}
             </p>
@@ -106,7 +106,7 @@ export function CreditsPage() {
             </div>
           </div>
 
-          <div className={`rounded-[24px] border p-5 ${
+          <div className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
@@ -114,10 +114,10 @@ export function CreditsPage() {
             <div className="flex items-center gap-5">
               <CreditProgressRing value={balance} total={quota} isVoid={isVoid} />
               <div className="min-w-0 flex-1">
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
                   {t('credits.overview', 'Credit overview')}
                 </p>
-                <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">{t('credits.summaryTitle', 'Keep your mobility budget visible')}</h2>
+                <h2 className="mt-2 text-xl font-semibold tracking-normal">{t('credits.summaryTitle', 'Keep your mobility budget visible')}</h2>
                 <p className={`mt-2 text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
                   {t('credits.summaryText', 'Credits do not expire and your monthly allowance refills automatically. Use the ledger below to understand how bookings affect your remaining balance.')}
                 </p>
@@ -136,11 +136,11 @@ export function CreditsPage() {
       </motion.section>
 
       <motion.div variants={item} className="grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+        <section className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-500 dark:text-surface-400">{t('credits.metricsLabel', 'Metrics')}</p>
-              <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">{t('credits.summaryTitle', 'Credit overview')}</h2>
+              <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">{t('credits.metricsLabel', 'Metrics')}</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-normal text-surface-900 dark:text-white">{t('credits.summaryTitle', 'Credit overview')}</h2>
             </div>
             <button type="button" className="rounded-full border border-surface-200 px-3 py-1.5 text-xs font-semibold text-surface-600 transition-colors hover:border-primary-400 hover:text-primary-700 dark:border-surface-700 dark:text-surface-300 dark:hover:text-primary-300">
               {t('credits.buyCredits', 'Buy credits')}
@@ -172,12 +172,12 @@ export function CreditsPage() {
           </div>
         </section>
 
-        <section className={`rounded-[24px] border p-5 ${
+        <section className={`rounded-lg border p-5 ${
           isVoid
             ? 'border-slate-800 bg-slate-950/85'
             : 'border-surface-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] dark:border-surface-800 dark:bg-surface-950/80'
         }`}>
-          <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
+          <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>
             {t('credits.ledgerLabel', 'Ledger summary')}
           </p>
           <div className="mt-4 space-y-3">
@@ -205,11 +205,11 @@ export function CreditsPage() {
         </section>
       </motion.div>
 
-      <motion.section variants={item} className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+      <motion.section variants={item} className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-surface-500 dark:text-surface-400">{t('credits.history', 'History')}</p>
-            <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-surface-900 dark:text-white">{t('credits.ledgerTitle', 'Transaction ledger')}</h2>
+            <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">{t('credits.history', 'History')}</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-normal text-surface-900 dark:text-white">{t('credits.ledgerTitle', 'Transaction ledger')}</h2>
           </div>
           <span className="rounded-full bg-surface-100 px-3 py-1 text-xs font-semibold text-surface-600 dark:bg-surface-800 dark:text-surface-300">
             {transactions.length} {t('credits.entries', 'entries')}
@@ -217,7 +217,7 @@ export function CreditsPage() {
         </div>
 
         {!transactions.length ? (
-          <div className="rounded-[20px] border border-dashed border-surface-200 px-6 py-10 text-center dark:border-surface-800">
+          <div className="rounded-lg border border-dashed border-surface-200 px-6 py-10 text-center dark:border-surface-800">
             <Coins weight="light" className="mx-auto h-12 w-12 text-surface-300 dark:text-surface-700" />
             <p className="mt-4 text-sm text-surface-500 dark:text-surface-400">{t('credits.noTransactions')}</p>
           </div>
@@ -247,7 +247,7 @@ function CreditHeroStat({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[22px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? accent
           ? 'border-cyan-500/20 bg-cyan-500/10'
@@ -256,10 +256,10 @@ function CreditHeroStat({
         ? 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-900/60'
         : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? (accent ? 'text-cyan-100' : 'text-white/45') : (accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45')}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? (accent ? 'text-cyan-100' : 'text-white/45') : (accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45')}`}>
         {label}
       </p>
-      <p className={`mt-3 text-3xl font-black tracking-[-0.05em] ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
+      <p className={`mt-3 text-3xl font-black tracking-normal ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
       <p className={`mt-1 text-xs ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
     </div>
   );
@@ -316,11 +316,11 @@ function MetricCard({
   } as const;
 
   return (
-    <div className="rounded-[20px] border border-surface-200 bg-surface-50/80 p-4 dark:border-surface-800 dark:bg-surface-900/60">
+    <div className="rounded-lg border border-surface-200 bg-surface-50/80 p-4 dark:border-surface-800 dark:bg-surface-900/60">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-sm font-medium text-surface-500 dark:text-surface-400">{label}</p>
-          <p className="mt-2 text-2xl font-black tracking-[-0.04em] text-surface-900 dark:text-white">{value}</p>
+          <p className="mt-2 text-2xl font-black tracking-normal text-surface-900 dark:text-white">{value}</p>
           <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">{meta}</p>
         </div>
         <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${toneClasses[tone]}`}>
@@ -344,7 +344,7 @@ function CreditTransactionRow({ tx }: { tx: CreditTxn }) {
   const positive = tx.amount > 0;
 
   return (
-    <div className="flex items-center gap-3 rounded-[20px] border border-surface-200 bg-surface-50/80 px-4 py-3 dark:border-surface-800 dark:bg-surface-900/60">
+    <div className="flex items-center gap-3 rounded-lg border border-surface-200 bg-surface-50/80 px-4 py-3 dark:border-surface-800 dark:bg-surface-900/60">
       <div className={`flex h-10 w-10 items-center justify-center rounded-2xl ${
         positive
           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'

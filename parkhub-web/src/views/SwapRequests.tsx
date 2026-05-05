@@ -152,7 +152,7 @@ export function SwapRequestsPage() {
       <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-6">
         <motion.div
           variants={fadeUp}
-          className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+          className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
             isVoid
               ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
               : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
@@ -160,7 +160,7 @@ export function SwapRequestsPage() {
         >
           <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
             <div>
-              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
                 isVoid
                   ? 'bg-cyan-500/10 text-cyan-100'
                   : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -170,7 +170,7 @@ export function SwapRequestsPage() {
               </div>
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <h1 className="flex items-center gap-2 text-3xl font-black tracking-[-0.04em]">
+                  <h1 className="flex items-center gap-2 text-3xl font-black tracking-normal">
                     <Swap weight="duotone" className="w-7 h-7 text-primary-500" />
                     {t('swap.title')}
                   </h1>
@@ -193,12 +193,12 @@ export function SwapRequestsPage() {
               </div>
             </div>
 
-            <div className={`rounded-[24px] border p-5 ${
+            <div className={`rounded-lg border p-5 ${
               isVoid
                 ? 'border-white/10 bg-white/[0.04]'
                 : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
             }`}>
-              <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+              <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
                 Trade lane
               </p>
               <div className="mt-4 space-y-3">
@@ -407,7 +407,7 @@ function SwapHeroMetric({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[22px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       accent
         ? isVoid
           ? 'border-cyan-500/30 bg-cyan-500/10'
@@ -416,7 +416,7 @@ function SwapHeroMetric({
           ? 'border-white/10 bg-white/[0.04]'
           : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${
         accent
           ? isVoid
             ? 'text-cyan-100'
@@ -427,7 +427,7 @@ function SwapHeroMetric({
       }`}>
         {label}
       </p>
-      <p className="mt-3 text-2xl font-semibold tracking-[-0.03em]">{value}</p>
+      <p className="mt-3 text-2xl font-semibold tracking-normal">{value}</p>
       <p className="mt-2 text-xs text-surface-500 dark:text-surface-400">{meta}</p>
     </div>
   );
@@ -445,12 +445,12 @@ function SwapPanelMetric({
   isVoid: boolean;
 }) {
   return (
-    <div className={`rounded-[20px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? 'border-white/10 bg-white/[0.03]'
         : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.03]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>{label}</p>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>{label}</p>
       <p className="mt-2 text-lg font-semibold">{value}</p>
       <p className="mt-1 text-xs text-surface-500 dark:text-surface-400">{helper}</p>
     </div>

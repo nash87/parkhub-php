@@ -122,7 +122,7 @@ export function Layout() {
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-500/20">
             <CarSimple weight="fill" className="w-5 h-5 text-white" />
           </div>
-          <span className="text-xl font-bold text-surface-900 dark:text-white" style={{ letterSpacing: '-0.02em' }}>ParkHub</span>
+          <span className="text-xl font-bold text-surface-900 dark:text-white" style={{ letterSpacing: '0' }}>ParkHub</span>
         </div>
 
         <nav className="flex-1 space-y-0.5">

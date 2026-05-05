@@ -158,14 +158,14 @@ export function EVChargingPage() {
       data-testid="ev-charging-shell"
       data-surface={surfaceTone}
     >
-      <section className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+      <section className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
         isVoid
           ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
           : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,249,255,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.16),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(17,24,39,0.94))] dark:text-white'
       }`}>
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'bg-cyan-500/10 text-cyan-100'
                 : 'bg-white/80 text-sky-700 dark:bg-white/10 dark:text-sky-300'
@@ -176,7 +176,7 @@ export function EVChargingPage() {
 
             <div className="flex items-start gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className="flex items-center gap-2 text-3xl font-black tracking-[-0.04em]">
+                <h1 className="flex items-center gap-2 text-3xl font-black tracking-normal">
                   <Lightning weight="duotone" className="h-7 w-7 text-yellow-500" />
                   {t('evCharging.title')}
                   <button onClick={() => setShowHelp(!showHelp)} className={isVoid ? 'text-white/55 hover:text-cyan-200' : 'text-surface-400 hover:text-primary-500'} aria-label="Help">
@@ -193,7 +193,7 @@ export function EVChargingPage() {
               {statusCards.map((card, index) => (
                 <div
                   key={card.label}
-                  className={`rounded-[20px] border p-4 ${
+                  className={`rounded-lg border p-4 ${
                     isVoid
                       ? index === 0
                         ? 'border-cyan-400/20 bg-cyan-400/10'
@@ -203,22 +203,22 @@ export function EVChargingPage() {
                         : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
                   }`}
                 >
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/55' : 'text-surface-500 dark:text-white/45'}`}>
+                  <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/55' : 'text-surface-500 dark:text-white/45'}`}>
                     {card.label}
                   </p>
-                  <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{card.value}</p>
+                  <p className="mt-2 text-2xl font-semibold tracking-normal">{card.value}</p>
                   <p className={`mt-1 text-xs ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>{card.meta}</p>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className={`rounded-[24px] border p-5 ${
+          <div className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
           }`}>
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
               {t('evCharging.routeLabel', 'Route')}
             </p>
             <div className="mt-4 space-y-4">
@@ -239,15 +239,15 @@ export function EVChargingPage() {
                 </select>
               </label>
 
-              <div className={`rounded-[20px] border p-4 ${
+              <div className={`rounded-lg border p-4 ${
                 isVoid
                   ? 'border-white/10 bg-slate-950/40'
                   : 'border-stone-200 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
               }`}>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/50' : 'text-surface-500 dark:text-white/45'}`}>
                   {t('evCharging.opsSummary', 'Live summary')}
                 </p>
-                <p className="mt-2 text-lg font-semibold tracking-[-0.03em]">
+                <p className="mt-2 text-lg font-semibold tracking-normal">
                   {selectedLotName}
                 </p>
                 <p className={`mt-1 text-sm ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
@@ -262,7 +262,7 @@ export function EVChargingPage() {
       </section>
 
       {showHelp && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className={`rounded-[22px] border p-4 text-sm ${
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className={`rounded-lg border p-4 text-sm ${
           isVoid
             ? 'border-cyan-500/20 bg-cyan-500/10 text-cyan-100'
             : 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-500/20 dark:bg-sky-500/10 dark:text-sky-100'
@@ -275,7 +275,7 @@ export function EVChargingPage() {
       {loading ? (
         <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-primary-500 border-t-transparent rounded-full animate-spin" /></div>
       ) : chargers.length === 0 ? (
-        <div className={`rounded-[24px] border py-12 text-center ${
+        <div className={`rounded-lg border py-12 text-center ${
           isVoid
             ? 'border-white/10 bg-slate-950/40 text-slate-400'
             : 'border-surface-200 bg-white text-surface-400 dark:border-surface-800 dark:bg-surface-950/70'
@@ -292,7 +292,7 @@ export function EVChargingPage() {
                 key={ch.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className={`rounded-[24px] border p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.22)] ${
+                className={`rounded-lg border p-4 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.22)] ${
                   isVoid
                     ? 'border-white/10 bg-slate-950/45'
                     : 'border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-900/70'
@@ -340,7 +340,7 @@ export function EVChargingPage() {
             {completedSessions.map(s => (
               <div
                 key={s.id}
-                className={`flex items-center justify-between rounded-[20px] border p-3 text-sm ${
+                className={`flex items-center justify-between rounded-lg border p-3 text-sm ${
                   isVoid
                     ? 'border-white/10 bg-slate-950/40'
                     : 'border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-900/70'
@@ -397,14 +397,14 @@ export function AdminChargersPage() {
       data-testid="admin-chargers-shell"
       data-surface-tone={surfaceTone}
     >
-      <section className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+      <section className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
         isVoid
           ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
           : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(250,204,21,0.16),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(255,251,235,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(250,204,21,0.14),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
       }`}>
         <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
           <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'bg-cyan-500/10 text-cyan-100'
                 : 'bg-white/80 text-amber-700 dark:bg-white/10 dark:text-amber-300'
@@ -412,7 +412,7 @@ export function AdminChargersPage() {
               <Lightning weight="fill" className="h-3.5 w-3.5" />
               Fleet status
             </div>
-            <h1 className="flex items-center gap-2 text-3xl font-black tracking-[-0.04em]">
+            <h1 className="flex items-center gap-2 text-3xl font-black tracking-normal">
               <Lightning weight="duotone" className="h-7 w-7 text-yellow-500" />
               {t('evCharging.adminTitle')}
               <button onClick={() => setShowHelp(!showHelp)} className={isVoid ? 'text-white/55 hover:text-cyan-200' : 'text-surface-400 hover:text-primary-500'} aria-label="Help">
@@ -424,34 +424,34 @@ export function AdminChargersPage() {
             </p>
           </div>
 
-          <div className={`rounded-[24px] border p-5 ${
+          <div className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
           }`}>
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
               {t('evCharging.opsSummary', 'Live summary')}
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className={`rounded-[20px] border p-4 ${
+              <div className={`rounded-lg border p-4 ${
                 isVoid
                   ? 'border-cyan-400/20 bg-cyan-400/10'
                   : 'border-amber-200 bg-white/85 dark:border-amber-500/20 dark:bg-white/[0.06]'
               }`}>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/55' : 'text-surface-500 dark:text-white/45'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/55' : 'text-surface-500 dark:text-white/45'}`}>
                   {t('evCharging.totalChargers', 'Total Chargers')}
                 </p>
-                <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{stats?.total_chargers ?? '—'}</p>
+                <p className="mt-2 text-2xl font-semibold tracking-normal">{stats?.total_chargers ?? '—'}</p>
               </div>
-              <div className={`rounded-[20px] border p-4 ${
+              <div className={`rounded-lg border p-4 ${
                 isVoid
                   ? 'border-white/10 bg-white/[0.04]'
                   : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
               }`}>
-                <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/55' : 'text-surface-500 dark:text-white/45'}`}>
+                <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/55' : 'text-surface-500 dark:text-white/45'}`}>
                   {t('evCharging.totalSessions', 'Sessions')}
                 </p>
-                <p className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{stats?.total_sessions ?? '—'}</p>
+                <p className="mt-2 text-2xl font-semibold tracking-normal">{stats?.total_sessions ?? '—'}</p>
               </div>
             </div>
           </div>
@@ -459,7 +459,7 @@ export function AdminChargersPage() {
       </section>
 
       {showHelp && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className={`rounded-[22px] border p-4 text-sm ${
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className={`rounded-lg border p-4 text-sm ${
           isVoid
             ? 'border-cyan-500/20 bg-cyan-500/10 text-cyan-100'
             : 'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/20 dark:bg-amber-500/10 dark:text-amber-100'
@@ -487,7 +487,7 @@ export function AdminChargersPage() {
           ].map((s, i) => (
             <div
               key={i}
-              className={`rounded-[22px] border p-4 text-center ${
+              className={`rounded-lg border p-4 text-center ${
                 isVoid
                   ? 'border-white/10 bg-slate-950/40'
                   : 'border-surface-200 bg-white dark:border-surface-700 dark:bg-surface-900/70'

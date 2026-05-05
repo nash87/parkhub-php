@@ -106,7 +106,7 @@ describe('NotificationPreferencesComponent', () => {
     expect(screen.getByText('Swap request notifications')).toBeInTheDocument();
   });
 
-  it('shows Coming soon badges for SMS and WhatsApp', async () => {
+  it('shows provider-required badges for SMS and WhatsApp', async () => {
     mockGetNotificationPreferences.mockResolvedValue({ success: true, data: defaultPrefs });
 
     render(<NotificationPreferencesComponent />);
@@ -115,8 +115,9 @@ describe('NotificationPreferencesComponent', () => {
       expect(screen.queryByText('Loading preferences...')).not.toBeInTheDocument();
     });
 
-    const badges = screen.getAllByText('Coming soon');
+    const badges = screen.getAllByText('Provider required');
     expect(badges).toHaveLength(2); // SMS and WhatsApp
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument();
   });
 
   it('does not show save button initially (no changes)', async () => {
@@ -255,6 +256,19 @@ describe('NotificationPreferencesComponent', () => {
     });
 
     expect(screen.getByText('Enable push notifications')).toBeInTheDocument();
+  });
+
+  it('describes gated SMS and WhatsApp providers without coming-soon copy', async () => {
+    mockGetNotificationPreferences.mockResolvedValue({ success: true, data: defaultPrefs });
+
+    render(<NotificationPreferencesComponent />);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loading preferences...')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText('Provider required')).toHaveLength(2);
+    expect(screen.queryByText('Coming soon')).not.toBeInTheDocument();
   });
 
   it('updates push, sms, and whatsapp toggles before saving', async () => {

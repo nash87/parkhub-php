@@ -119,7 +119,7 @@ export function VehiclesPage() {
       <motion.div key="vehicles-loaded" variants={container} initial="hidden" animate="show" className="space-y-6">
         <motion.div
           variants={item}
-          className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+          className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
             isVoid
               ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
               : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
@@ -127,7 +127,7 @@ export function VehiclesPage() {
         >
           <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
-              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+              <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
                 isVoid
                   ? 'bg-cyan-500/10 text-cyan-100'
                   : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -136,7 +136,7 @@ export function VehiclesPage() {
                 Vehicle registry
               </div>
 
-              <h1 className="text-3xl font-black tracking-[-0.04em] text-surface-900 dark:text-white">{t('vehicles.title', 'Meine Fahrzeuge')}</h1>
+              <h1 className="text-3xl font-black tracking-normal text-surface-900 dark:text-white">{t('vehicles.title', 'Meine Fahrzeuge')}</h1>
               <p className={`mt-2 max-w-2xl text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
                 {t('vehicles.subtitle', 'Fahrzeuge verwalten')}
               </p>
@@ -155,17 +155,17 @@ export function VehiclesPage() {
               </div>
             </div>
 
-            <div className={`rounded-[24px] border p-5 ${
+            <div className={`rounded-lg border p-5 ${
               isVoid
                 ? 'border-white/10 bg-white/[0.04]'
                 : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
             }`}>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+                  <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
                     {t('vehicles.registryLabel', 'Registry')}
                   </p>
-                  <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">{t('vehicles.title', 'Meine Fahrzeuge')}</h2>
+                  <h2 className="mt-2 text-xl font-semibold tracking-normal">{t('vehicles.title', 'Meine Fahrzeuge')}</h2>
                   <p className={`mt-2 text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
                     {t('vehicles.registryHint', 'Keep license plates, EV capability, and preferred defaults aligned before you book.' )}
                   </p>
@@ -264,7 +264,7 @@ export function VehiclesPage() {
         </AnimatePresence>
 
         {vehicles.length === 0 ? (
-          <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-16 text-center shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+          <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-16 text-center shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
             <Car weight="light" className="mx-auto h-20 w-20 text-surface-200 dark:text-surface-700" />
             <p className="mt-4 text-surface-500 dark:text-surface-400">{t('vehicles.noVehicles', 'Noch keine Fahrzeuge angelegt')}</p>
             <motion.button onClick={() => setShowForm(true)} className="btn btn-primary mt-6" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
@@ -279,18 +279,18 @@ export function VehiclesPage() {
               const vehicleStatus = isVehicleActive(vehicle) ? t('vehicles.activeLabel', 'Aktiv') : t('vehicles.inactiveLabel', 'Inaktiv');
 
               return (
-                <motion.div key={vehicle.id} variants={item} className="overflow-hidden rounded-[24px] border border-surface-200 bg-white shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+                <motion.div key={vehicle.id} variants={item} className="overflow-hidden rounded-lg border border-surface-200 bg-white shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
                   <div className={`flex items-center gap-4 border-b border-surface-200 px-5 py-5 dark:border-surface-800 ${
                     isVoid
                       ? 'bg-[linear-gradient(135deg,rgba(8,47,73,0.65),rgba(15,23,42,0.92))]'
                       : 'bg-[linear-gradient(135deg,rgba(16,185,129,0.10),rgba(16,185,129,0.03))] dark:bg-[linear-gradient(135deg,rgba(16,185,129,0.14),rgba(15,23,42,0.12))]'
                   }`}>
-                    <div className={`flex h-14 w-14 items-center justify-center rounded-[18px] ${colorClass}`}>
+                    <div className={`flex h-14 w-14 items-center justify-center rounded-lg ${colorClass}`}>
                       <Car weight="fill" className="h-6 w-6 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-['DM_Mono',monospace] text-lg font-semibold tracking-[0.12em] text-surface-900 dark:text-white">{vehicle.plate}</p>
+                        <p className="font-['DM_Mono',monospace] text-lg font-semibold tracking-normal text-surface-900 dark:text-white">{vehicle.plate}</p>
                         {vehicle.is_default && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
                             <Star weight="fill" className="h-3.5 w-3.5" /> {t('vehicles.isDefault', 'Standardfahrzeug')}
@@ -319,7 +319,7 @@ export function VehiclesPage() {
                     </div>
 
                     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-surface-200 pt-4 dark:border-surface-800">
-                      <div className="text-xs uppercase tracking-[0.18em] text-surface-400 dark:text-surface-500">
+                      <div className="text-xs uppercase tracking-normal text-surface-400 dark:text-surface-500">
                         {t('vehicles.registrySlot', 'Registry slot')} #{index + 1}
                       </div>
                       <div className="flex gap-2">
@@ -356,7 +356,7 @@ function VehicleHeroStat({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[22px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? accent
           ? 'border-cyan-500/20 bg-cyan-500/10'
@@ -365,8 +365,8 @@ function VehicleHeroStat({
         ? 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-900/60'
         : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? (accent ? 'text-cyan-100' : 'text-white/45') : (accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45')}`}>{label}</p>
-      <p className={`mt-3 text-3xl font-black tracking-[-0.05em] ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? (accent ? 'text-cyan-100' : 'text-white/45') : (accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45')}`}>{label}</p>
+      <p className={`mt-3 text-3xl font-black tracking-normal ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
       <p className={`mt-1 text-xs ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
     </div>
   );
@@ -374,8 +374,8 @@ function VehicleHeroStat({
 
 function PanelMetric({ label, value, isVoid, mono = false }: { label: string; value: string; isVoid: boolean; mono?: boolean }) {
   return (
-    <div className={`rounded-[20px] border px-4 py-4 ${isVoid ? 'border-white/10 bg-slate-950/60' : 'border-surface-200 bg-surface-50/80 dark:border-surface-800 dark:bg-surface-900/60'}`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>{label}</p>
+    <div className={`rounded-lg border px-4 py-4 ${isVoid ? 'border-white/10 bg-slate-950/60' : 'border-surface-200 bg-surface-50/80 dark:border-surface-800 dark:bg-surface-900/60'}`}>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>{label}</p>
       <p className={`mt-2 text-lg font-semibold ${mono ? "font-['DM_Mono',monospace]" : ''} ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
     </div>
   );
@@ -383,8 +383,8 @@ function PanelMetric({ label, value, isVoid, mono = false }: { label: string; va
 
 function VehicleInfoField({ label, value, accent = false }: { label: string; value: string; accent?: boolean }) {
   return (
-    <div className="rounded-[18px] border border-surface-200 bg-surface-50/80 px-4 py-3 dark:border-surface-800 dark:bg-surface-900/60">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-surface-400 dark:text-surface-500">{label}</p>
+    <div className="rounded-lg border border-surface-200 bg-surface-50/80 px-4 py-3 dark:border-surface-800 dark:bg-surface-900/60">
+      <p className="text-[10px] font-semibold uppercase tracking-normal text-surface-400 dark:text-surface-500">{label}</p>
       <p className={`mt-1 text-sm font-medium ${accent ? 'text-primary-700 dark:text-primary-300' : 'text-surface-900 dark:text-white'}`}>{value}</p>
     </div>
   );

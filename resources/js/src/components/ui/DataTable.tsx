@@ -152,7 +152,7 @@ export function DataTable<T>({
                   return (
                     <th
                       key={header.id}
-                      className={`text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider ${
+                      className={`text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-normalr ${
                         canSort ? 'cursor-pointer select-none hover:text-surface-700 dark:hover:text-surface-200 transition-colors' : ''
                       }`}
                       onClick={canSort ? header.column.getToggleSortingHandler() : undefined}

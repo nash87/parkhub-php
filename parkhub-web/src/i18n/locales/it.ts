@@ -650,7 +650,7 @@ export default {
       bookingConfirm: 'Conferme di prenotazione',
       bookingReminder: 'Promemoria prenotazione',
       bookingCancelled: 'Annullamenti prenotazione',
-      stub: 'Prossimamente',
+      stub: 'Fornitore richiesto',
       prefsSaved: 'Preferenze notifiche salvate',
       prefsSaveFailed: 'Salvataggio preferenze notifiche fallito',
     },

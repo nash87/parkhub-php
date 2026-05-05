@@ -85,7 +85,7 @@ export function DashboardPage() {
         className={`relative overflow-hidden rounded-2xl px-6 py-5 bg-gradient-to-r ${greetingGradient}`}
       >
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white tracking-tight" style={{ letterSpacing: '-0.025em' }}>
+          <h1 className="text-2xl sm:text-3xl font-bold text-surface-900 dark:text-white tracking-normal" style={{ letterSpacing: '0' }}>
             {t('dashboard.greeting', { timeOfDay, name })}
           </h1>
           {wsConnected && (
@@ -146,7 +146,7 @@ export function DashboardPage() {
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-semibold text-surface-900 dark:text-white tracking-tight">
+              <h2 className="text-lg font-semibold text-surface-900 dark:text-white tracking-normal">
                 {t('dashboard.activeBookings')}
               </h2>
               {activeBookings.length > 0 && (
@@ -203,7 +203,7 @@ export function DashboardPage() {
           variants={item}
           className="glass-card p-6"
         >
-          <h2 className="text-lg font-semibold text-surface-900 dark:text-white mb-4 tracking-tight">
+          <h2 className="text-lg font-semibold text-surface-900 dark:text-white mb-4 tracking-normal">
             {t('dashboard.quickActions')}
           </h2>
           <div className="space-y-2">
@@ -238,7 +238,7 @@ export function DashboardPage() {
       >
         <div className="flex items-center gap-2 mb-4">
           <TrendUp weight="bold" className="w-4 h-4 text-primary-500" />
-          <h2 className="text-lg font-semibold text-surface-900 dark:text-white tracking-tight">
+          <h2 className="text-lg font-semibold text-surface-900 dark:text-white tracking-normal">
             {t('dashboard.thisMonth')}
           </h2>
         </div>
@@ -283,7 +283,7 @@ function BentoStatCard({ label, value, gradient, live }: {
         </div>
         <p
           className="mt-2 text-2xl font-bold text-surface-900 dark:text-white"
-          style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1 }}
+          style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '0', lineHeight: 1 }}
         >
           {isNum ? <AnimatedCounter value={value as number} duration={800} /> : value}
         </p>
@@ -309,7 +309,7 @@ function NextBookingCard({ label, value }: {
         </div>
         <p
           className="mt-2 text-2xl font-bold text-surface-900 dark:text-white"
-          style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', lineHeight: 1 }}
+          style={{ fontVariantNumeric: 'tabular-nums', letterSpacing: '0', lineHeight: 1 }}
         >
           {value}
         </p>

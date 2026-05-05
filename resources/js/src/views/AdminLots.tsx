@@ -532,11 +532,11 @@ export function AdminLotsPage() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-surface-200 dark:border-surface-700">
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">{t('admin.lots')}</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">{t('admin.totalSlots')}</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">{t('admin.status')}</th>
-                <th className="text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider">{t('admin.pricing')}</th>
-                <th className="text-right px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-wider"></th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-normalr">{t('admin.lots')}</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-normalr">{t('admin.totalSlots')}</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-normalr">{t('admin.status')}</th>
+                <th className="text-left px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-normalr">{t('admin.pricing')}</th>
+                <th className="text-right px-5 py-3.5 text-xs font-semibold text-surface-500 dark:text-surface-400 uppercase tracking-normalr"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-surface-100 dark:divide-surface-800">

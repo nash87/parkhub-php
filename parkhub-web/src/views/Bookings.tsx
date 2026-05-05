@@ -167,7 +167,7 @@ export function BookingsPage() {
         <motion.div
           variants={fadeUp}
           data-testid="bookings-summary-band"
-          className={`overflow-hidden rounded-[28px] border p-5 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.45)] ${
+          className={`overflow-hidden rounded-lg border p-5 shadow-[0_24px_80px_-48px_rgba(15,23,42,0.45)] ${
             navLayout === 'focus'
               ? 'border-slate-800/80 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white'
               : 'border-surface-200/70 bg-gradient-to-br from-white via-white to-primary-50/60 dark:border-surface-800 dark:from-surface-950 dark:via-surface-950 dark:to-primary-950/20'
@@ -187,7 +187,7 @@ export function BookingsPage() {
                     : t('bookings.summaryBadge', 'Booking desk')}
                 </div>
                 <div>
-                  <h1 className={`text-3xl font-bold tracking-tight ${navLayout === 'focus' ? 'text-white' : 'text-surface-950 dark:text-white'}`}>
+                  <h1 className={`text-3xl font-bold tracking-normal ${navLayout === 'focus' ? 'text-white' : 'text-surface-950 dark:text-white'}`}>
                     {t('bookings.title')}
                   </h1>
                   <p className={`mt-1 max-w-2xl text-sm ${navLayout === 'focus' ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
@@ -226,7 +226,7 @@ export function BookingsPage() {
                       : 'border-white/70 bg-white/80 dark:border-surface-800 dark:bg-surface-900/80'
                   }`}
                 >
-                  <p className={`text-[11px] uppercase tracking-[0.16em] ${navLayout === 'focus' ? 'text-slate-400' : 'text-surface-400 dark:text-surface-500'}`}>
+                  <p className={`text-[11px] uppercase tracking-normal ${navLayout === 'focus' ? 'text-slate-400' : 'text-surface-400 dark:text-surface-500'}`}>
                     {card.label}
                   </p>
                   <div className="mt-2 flex items-end justify-between gap-3">
@@ -239,7 +239,7 @@ export function BookingsPage() {
               ))}
             </div>
 
-            <div className={`rounded-[24px] border p-4 backdrop-blur ${
+            <div className={`rounded-lg border p-4 backdrop-blur ${
               navLayout === 'focus'
                 ? 'border-slate-700 bg-slate-950/80'
                 : 'border-surface-200/70 bg-white/85 dark:border-surface-800 dark:bg-surface-950/70'
@@ -378,7 +378,7 @@ interface EmptyProps {
 function Empty({ text, showAction, t }: EmptyProps) {
   if (showAction) {
     return (
-      <div className="rounded-[24px] border border-surface-200 bg-white p-8 text-center shadow-[0_24px_60px_-48px_rgba(15,23,42,0.55)] dark:border-surface-800 dark:bg-surface-950/70">
+      <div className="rounded-lg border border-surface-200 bg-white p-8 text-center shadow-[0_24px_60px_-48px_rgba(15,23,42,0.55)] dark:border-surface-800 dark:bg-surface-950/70">
         <div
           className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary-500/10 ring-1 ring-primary-500/20"
           aria-hidden="true"
@@ -406,7 +406,7 @@ function Empty({ text, showAction, t }: EmptyProps) {
   }
 
   return (
-    <div className="rounded-[24px] border border-dashed border-surface-300 bg-white/90 p-6 text-left dark:border-surface-700 dark:bg-surface-900/80">
+    <div className="rounded-lg border border-dashed border-surface-300 bg-white/90 p-6 text-left dark:border-surface-700 dark:bg-surface-900/80">
       <p className="text-sm text-surface-500 dark:text-surface-400">{text}</p>
     </div>
   );
@@ -434,12 +434,12 @@ function BookingList({
   dateFnsLocale,
 }: BookingListProps) {
   return (
-    <div className="overflow-hidden rounded-[24px] border border-surface-200 bg-white/95 shadow-[0_24px_60px_-48px_rgba(15,23,42,0.55)] dark:border-surface-800 dark:bg-surface-950/80">
+    <div className="overflow-hidden rounded-lg border border-surface-200 bg-white/95 shadow-[0_24px_60px_-48px_rgba(15,23,42,0.55)] dark:border-surface-800 dark:bg-surface-950/80">
       <div className="hidden grid-cols-[minmax(0,1.7fr)_minmax(0,0.95fr)_minmax(0,1.1fr)_minmax(0,0.95fr)_minmax(0,1.2fr)] gap-4 border-b border-surface-200 bg-surface-50/80 px-5 py-3 lg:grid dark:border-surface-800 dark:bg-surface-900/70">
         {['Lot / Slot', 'Vehicle', 'Date & time', 'Status', 'Actions'].map((label) => (
           <span
             key={label}
-            className="text-[11px] font-medium uppercase tracking-[0.18em] text-surface-400 dark:text-surface-500"
+            className="text-[11px] font-medium uppercase tracking-normal text-surface-400 dark:text-surface-500"
           >
             {label}
           </span>
@@ -558,7 +558,7 @@ function BookingRow({
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-surface-500 dark:text-surface-400">
               <span>{t('dashboard.slot')} {booking.slot_number}</span>
-              <span className="font-mono text-xs uppercase tracking-[0.16em] text-surface-400 dark:text-surface-500">
+              <span className="font-mono text-xs uppercase tracking-normal text-surface-400 dark:text-surface-500">
                 {booking.id}
               </span>
             </div>
@@ -567,7 +567,7 @@ function BookingRow({
       </div>
 
       <div className="space-y-1">
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-surface-400 dark:text-surface-500 lg:hidden">
+        <span className="text-[11px] font-medium uppercase tracking-normal text-surface-400 dark:text-surface-500 lg:hidden">
           Vehicle
         </span>
         <div className="flex items-center gap-2 text-sm text-surface-700 dark:text-surface-300">
@@ -580,7 +580,7 @@ function BookingRow({
       </div>
 
       <div className="space-y-1">
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-surface-400 dark:text-surface-500 lg:hidden">
+        <span className="text-[11px] font-medium uppercase tracking-normal text-surface-400 dark:text-surface-500 lg:hidden">
           Date &amp; time
         </span>
         <p className="text-sm font-medium text-surface-900 dark:text-white">{dateLabel}</p>
@@ -591,7 +591,7 @@ function BookingRow({
       </div>
 
       <div className="space-y-2">
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-surface-400 dark:text-surface-500 lg:hidden">
+        <span className="text-[11px] font-medium uppercase tracking-normal text-surface-400 dark:text-surface-500 lg:hidden">
           Status
         </span>
         <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${status.chip}`}>
@@ -606,7 +606,7 @@ function BookingRow({
       </div>
 
       <div className="space-y-2">
-        <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-surface-400 dark:text-surface-500 lg:hidden">
+        <span className="text-[11px] font-medium uppercase tracking-normal text-surface-400 dark:text-surface-500 lg:hidden">
           Actions
         </span>
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">

@@ -107,7 +107,7 @@ export function MapViewPage() {
     <motion.div variants={container} initial="hidden" animate="show" className="space-y-6">
       <motion.div
         variants={item}
-        className={`overflow-hidden rounded-[28px] border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
+        className={`overflow-hidden rounded-lg border px-6 py-6 shadow-[0_22px_64px_-42px_rgba(15,23,42,0.45)] ${
           isVoid
             ? 'border-slate-800 bg-[radial-gradient(circle_at_top_left,_rgba(34,211,238,0.18),_transparent_32%),linear-gradient(135deg,rgba(2,6,23,0.98),rgba(15,23,42,0.95))] text-white'
             : 'border-stone-200 bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.12),_transparent_38%),linear-gradient(135deg,rgba(255,252,248,0.98),rgba(240,253,250,0.92))] text-surface-900 dark:border-surface-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(16,185,129,0.18),_transparent_38%),linear-gradient(135deg,rgba(22,26,34,0.98),rgba(31,41,55,0.94))] dark:text-white'
@@ -115,7 +115,7 @@ export function MapViewPage() {
       >
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] ${
+            <div className={`mb-3 inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-normal ${
               isVoid
                 ? 'bg-cyan-500/10 text-cyan-100'
                 : 'bg-white/80 text-emerald-700 dark:bg-white/10 dark:text-emerald-300'
@@ -124,7 +124,7 @@ export function MapViewPage() {
               Live occupancy map
             </div>
 
-            <h1 className="flex items-center gap-3 text-3xl font-black tracking-[-0.04em] text-surface-900 dark:text-white">
+            <h1 className="flex items-center gap-3 text-3xl font-black tracking-normal text-surface-900 dark:text-white">
               <MapPin weight="fill" className="h-7 w-7 text-primary-500" />
               {t('map.title')}
             </h1>
@@ -139,15 +139,15 @@ export function MapViewPage() {
             </div>
           </div>
 
-          <div className={`rounded-[24px] border p-5 ${
+          <div className={`rounded-lg border p-5 ${
             isVoid
               ? 'border-white/10 bg-white/[0.04]'
               : 'border-white/80 bg-white/80 dark:border-white/10 dark:bg-white/[0.04]'
           }`}>
-            <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
+            <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-white/45'}`}>
               {t('map.summaryLabel', 'Map summary')}
             </p>
-            <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">{t('map.operationsTitle', 'Occupancy and booking overview')}</h2>
+            <h2 className="mt-2 text-xl font-semibold tracking-normal">{t('map.operationsTitle', 'Occupancy and booking overview')}</h2>
             <p className={`mt-2 text-sm leading-6 ${isVoid ? 'text-slate-300' : 'text-surface-600 dark:text-surface-300'}`}>
               {t('map.operationsHint', 'Use the live map for zone awareness and the side rail for quick booking context per location.')}
             </p>
@@ -163,19 +163,19 @@ export function MapViewPage() {
       </motion.div>
 
       {markers.length === 0 ? (
-        <motion.div variants={item} className="rounded-[24px] border border-surface-200 bg-white p-12 text-center shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+        <motion.div variants={item} className="rounded-lg border border-surface-200 bg-white p-12 text-center shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
           <NavigationArrow weight="light" className="mx-auto mb-4 h-16 w-16 text-surface-300 dark:text-surface-600" />
           <p className="text-lg text-surface-500 dark:text-surface-400">{t('map.noLots')}</p>
         </motion.div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-[1.4fr_0.8fr]">
-          <motion.div variants={item} className="overflow-hidden rounded-[24px] border border-surface-200 bg-white shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80" data-testid="map-container">
+          <motion.div variants={item} className="overflow-hidden rounded-lg border border-surface-200 bg-white shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80" data-testid="map-container">
             <div className="flex items-center justify-between border-b border-surface-200 px-5 py-4 dark:border-surface-800">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500 dark:text-surface-400">{t('map.liveView', 'Live view')}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">{t('map.liveView', 'Live view')}</p>
                 <h2 className="mt-1 text-lg font-semibold text-surface-900 dark:text-white">{selectedLot?.name ?? t('map.title')}</h2>
               </div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-300">
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-normal text-emerald-700 dark:text-emerald-300">
                 <span className="h-2 w-2 rounded-full bg-emerald-500" />
                 LIVE
               </div>
@@ -217,15 +217,15 @@ export function MapViewPage() {
           </motion.div>
 
           <motion.div variants={item} className="space-y-4">
-            <div className="rounded-[24px] border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-surface-500 dark:text-surface-400">{t('map.occupancyLabel', 'Occupancy')}</p>
+            <div className="rounded-lg border border-surface-200 bg-white p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] dark:border-surface-800 dark:bg-surface-950/80">
+              <p className="text-[11px] font-semibold uppercase tracking-normal text-surface-500 dark:text-surface-400">{t('map.occupancyLabel', 'Occupancy')}</p>
               <div className="mt-4 space-y-3">
                 {markers.map((marker) => (
                   <button
                     key={marker.id}
                     type="button"
                     onClick={() => setSelectedLotId(marker.id)}
-                    className={`w-full rounded-[18px] border px-4 py-3 text-left transition-colors ${
+                    className={`w-full rounded-lg border px-4 py-3 text-left transition-colors ${
                       selectedLotId === marker.id
                         ? 'border-primary-400 bg-primary-50 dark:border-primary-500/60 dark:bg-primary-500/10'
                         : 'border-surface-200 bg-surface-50/80 hover:border-primary-300 dark:border-surface-800 dark:bg-surface-900/60'
@@ -244,14 +244,14 @@ export function MapViewPage() {
             </div>
 
             {selectedLot ? (
-              <div className={`rounded-[24px] border p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] ${
+              <div className={`rounded-lg border p-5 shadow-[0_18px_50px_-38px_rgba(15,23,42,0.18)] ${
                 isVoid
                   ? 'border-slate-800 bg-slate-950/85'
                   : 'border-surface-200 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] dark:border-surface-800 dark:bg-surface-950/80'
               }`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>{t('map.selectedLabel', 'Selected lot')}</p>
+                    <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? 'text-white/45' : 'text-surface-500 dark:text-surface-400'}`}>{t('map.selectedLabel', 'Selected lot')}</p>
                     <h2 className={`mt-1 text-xl font-semibold ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{selectedLot.name}</h2>
                   </div>
                   <span className="rounded-full bg-primary-500/10 px-3 py-1 text-xs font-semibold text-primary-700 dark:text-primary-300">
@@ -297,7 +297,7 @@ function MapHeroStat({
   accent?: boolean;
 }) {
   return (
-    <div className={`rounded-[22px] border px-4 py-4 ${
+    <div className={`rounded-lg border px-4 py-4 ${
       isVoid
         ? accent
           ? 'border-cyan-500/20 bg-cyan-500/10'
@@ -306,8 +306,8 @@ function MapHeroStat({
         ? 'border-emerald-200 bg-emerald-500/10 dark:border-emerald-900/60'
         : 'border-white/80 bg-white/85 dark:border-white/10 dark:bg-white/[0.04]'
     }`}>
-      <p className={`text-[11px] font-semibold uppercase tracking-[0.2em] ${isVoid ? (accent ? 'text-cyan-100' : 'text-white/45') : (accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45')}`}>{label}</p>
-      <p className={`mt-3 text-3xl font-black tracking-[-0.05em] ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
+      <p className={`text-[11px] font-semibold uppercase tracking-normal ${isVoid ? (accent ? 'text-cyan-100' : 'text-white/45') : (accent ? 'text-emerald-700 dark:text-emerald-300' : 'text-surface-500 dark:text-white/45')}`}>{label}</p>
+      <p className={`mt-3 text-3xl font-black tracking-normal ${isVoid ? 'text-white' : 'text-surface-900 dark:text-white'}`}>{value}</p>
       <p className={`mt-1 text-xs ${isVoid ? 'text-slate-300' : 'text-surface-500 dark:text-surface-400'}`}>{meta}</p>
     </div>
   );
