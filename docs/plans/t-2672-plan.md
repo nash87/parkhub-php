@@ -557,11 +557,31 @@ Live update `2026-05-05 14:33 CEST`:
 - fop/BFF integration:
   - fop-web-backend ParkHub BFF branch
     `/var/home/florian/dev/fop-web-backend.t-2741-parkhub-bff` has
-    `ad02aa6` advertising live ParkHub task metadata in `/api/pages/parkhub`.
+    `f5680d8` exposing durable handoff state in `/api/pages/parkhub` because
+    the live fop task store keeps dropping `T-2742`.
   - fop-web-ui branch `/var/home/florian/dev/fop-web-ui.t-2741-parkhub-status`
-    has `263a6029` wiring `/dev/parkhub` to BFF.
+    has `c3d1c5a2` rendering the durable handoff state in `/dev/parkhub`.
   - Focused BFF cargo test is still blocked by sandbox DNS/offload write limits
     until host approval resets.
+- Latest UI/UX parity update:
+  - PHP design-smoke head is `40d037c`
+    `style: remove legacy generative feature copy` (clean, ahead 23 vs
+    local `github/main`);
+  - Rust design-smoke head is `180ac65b`
+    `feat: add admin overview surface` (clean, ahead 21 vs local
+    `github/main`);
+  - `/admin` now mounts a real `AdminOverviewPage`; `/admin/reports` remains
+    the reports route;
+  - PHP/Rust focused `AdminOverview.test.tsx` + `App.test.tsx` slices passed;
+  - PHP/Rust route-contract Playwright slices passed;
+  - PHP legacy `resources/js` visible copy scan no longer finds the blocked
+    `Generative Background` / `generative art` wording.
+- GitHub #444 state:
+  - public GitHub web shows `main` contains `3db3858`
+    `build(deps-dev): bump vite from 7.3.2 to 8.0.10 in /parkhub-web (#444)`;
+  - local `github/main` also resolves to `3db3858`;
+  - the PR #444 page still renders `Open`, so re-check with authenticated
+    `gh pr view` before taking any action on #444.
 - fop task-store drift:
   - ParkHub task `T-2742` was recreated/claimed during this pass but vanished
     again from `fop tasks get` and `fop tasks list`. Treat this doc, the
@@ -581,35 +601,46 @@ fop queue status
 fop guard preflight
 ```
 
-1. Verify PHP Dependabot PR #443 remains merged:
+1. Verify PHP Dependabot PR #443 and #444 live state before acting:
 
 ```bash
 gh pr view 443 --repo nash87/parkhub-php \
   --json number,state,mergedAt,mergeCommit,headRefOid,title,url
+
+gh pr view 444 --repo nash87/parkhub-php \
+  --json number,title,state,mergedAt,mergeCommit,headRefOid,headRefName,mergeStateStatus,statusCheckRollup,url
+
+git fetch github main
+git rev-parse --short github/main
+git log -1 --oneline github/main
 ```
 
-2. Gate and merge PHP Dependabot PR #444:
+If authenticated `gh` confirms #444 is still open even though `main` contains
+`3db3858`, do not merge or force-update it from this lane. Record the
+inconsistency and let the dependency lane close/recreate it deliberately.
+
+2. Push/open the PHP and Rust UI parity PRs after full host replay:
 
 ```bash
-cd /var/home/florian/dev/parkhub-php.dependabot-ci
-gh pr view 444 --repo nash87/parkhub-php \
-  --json number,title,headRefOid,headRefName,mergeStateStatus,statusCheckRollup,url
+cd /var/home/florian/dev/parkhub-php.design-smoke
+git status --short --branch
+git log -1 --oneline
+SERVER_PORT=18092 npm run test:e2e:design-smoke
+git push -u github t-design-smoke-pr-gate
+gh pr create --repo nash87/parkhub-php --base main \
+  --head t-design-smoke-pr-gate \
+  --title "feat: tighten ParkHub route coverage and admin overview" \
+  --body-file .fop/pr-bodies/t-design-smoke-pr-gate.md
 
-git fetch github dependabot/npm_and_yarn/parkhub-web/vite-8.0.10
-git cat-file -e 00dbf56821edea8c487ef37362a28793a7451657^{commit}
-
-git checkout --detach 00dbf56821edea8c487ef37362a28793a7451657
-FOP_LOCAL_CI_STATUS_REPO=nash87/parkhub-php .github/scripts/fop-local-ci.sh --profile pr --post-status
-
-gh run rerun 25356631391 --repo nash87/parkhub-php --failed
-gh run watch 25356631391 --repo nash87/parkhub-php --exit-status
-
-gh pr view 444 --repo nash87/parkhub-php \
-  --json number,title,headRefOid,mergeStateStatus,statusCheckRollup,url
-
-# Merge only with the current matching head SHA after required checks pass.
-gh pr merge 444 --repo nash87/parkhub-php --squash --auto \
-  --match-head-commit 00dbf56821edea8c487ef37362a28793a7451657
+cd /var/home/florian/dev/parkhub-rust.design-smoke
+git status --short --branch
+git log -1 --oneline
+FOP_LOCAL_CI_DIRECT=1 SERVER_PORT=18093 ./scripts/v5-design-smoke-local.sh
+git push -u github t-design-smoke-pr-gate
+gh pr create --repo nash87/parkhub-rust --base main \
+  --head t-design-smoke-pr-gate \
+  --title "feat: tighten ParkHub route coverage and admin overview" \
+  --body-file .fop/pr-bodies/t-design-smoke-pr-gate.md
 ```
 
 3. Prove and open the PHP image-security PR:
@@ -655,8 +686,11 @@ gh pr create --repo nash87/parkhub-php --base main \
   still clean.
 - PHP #445, #441, and #442 remain merged in GitHub.
 - PHP #443 is merged.
-- PHP #444 is locally gated and merged only after GitHub branch protection is
-  clean for head `00dbf56821edea8c487ef37362a28793a7451657`.
+- PHP #444 live state is reconciled with authenticated `gh`; if it is still
+  open while `main` already contains `3db3858`, it is recorded as a dependency
+  lane inconsistency rather than merged from this lane.
+- PHP/Rust UI parity branches have full host `.test` replay, GitHub PRs, and
+  local-CI reports for their current heads.
 - PHP image-security branch has host Podman build proof, Trivy image proof, and
   a GitHub PR.
 - Docs handoff branch has a GitHub PR.
