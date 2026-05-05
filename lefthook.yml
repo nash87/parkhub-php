@@ -4,8 +4,11 @@
 # round-trip (15-30 min) is reserved for genuinely cross-cutting checks.
 #
 # Pre-commit runs only on staged files and stays fast (<10s typical).
-# Pre-push runs the canonical fop-backed local PR gate. Keep this as a single
-# command so fop owns serialization, memory limits, and queue visibility.
+# Pre-push verifies the canonical fop-backed local PR gate report. Keep the
+# hook fast: Git opens the remote receive-pack connection before this hook, so
+# a 10-minute build here can make github.com close the idle SSH session before
+# the push starts. Run `make ci` before `git push`; the hook only checks the
+# success report for the current HEAD and then starts deferred attestation.
 #
 # Bypass in emergencies with `git push --no-verify`. Logged + frowned-upon.
 # Full local replay: `lefthook run pre-push`.
@@ -50,10 +53,8 @@ pre-push:
   parallel: false
   commands:
     local-ci:
-      # Runs the full PR gate (no synchronous status post — the SHA isn't
-      # on GitHub yet at pre-push time, so a synchronous post would 422).
-      run: make ci
-      fail_text: "Local fop CI failed. Fix before push."
+      run: bash scripts/check-local-ci-report.sh pr
+      fail_text: "Local fop CI report missing or stale. Run `make ci`, then push again."
 
     post-attestation:
       # Forks a deferred poll-and-post that waits until the SHA shows up
