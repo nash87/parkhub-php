@@ -107,8 +107,8 @@ jobs:
 
           ./scripts/ci/wait-for-url.sh http://127.0.0.1:8000/api/v1/health/live 60
           # v4 blade surfaces (existing) + v5 visual + v5 happy-paths.
-          # v5 specs internally skip the mobile-chrome project until v5
-          # ships a responsive refactor, so --project=chromium is enough.
+          # v5 visual/happy-path baselines stay on chromium; mobile v5
+          # render/runtime coverage lives in npm run test:e2e:design-smoke.
           # Keep workers=1 — php artisan serve is single-process and
           # concurrent logins race.
           set +e
