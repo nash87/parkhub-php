@@ -171,6 +171,10 @@ post_commit_status() {
 write_report() {
   local state="$1"
   local failed_step="${2:-}"
+  if [[ "$dry_run" -eq 1 ]]; then
+    echo "DRY-RUN: not writing local-ci ${state} report for ${sha:0:8}"
+    return 0
+  fi
   mkdir -p "$report_dir"
   cat > "$report_path" <<EOF
 {
@@ -196,6 +200,38 @@ EOF
 # Playwright browser harness) opt back into a larger profile via
 # `run_step_heavy` below.
 #
+run_fop_step() {
+  local resource_profile="$1"
+  local command="$2"
+  local marker="__PARKHUB_FOP_STEP_OK_${RANDOM}_${RANDOM}__"
+  local log_file
+  local wrapped_command
+
+  log_file="$(mktemp -t parkhub-fop-step.XXXXXX.log)"
+  printf -v wrapped_command '%s\nprintf "%%s\\n" "$PARKHUB_FOP_STEP_MARKER"' "$command"
+
+  set +e
+  PARKHUB_FOP_STEP_MARKER="$marker" \
+    fop build --backend local --resource-profile "$resource_profile" . --preset custom -- \
+      bash -euo pipefail -c "$wrapped_command" 2>&1 | tee "$log_file"
+  local status=${PIPESTATUS[0]}
+  set -e
+
+  if [[ "$status" -ne 0 ]]; then
+    rm -f "$log_file"
+    return "$status"
+  fi
+
+  if ! grep -Fq "$marker" "$log_file"; then
+    echo "ERROR: fop build reported success but the inner step completion marker was missing." >&2
+    echo "This usually means the wrapped command exited before completion or fop masked its status." >&2
+    rm -f "$log_file"
+    return 1
+  fi
+
+  rm -f "$log_file"
+}
+
 # Setting FOP_LOCAL_CI_DIRECT=1 bypasses the fop queue wrapper and
 # runs each step directly in the current shell. Use this for the
 # bootstrap chicken-and-egg run that introduces this script (the queue
@@ -217,7 +253,7 @@ run_step() {
     bash -euo pipefail -c "$command"
     return 0
   fi
-  fop build --backend local --resource-profile interactive-small . --preset custom -- bash -euo pipefail -c "$command"
+  run_fop_step interactive-small "$command"
 }
 
 run_step_heavy() {
@@ -232,7 +268,7 @@ run_step_heavy() {
     bash -euo pipefail -c "$command"
     return 0
   fi
-  fop build --backend local --resource-profile batch-medium . --preset custom -- bash -euo pipefail -c "$command"
+  run_fop_step batch-medium "$command"
 }
 
 run_advisory_step_heavy() {
@@ -426,7 +462,11 @@ elif [[ "$profile" == "cd" ]]; then
   skip_step "grype" "grype not on PATH (install: https://github.com/anchore/grype#installation)"
 fi
 
-write_report "success"
-post_commit_status "success" "fop local ${profile} passed"
+if [[ "$dry_run" -eq 1 ]]; then
+  printf '\ndry-run local CI completed; no success report or commit status was written.\n'
+else
+  write_report "success"
+  post_commit_status "success" "fop local ${profile} passed"
 
-printf '\nlocal CI passed: %s\n' "$report_path"
+  printf '\nlocal CI passed: %s\n' "$report_path"
+fi
