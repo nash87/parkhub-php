@@ -611,11 +611,119 @@ Live update `2026-05-05 14:33 CEST`:
   - Current Codex approval reset reported by the reviewer is
     `2026-05-05 20:37 CEST`.
 
+Update `2026-05-05 18:20 CEST`:
+
+- `T-2750` is now claimed by `konsole-48-florian`.
+- fop BFF `/api/pages/parkhub` is no longer durable-handoff-only: its payload
+  now points to `T-2750` and each repo lane carries the active task ID
+  (`T-2747`, `T-2748`, `T-2749`, `T-2750`).
+- fop-web-ui `/dev/parkhub` now shows the active fop task ID per ParkHub lane.
+- PHP/Rust UI parity branches replaced visible notification-channel
+  `Coming soon` badges with `Provider required` and route smoke now rejects
+  `Coming soon` on every declared page.
+- Direct sanity checks passed:
+  - backend rustfmt check on touched ParkHub BFF files;
+  - fop-web-ui `npm test -- parkhub-status` (`1` file / `3` tests);
+  - PHP/Rust `npm test --prefix parkhub-web -- NotificationPreferences`
+    (`1` file / `15` tests in each repo);
+  - `git diff --check` in all touched worktrees.
+- Required fop-backed checks are still blocked by queue job `14825`
+  (`cargo install --path . --locked --force`) holding the single reservation
+  while repeatedly failing `index.crates.io` DNS. Approval usage blocks
+  cancelling that job or killing this tab's queued fop rustfmt waiter until
+  `20:37 CEST`.
+
+2026-05-05 18:34 CEST local continuation:
+
+- PHP/Rust notification provider disabled copy is now `Provider required`;
+  all active locale bundles and the PHP legacy `resources/js` locale bundles
+  were updated away from coming-soon copy.
+- PHP/Rust route-smoke blocklists now reject localized coming-soon strings
+  across the declared public, protected, admin, and redirect route inventory.
+- PHP active Dashboard source and Dashboard test are now byte-for-byte aligned
+  with Rust, removing the remaining marble/void preview dashboard surfaces and
+  visible editorial dashboard copy from the PHP dashboard route.
+- Lightweight verification while fop queue job `14825` is stuck:
+  - PHP/Rust `git diff --check`: clean.
+  - PHP Dashboard Vitest direct fallback: `3` files / `37` tests passed.
+  - PHP NotificationPreferences Vitest direct fallback: `1` file / `15` tests
+    passed.
+  - Rust NotificationPreferences + Dashboard Vitest direct fallback: `4` files
+    / `52` tests passed.
+  - source scans find the old strings only in the E2E blocklist.
+- The exact fop-backed design-smoke, `.test` browser QA, push/PR/release,
+  Nix/Garnix, image, and BFF/UI gates remain blocked until queue job `14825`
+  clears or can be canceled from the host.
+
+2026-05-05 18:38 CEST local continuation:
+
+- Applied the same active-view style-token cleanup to PHP and Rust:
+  - arbitrary large radii in `parkhub-web/src/views/*.tsx` were tightened to
+    `rounded-lg`;
+  - arbitrary/tight/wide tracking classes were normalized to `tracking-normal`;
+  - negative inline `letterSpacing` was normalized to `letterSpacing: '0'`.
+- Verification while fop queue job `14825` remains stuck:
+  - PHP/Rust scan for the cleaned radius/tracking patterns: no hits.
+  - PHP/Rust `git diff --check`: clean.
+  - PHP active view Vitest direct fallback: `67` files / `1119` tests passed.
+  - Rust active view Vitest direct fallback: `67` files / `1097` tests passed.
+- `fop guard preflight` is still red because active build `14825` is registered;
+  memory is available and no orphan cargo/rustc was reported.
+
+2026-05-05 18:45 CEST local continuation:
+
+- PHP #444 live verification is still blocked by the Codex host-network usage
+  gate until `20:37 CEST`, and live `fop queue status` still shows active job
+  `14825`.
+- Continued the safe PHP devcontainer parity slice in
+  `/var/home/florian/dev/parkhub-php.nix-garnix`:
+  - added `.devcontainer/devcontainer.json`;
+  - added `.devcontainer/Containerfile`;
+  - added `.github/workflows/devcontainer-publish.yml`;
+  - added `scripts/tests/test-devcontainer-contract.sh`;
+  - wired `make devcontainer-contract`, `make script-tests`, GitHub CI, and
+    Gitea CI to validate the contract.
+- Local commit: `034bad3` `ci: add PHP devcontainer parity contract`
+  (branch clean, ahead 3 vs `github/main`).
+- Verification:
+  - `bash scripts/tests/test-devcontainer-contract.sh`: passed.
+  - `make devcontainer-contract`: passed.
+  - `make script-tests`: passed.
+  - JSON parse for devcontainer: passed.
+  - Python YAML parse for the new publish workflow and touched CI workflows:
+    passed.
+  - `make nix-contract`: passed with the expected missing-`flake.lock` warning.
+  - tracked `git diff --check`: clean; new untracked files have no trailing
+    whitespace.
+  - After local commit `034bad3`, `make script-tests` still passes.
+- Still missing: actual devcontainer build/push/sign, real `nix flake lock`,
+  `nix flake check`, Garnix evaluation, PHP #444 live status, and fop-backed
+  heavy gates.
+
+2026-05-05 18:48 CEST local continuation:
+
+- Updated the fop BFF/UI ParkHub delivery desk to surface PHP devcontainer
+  parity as an explicit `T-2748` lane:
+  - BFF `/api/pages/parkhub` now includes repo id `php-devcontainer`;
+  - BFF gates now include `php-devcontainer-contract`;
+  - BFF blockers now name the unproven GHCR image build/push/signature;
+  - fop-web-ui `/dev/parkhub` default repo config now renders the lane and next
+    action.
+- Verification:
+  - direct BFF `rustfmt --edition 2024 --check src/routes/parkhub.rs
+    src/types.rs`: passed.
+  - direct fop-web-ui `npm test -- parkhub-status`: `1` file / `3` tests
+    passed.
+  - BFF/UI `git diff --check`: clean.
+- Remaining: fop-backed BFF cargo test and fop-web-ui `npm run check` after
+  queue job `14825` clears.
+
 Post-`2026-05-05 05:35 CEST` external-action sequence:
 
 ```bash
 date '+%Y-%m-%d %H:%M:%S %Z'
 fop queue status
+fop queue inspect 14825 --json --lines 20
 fop guard preflight
 ```
 
@@ -720,3 +828,95 @@ gh pr create --repo nash87/parkhub-php --base main \
   final completion audit.
 - fop checkpoints mention exact PR URLs, merge commits, reports, and any
   residual blockers.
+
+## Local Continuation - 2026-05-05 18:57 CEST
+
+- Continued the queue-safe `T-2748` PHP workflow slice in
+  `/var/home/florian/dev/parkhub-php.nix-garnix`.
+- New clean head: `3a13823` `ci: add diff-aware php local gate` on branch
+  `t-nix-garnix-baseline`, ahead 4 vs `github/main`.
+- Added:
+  - `--background` support to `.github/scripts/fop-local-ci.sh`;
+  - PR-profile diff-aware path classification and skips for untouched
+    PHP/frontend/drift/security gates;
+  - `parkhub.local-ci.v2` report metadata for diff-aware state;
+  - schema v1/v2 acceptance in `scripts/check-local-ci-report.sh`;
+  - `scripts/tests/test-fop-local-ci-ergonomics.sh`.
+- Verified:
+  - `bash scripts/tests/test-fop-local-ci-ergonomics.sh`: passed.
+  - `make script-tests`: passed.
+  - shell syntax checks for touched scripts: passed.
+  - `.github/scripts/fop-local-ci.sh --profile pr --dry-run`: passed.
+  - `git diff --check`: clean.
+- Still blocked:
+  - fop-backed gates and host-network GitHub/GHCR/Nix/Garnix proofs while
+    queue job `14825` and host-network approval limits remain active.
+
+## Local Continuation - 2026-05-05 18:59 CEST
+
+- Reflected the `3a13823` PHP local-CI ergonomics checkpoint in the fop
+  BFF/UI ParkHub status surface.
+- BFF changes in `/var/home/florian/dev/fop-web-backend.t-2741-parkhub-bff`:
+  - added gate `php-local-ci-ergonomics`;
+  - added blocker text for the unpushed local commit.
+- fop-web-ui changes in
+  `/var/home/florian/dev/fop-web-ui.t-2741-parkhub-status`:
+  - PHP devcontainer lane now points at `make script-tests` plus
+    `.github/scripts/fop-local-ci.sh --profile pr --dry-run` before GHCR
+    publish.
+- Verified:
+  - direct BFF rustfmt check: passed.
+  - direct fop-web-ui `npm test -- parkhub-status`: passed.
+  - BFF/UI `git diff --check`: clean.
+- Still blocked:
+  - fop-backed BFF cargo test and fop-web-ui `npm run check` while queue job
+    `14825` remains active.
+
+## Local Continuation - 2026-05-05 19:04 CEST
+
+- Continued `T-2747` PHP/Rust route-wide UI/UX polish.
+- Host `.test` browser probing remained blocked:
+  - sandbox curl could not connect to `parkhub-rust.test` or `parkhub-php.test`;
+  - escalated host-network curl was rejected by the usage gate until
+    `20:37 CEST`.
+- Source-level polish changes:
+  - active PHP/Rust views/components and PHP legacy resources no longer match
+    the scanned arbitrary-radius, nonzero tracking, or negative-letter-spacing
+    patterns;
+  - visible `Booking studio` route copy is now `Booking`;
+  - PHP/Rust Playwright route-smoke blocklists now include `Booking studio`.
+- Verified:
+  - PHP static polish scan: no hits.
+  - Rust static polish scan: no hits.
+  - PHP active view Vitest: `67` files / `1119` tests passed.
+  - Rust active view Vitest: `67` files / `1097` tests passed.
+  - PHP component Vitest: `41` files / `497` tests passed.
+  - Rust component Vitest: `41` files / `499` tests passed.
+  - PHP/Rust `git diff --check`: clean.
+- Still blocked:
+  - full fop-backed Playwright replay, host screenshots, GitHub push/PRs, and
+    release workflow proof while queue job `14825` and host-network usage limits
+    remain active.
+
+## Local Continuation - 2026-05-05 19:10 CEST
+
+- Added a repeatable UI polish guard to both PHP/Rust design-smoke branches.
+- PHP:
+  - `scripts/tests/test-ui-polish-contract.sh`;
+  - `make script-tests` now runs it;
+  - `.github/scripts/fop-local-ci.sh` now runs it after whitespace checks.
+- Rust:
+  - `scripts/tests/test-ui-polish-contract.sh`;
+  - `.github/scripts/fop-local-ci.sh` now runs it after whitespace checks;
+  - `ensure_astro_types` dry-run pipefail behavior fixed with `|| true` on
+    the stale-source probe.
+- Verified:
+  - PHP/Rust UI polish contracts: passed.
+  - PHP `make script-tests`: passed.
+  - PHP/Rust local-CI dry-runs: passed.
+  - PHP/Rust shell syntax checks for touched scripts: passed.
+  - PHP/Rust `git diff --check`: clean.
+- Still blocked:
+  - fop-backed Playwright/current-head local-CI reports, host screenshots, and
+    GitHub PR work while queue job `14825` and host-network usage limits remain
+    active.
