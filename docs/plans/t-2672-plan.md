@@ -582,11 +582,15 @@ Live update `2026-05-05 14:33 CEST`:
   - local `github/main` also resolves to `3db3858`;
   - the PR #444 page still renders `Open`, so re-check with authenticated
     `gh pr view` before taking any action on #444.
-- fop task-store drift:
-  - ParkHub task `T-2742` was recreated/claimed during this pass but vanished
-    again from `fop tasks get` and `fop tasks list`. Treat this doc, the
-    Obsidian note, and `/var/home/florian/dev/_handoffs/parkhub/2026-05-05-codex-to-left-tab.md`
-    as durable continuation state until fop task persistence is repaired.
+- fop task-store state restored at `2026-05-05 17:38 CEST`:
+  - `T-2747` high, claimed by `konsole-48-florian`: ParkHub PHP/Rust
+    full-route design-smoke PRs.
+  - `T-2748` normal: ParkHub Nix/Garnix release-grade baseline.
+  - `T-2749` normal: ParkHub PHP runtime image security PR.
+  - `T-2750` normal: ParkHub fop BFF/UI delivery desk PRs.
+  - Treat this doc, the Obsidian note, and
+    `/var/home/florian/dev/_handoffs/parkhub/2026-05-05-codex-to-left-tab.md`
+    as durable continuation state if the fop board drifts again.
 - Still blocked by host/approval reset:
   - full browser replay against `parkhub-rust.test` and `parkhub-php.test`;
   - GitHub push/PR/status/merge actions;
@@ -601,7 +605,7 @@ fop queue status
 fop guard preflight
 ```
 
-1. Verify PHP Dependabot PR #443 and #444 live state before acting:
+1. Verify PHP Dependabot PR state before acting:
 
 ```bash
 gh pr view 443 --repo nash87/parkhub-php \
@@ -615,9 +619,9 @@ git rev-parse --short github/main
 git log -1 --oneline github/main
 ```
 
-If authenticated `gh` confirms #444 is still open even though `main` contains
-`3db3858`, do not merge or force-update it from this lane. Record the
-inconsistency and let the dependency lane close/recreate it deliberately.
+Known current state: public GitHub and earlier authenticated `gh` checks showed
+PHP #444 merged into `main` on `2026-05-05`; `github/main` contains `3db3858`.
+Re-run the commands above only to catch drift before pushing new work.
 
 2. Push/open the PHP and Rust UI parity PRs after full host replay:
 
@@ -625,7 +629,7 @@ inconsistency and let the dependency lane close/recreate it deliberately.
 cd /var/home/florian/dev/parkhub-php.design-smoke
 git status --short --branch
 git log -1 --oneline
-SERVER_PORT=18092 npm run test:e2e:design-smoke
+SERVER_PORT=18113 fop build --backend local . --preset custom -- npm run test:e2e:design-smoke
 git push -u github t-design-smoke-pr-gate
 gh pr create --repo nash87/parkhub-php --base main \
   --head t-design-smoke-pr-gate \
@@ -635,7 +639,8 @@ gh pr create --repo nash87/parkhub-php --base main \
 cd /var/home/florian/dev/parkhub-rust.design-smoke
 git status --short --branch
 git log -1 --oneline
-FOP_LOCAL_CI_DIRECT=1 SERVER_PORT=18093 ./scripts/v5-design-smoke-local.sh
+FOP_LOCAL_CI_DIRECT=1 SERVER_PORT=18111 fop build --backend local . --preset custom -- ./scripts/v5-design-smoke-local.sh --project=mobile-chrome e2e/pages.spec.ts -g "admin modules, chargers, and updates settle without broken UI chrome"
+FOP_LOCAL_CI_DIRECT=1 SERVER_PORT=18112 fop build --backend local . --preset custom -- ./scripts/v5-design-smoke-local.sh
 git push -u github t-design-smoke-pr-gate
 gh pr create --repo nash87/parkhub-rust --base main \
   --head t-design-smoke-pr-gate \
@@ -686,11 +691,12 @@ gh pr create --repo nash87/parkhub-php --base main \
   still clean.
 - PHP #445, #441, and #442 remain merged in GitHub.
 - PHP #443 is merged.
-- PHP #444 live state is reconciled with authenticated `gh`; if it is still
-  open while `main` already contains `3db3858`, it is recorded as a dependency
-  lane inconsistency rather than merged from this lane.
+- PHP #444 remains merged on `main`; any future mismatch is recorded as a
+  dependency lane inconsistency rather than merged from this lane.
 - PHP/Rust UI parity branches have full host `.test` replay, GitHub PRs, and
   local-CI reports for their current heads.
+- fop board has `T-2747` through `T-2750` aligned with this plan, the Obsidian
+  note, and the handoff file.
 - PHP image-security branch has host Podman build proof, Trivy image proof, and
   a GitHub PR.
 - Docs handoff branch has a GitHub PR.
