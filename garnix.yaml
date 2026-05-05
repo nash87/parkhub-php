@@ -1,0 +1,9 @@
+# Garnix reads this file after the GitHub app is enabled for the repo.
+# Keep the first ParkHub PHP slice Linux-only: GitHub/Gitea/fop remain the
+# full local CI source of truth, while Garnix proves flake evaluation,
+# checks, and dev-shell cacheability.
+builds:
+  include:
+    - 'checks.x86_64-linux.*'
+    - 'devShells.x86_64-linux.default'
+  exclude: []
