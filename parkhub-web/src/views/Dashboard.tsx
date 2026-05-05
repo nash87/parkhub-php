@@ -222,9 +222,9 @@ export function DashboardPage() {
   const evAvailable = Math.max(1, surfaceLots.reduce((sum, lot) => sum + Math.max(1, Math.round(lot.available / 2)), 0));
   const headlineAnnouncement = activeBooking
     ? `Live now: ${activeBooking.lot_name} pass active on slot ${activeBooking.slot_number}`
-    : 'New design preview: EV fast-charging and live occupancy are now front and center';
+    : 'EV charging availability and live occupancy are ready for today';
 
-  // Live sensor feed — derived from lots (placeholder until a real sensor API exists)
+  // Live sensor feed derived from known lots until the sensor endpoint lands.
   const sensorFeed = useMemo<SensorEntry[]>(() => {
     const lots = Array.from(new Set(bookings.map((b) => b.lot_name).filter(Boolean))).slice(0, 4);
     if (lots.length === 0) {
