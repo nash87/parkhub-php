@@ -49,7 +49,7 @@ export function WelcomePage() {
   const greeting = CYCLE_GREETINGS[greetingIdx];
 
   return (
-    <div className="min-h-dvh mesh-gradient-animated relative overflow-hidden">
+    <div className="min-h-dvh bg-surface-50 dark:bg-surface-950 relative overflow-hidden">
       {/* Top bar */}
       <header className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-5">
         <motion.div

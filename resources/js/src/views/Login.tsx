@@ -61,14 +61,6 @@ export function LoginPage() {
     <main className="min-h-dvh bg-white dark:bg-surface-950 flex">
       {/* Left panel — product branding */}
       <div className="hidden lg:flex lg:w-[45%] bg-surface-950 dark:bg-surface-900 relative items-end p-12 overflow-hidden">
-        {/* Animated gradient strip at top */}
-        <motion.div
-          className="absolute top-0 left-0 w-full h-1"
-          style={{ background: 'linear-gradient(90deg, var(--color-primary-500), var(--color-primary-400), var(--color-accent-400), var(--color-primary-500))', backgroundSize: '200% 100%' }}
-          animate={{ backgroundPosition: ['0% 0%', '200% 0%'] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-        />
-
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 opacity-[0.03]" style={{
           backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',

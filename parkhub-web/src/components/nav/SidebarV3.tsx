@@ -547,7 +547,7 @@ export function SidebarV3() {
                   opacity: 0.6,
                   cursor: 'not-allowed',
                 }}
-                title="Extend parking — coming soon"
+                title="Extend parking is unavailable for this booking"
               >
                 +1h
               </button>
