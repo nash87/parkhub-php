@@ -146,6 +146,7 @@ script-tests:
 	bash scripts/tests/test-drift-scripts.sh
 	bash scripts/tests/test-ui-polish-contract.sh
 	bash scripts/tests/test-devcontainer-contract.sh
+	bash scripts/tests/test-fop-local-ci-ergonomics.sh
 	bash scripts/tests/test-fop-local-ci-failure-trap.sh
 	bash scripts/tests/test-local-ci-report-check.sh
 

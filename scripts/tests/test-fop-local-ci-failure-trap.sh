@@ -57,6 +57,7 @@ echo "==> fop-local-ci posts failure when a run_step command fails"
 set +e
 PATH="$tmp_dir:$PATH" \
 GH_STATUS_LOG="$gh_log" \
+FOP_LOCAL_CI_NO_DIFF_AWARE=1 \
 FOP_LOCAL_CI_DIRECT=1 \
 FOP_LOCAL_CI_STATUS_REPO=nash87/parkhub-php \
     .github/scripts/fop-local-ci.sh --profile pr --post-status >/tmp/parkhub-fop-local-ci-failure-trap.out 2>&1

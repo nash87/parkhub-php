@@ -95,3 +95,24 @@ else
     cat "$tmp_dir/out"
     exit 1
 fi
+
+echo "==> local-ci report check accepts schema v2 success reports"
+cat > "$report" <<EOF
+{
+  "schema": "parkhub.local-ci.v2",
+  "profile": "pr",
+  "state": "success",
+  "commit": "$sha",
+  "context": "fop/local-ci/pr",
+  "diff_aware": {
+    "enabled": true
+  }
+}
+EOF
+if bash scripts/check-local-ci-report.sh pr >"$tmp_dir/out" 2>&1; then
+    green "    OK"
+else
+    red "    FAILED: schema v2 success report was rejected"
+    cat "$tmp_dir/out"
+    exit 1
+fi

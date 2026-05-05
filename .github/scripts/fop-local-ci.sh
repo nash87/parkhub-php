@@ -3,38 +3,51 @@ set -Eeuo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: .github/scripts/fop-local-ci.sh [--profile pr|full|cd] [--dry-run] [--post-status]
+Usage: .github/scripts/fop-local-ci.sh [--profile pr|full|cd] [--dry-run] [--post-status] [--background]
 
 Runs ParkHub-PHP's local-first CI through fop's build queue. The optional
---post-status flag publishes the commit status context for the selected
-profile. The GitHub PR attestation gate expects this exact command:
+--background flag runs the gate in a detached subshell, logs to
+.fop/reports/local-ci-<profile>-<sha>-bg.log, and returns immediately.
+Combine with --post-status for fire-and-forget full runs that publish their
+own commit status context when complete.
+
+The optional --post-status flag publishes the commit status context for the
+selected profile. The GitHub PR attestation gate expects this exact command:
 
   .github/scripts/fop-local-ci.sh --profile pr --post-status
 
 Profiles:
   pr    Fast PR gate: composer + Pint + PHPStan + PHPUnit + Vitest +
-        Astro tsc/build + Composer audit.
+        Astro tsc/build + Composer audit. Diff-aware: skips PHP, frontend,
+        workflow, e2e, and image/security mirrors when the PR diff does not
+        touch their inputs. Set FOP_LOCAL_CI_NO_DIFF_AWARE=1 to force every
+        PR step.
   full  PR gate plus Schemathesis contract fuzz (best effort), Infection
         mutation testing, and Playwright e2e smoke.
   cd    Release-oriented preflight: full + composer-audit prod-only +
         Trivy filesystem scan when available.
 
 Environment overrides:
-  FOP_LOCAL_CI_STATUS_REPO  owner/repo for status post (else autodetected
-                            from git remotes named github → upstream → origin).
-  FOP_LOCAL_CI_DIRECT       1 = bypass the `fop build` queue wrapper and
-                            run each step directly in the current shell.
-                            Use only for the bootstrap chicken-and-egg
-                            run that introduces this script, or when
-                            you have explicit reason to skip the queue.
-                            Operators must guarantee memory headroom
-                            themselves in this mode.
+  FOP_LOCAL_CI_STATUS_REPO     owner/repo for status post (else autodetected
+                               from git remotes named github → upstream → origin).
+  FOP_LOCAL_CI_NO_DIFF_AWARE=1 disable diff-aware skipping on pr profile.
+  FOP_LOCAL_CI_DIFF_PATHS      newline-delimited diff path override for
+                               contract tests and explicit local reruns.
+  FOP_LOCAL_CI_BG_LOG_DIR      background log directory override.
+  FOP_LOCAL_CI_DIRECT          1 = bypass the `fop build` queue wrapper and
+                               run each step directly in the current shell.
+                               Use only for the bootstrap chicken-and-egg
+                               run that introduces this script, or when
+                               you have explicit reason to skip the queue.
+                               Operators must guarantee memory headroom
+                               themselves in this mode.
 EOF
 }
 
 profile="pr"
 dry_run=0
 post_status=0
+background=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -48,6 +61,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --post-status)
       post_status=1
+      shift
+      ;;
+    --background)
+      background=1
       shift
       ;;
     -h|--help)
@@ -69,6 +86,24 @@ case "$profile" in
     exit 2
     ;;
 esac
+
+if [[ "$background" -eq 1 ]]; then
+  repo_root_for_bg="$(git rev-parse --show-toplevel)"
+  bg_log_dir="${FOP_LOCAL_CI_BG_LOG_DIR:-$repo_root_for_bg/.fop/reports}"
+  mkdir -p "$bg_log_dir"
+  bg_sha="$(git rev-parse HEAD)"
+  bg_log="$bg_log_dir/local-ci-${profile}-${bg_sha:0:8}-bg.log"
+  bg_args=("--profile" "$profile")
+  [[ "$dry_run" -eq 1 ]] && bg_args+=("--dry-run")
+  [[ "$post_status" -eq 1 ]] && bg_args+=("--post-status")
+  echo "fop-local-ci backgrounded: profile=$profile log=$bg_log"
+  nohup "$0" "${bg_args[@]}" >"$bg_log" 2>&1 < /dev/null &
+  bg_pid=$!
+  disown 2>/dev/null || true
+  echo "PID=$bg_pid sha=${bg_sha:0:8}"
+  echo "watch: tail -f $bg_log"
+  exit 0
+fi
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
@@ -117,6 +152,94 @@ compute_design_smoke_gate() {
 
   printf 'ℹ design-smoke gate (vs %s): enabled=%d (%d files)\n' \
     "$base_ref" "$diff_touch_design_smoke" "$(wc -l <<<"$diff_paths")"
+}
+
+diff_paths=""
+diff_aware_enabled=0
+diff_touch_php=0
+diff_touch_frontend=0
+diff_touch_workflows=0
+diff_touch_e2e=0
+diff_touch_image=0
+diff_touch_nix_dev=0
+diff_touch_security=0
+
+enable_all_pr_steps() {
+  diff_touch_php=1
+  diff_touch_frontend=1
+  diff_touch_workflows=1
+  diff_touch_e2e=1
+  diff_touch_image=1
+  diff_touch_nix_dev=1
+  diff_touch_security=1
+}
+
+compute_diff_paths() {
+  if [[ "$profile" != "pr" || "${FOP_LOCAL_CI_NO_DIFF_AWARE:-}" == "1" ]]; then
+    enable_all_pr_steps
+    return 0
+  fi
+
+  diff_aware_enabled=1
+  if [[ -n "${FOP_LOCAL_CI_DIFF_PATHS:-}" ]]; then
+    diff_paths="${FOP_LOCAL_CI_DIFF_PATHS}"
+  else
+    local base_ref=""
+    for candidate in github/main upstream/main origin/main main; do
+      if git rev-parse --verify --quiet "$candidate" >/dev/null; then
+        base_ref="$candidate"
+        break
+      fi
+    done
+
+    if [[ -z "$base_ref" ]]; then
+      printf 'diff-aware: no base ref resolvable; running full pr profile\n'
+      enable_all_pr_steps
+      return 0
+    fi
+
+    local merge_base
+    merge_base="$(git merge-base "$base_ref" HEAD 2>/dev/null || echo "$base_ref")"
+    diff_paths="$(
+      {
+        git diff --name-only "${merge_base}..HEAD" 2>/dev/null || true
+        git diff --name-only 2>/dev/null || true
+        git diff --cached --name-only 2>/dev/null || true
+      } | sort -u
+    )"
+
+    if [[ -z "$diff_paths" ]]; then
+      printf 'diff-aware: empty diff vs %s; running full pr profile\n' "$base_ref"
+      enable_all_pr_steps
+      return 0
+    fi
+  fi
+
+  if grep -qE '(^app/|^bootstrap/|^config/|^database/|^routes/|^tests/|\.php$|^artisan$|^composer\.(json|lock)$|^phpunit\.xml|^phpstan\.neon|^pint\.json|^scripts/ci/|^scripts/check-openapi-drift\.sh|^docs/openapi/php\.json)' <<<"$diff_paths"; then
+    diff_touch_php=1
+  fi
+  if grep -qE '(^parkhub-web/|^resources/js/|^package(-lock)?\.json$|^vite\.config\.|^tsconfig\.json$|^tailwind\.config\.|^postcss\.config\.)' <<<"$diff_paths"; then
+    diff_touch_frontend=1
+  fi
+  if grep -qE '(^\.github/(workflows|scripts|actions)/|^\.gitea/workflows/|^Makefile$|^scripts/tests/|^scripts/check-local-ci-report\.sh|^\.devcontainer/|^flake\.(nix|lock)$|^garnix\.yaml$)' <<<"$diff_paths"; then
+    diff_touch_workflows=1
+  fi
+  if grep -qE '(^e2e/|^playwright\.config\.(ts|js|mjs|cjs)$)' <<<"$diff_paths"; then
+    diff_touch_e2e=1
+  fi
+  if grep -qE '(^Dockerfile$|^Containerfile|^\.devcontainer/Containerfile$|^docker/|^helm/|^composer\.lock$|^package-lock\.json$|^parkhub-web/package-lock\.json$)' <<<"$diff_paths"; then
+    diff_touch_image=1
+  fi
+  if grep -qE '(^\.devcontainer/|^flake\.(nix|lock)$|^garnix\.yaml$)' <<<"$diff_paths"; then
+    diff_touch_nix_dev=1
+  fi
+  if (( diff_touch_php || diff_touch_frontend || diff_touch_workflows || diff_touch_e2e || diff_touch_image || diff_touch_nix_dev )); then
+    diff_touch_security=1
+  fi
+
+  printf 'diff-aware: php=%d frontend=%d workflows=%d e2e=%d image=%d nix_dev=%d security=%d (%d files)\n' \
+    "$diff_touch_php" "$diff_touch_frontend" "$diff_touch_workflows" "$diff_touch_e2e" \
+    "$diff_touch_image" "$diff_touch_nix_dev" "$diff_touch_security" "$(wc -l <<<"$diff_paths")"
 }
 
 status_repo() {
@@ -178,14 +301,24 @@ write_report() {
   mkdir -p "$report_dir"
   cat > "$report_path" <<EOF
 {
-  "schema": "parkhub.local-ci.v1",
+  "schema": "parkhub.local-ci.v2",
   "profile": "$profile",
   "state": "$state",
   "commit": "$sha",
   "started_at": "$started_at",
   "finished_at": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "failed_step": "$failed_step",
-  "context": "$context"
+  "context": "$context",
+  "diff_aware": {
+    "enabled": $([[ "$diff_aware_enabled" -eq 1 ]] && echo true || echo false),
+    "php": $([[ "$diff_touch_php" -eq 1 ]] && echo true || echo false),
+    "frontend": $([[ "$diff_touch_frontend" -eq 1 ]] && echo true || echo false),
+    "workflows": $([[ "$diff_touch_workflows" -eq 1 ]] && echo true || echo false),
+    "e2e": $([[ "$diff_touch_e2e" -eq 1 ]] && echo true || echo false),
+    "image": $([[ "$diff_touch_image" -eq 1 ]] && echo true || echo false),
+    "nix_dev": $([[ "$diff_touch_nix_dev" -eq 1 ]] && echo true || echo false),
+    "security": $([[ "$diff_touch_security" -eq 1 ]] && echo true || echo false)
+  }
 }
 EOF
 }
@@ -300,7 +433,7 @@ run_direct() {
 skip_step() {
   local name="$1"
   local reason="${2:-skipped}"
-  printf '\n==> %s (skipped)\n%s\n' "$name" "$reason"
+  printf '\n==> %s [SKIP: %s]\n' "$name" "$reason"
 }
 
 mark_failure() {
@@ -314,60 +447,85 @@ mark_failure() {
 }
 trap 'mark_failure "$LINENO"' ERR
 
+compute_diff_paths
 compute_design_smoke_gate
-
 post_commit_status "pending" "fop local ${profile} running"
 
 run_direct "working tree whitespace" "git diff --check"
 run_direct "ui polish contract" "scripts/tests/test-ui-polish-contract.sh"
 
 # ---------------- Backend (PHP) ---------------------------------------------
-run_step "composer validate" "composer validate --strict"
+if (( diff_touch_php )); then
+  run_step "composer validate" "composer validate --strict"
 
-# composer audit is advisory-only on the pr profile so dev-only or
-# unfixable advisories cannot block routine work. cd profile re-runs
-# it with --no-dev for a stricter prod-only pass.
-run_step "composer audit (advisory)" "composer audit --no-interaction || echo 'composer audit returned non-zero (advisory on pr profile)'"
+  # composer audit is advisory-only on the pr profile so dev-only or
+  # unfixable advisories cannot block routine work. cd profile re-runs
+  # it with --no-dev for a stricter prod-only pass.
+  run_step "composer audit (advisory)" "composer audit --no-interaction || echo 'composer audit returned non-zero (advisory on pr profile)'"
 
-run_step "composer install (sync)" "composer install --prefer-dist --no-interaction --no-progress"
+  run_step "composer install (sync)" "composer install --prefer-dist --no-interaction --no-progress"
 
-run_step "pint format check" "./vendor/bin/pint --test"
+  run_step "pint format check" "./vendor/bin/pint --test"
 
-run_step "phpstan level 5" "scripts/ci/phpstan-analyse.sh --memory-limit=512M --no-progress"
+  run_step "phpstan level 5" "scripts/ci/phpstan-analyse.sh --memory-limit=512M --no-progress"
 
-run_step "phpunit unit + feature" "./vendor/bin/phpunit --testsuite=Unit --no-coverage && ./vendor/bin/phpunit --testsuite=Feature --no-coverage"
-
-# ---------------- Frontend (Astro 5 + React 19 + Vitest 3) ------------------
-run_step "frontend npm install" "npm ci && npm ci --prefix parkhub-web"
-
-run_step "frontend vitest" "cd parkhub-web && npm test"
-
-run_step "frontend build" "cd parkhub-web && CI=true npm run build && cd .. && CI=true npm run build"
-
-if (( diff_touch_design_smoke )); then
-  run_step_heavy "frontend route + v5 design smoke" "npm run test:e2e:design-smoke"
+  run_step "phpunit unit + feature" "./vendor/bin/phpunit --testsuite=Unit --no-coverage && ./vendor/bin/phpunit --testsuite=Feature --no-coverage"
 else
-  skip_step "frontend route + v5 design smoke" "diff-aware: no route/design/e2e files touched"
+  skip_step "composer validate" "diff-aware: no PHP backend inputs touched"
+  skip_step "composer audit (advisory)" "diff-aware: no PHP backend inputs touched"
+  skip_step "composer install (sync)" "diff-aware: no PHP backend inputs touched"
+  skip_step "pint format check" "diff-aware: no PHP backend inputs touched"
+  skip_step "phpstan level 5" "diff-aware: no PHP backend inputs touched"
+  skip_step "phpunit unit + feature" "diff-aware: no PHP backend inputs touched"
 fi
 
-# tsc --noEmit on parkhub-web is not yet green on main as of 4.15.0 —
-# the `chore/web-tsc-phase4c-*` series (PRs #379..#382 and ongoing) is
-# still chipping away at hundreds of inherited TS errors. Keep this after
-# hard frontend gates and make the fop wrapper advisory too, so host pressure
-# cannot fail the PR gate before the intentionally non-gating check completes.
-run_advisory_step_heavy "frontend typecheck (advisory until tsc-phase4 lands)" "cd parkhub-web && NODE_OPTIONS=\"\${NODE_OPTIONS:-} --max-old-space-size=4096\" ./node_modules/.bin/tsc --noEmit || echo 'tsc errors present (advisory while phase4 is in flight)'"
+# ---------------- Frontend (Astro 5 + React 19 + Vitest 3) ------------------
+if (( diff_touch_frontend || diff_touch_e2e )); then
+  run_step "frontend npm install" "npm ci && npm ci --prefix parkhub-web"
+
+  run_step "frontend vitest" "cd parkhub-web && npm test"
+
+  run_step "frontend build" "cd parkhub-web && CI=true npm run build && cd .. && CI=true npm run build"
+
+  if (( diff_touch_design_smoke )); then
+    run_step_heavy "frontend route + v5 design smoke" "npm run test:e2e:design-smoke"
+  else
+    skip_step "frontend route + v5 design smoke" "diff-aware: no route/design/e2e files touched"
+  fi
+
+  # tsc --noEmit on parkhub-web is not yet green on main as of 4.15.0 —
+  # the `chore/web-tsc-phase4c-*` series (PRs #379..#382 and ongoing) is
+  # still chipping away at hundreds of inherited TS errors. Keep this after
+  # hard frontend gates and make the fop wrapper advisory too, so host pressure
+  # cannot fail the PR gate before the intentionally non-gating check completes.
+  run_advisory_step_heavy "frontend typecheck (advisory until tsc-phase4 lands)" "cd parkhub-web && NODE_OPTIONS=\"\${NODE_OPTIONS:-} --max-old-space-size=4096\" ./node_modules/.bin/tsc --noEmit || echo 'tsc errors present (advisory while phase4 is in flight)'"
+else
+  skip_step "frontend npm install" "diff-aware: no frontend/e2e inputs touched"
+  skip_step "frontend vitest" "diff-aware: no frontend/e2e inputs touched"
+  skip_step "frontend build" "diff-aware: no frontend/e2e inputs touched"
+  skip_step "frontend route + v5 design smoke" "diff-aware: no route/design/e2e files touched"
+  skip_step "frontend typecheck (advisory until tsc-phase4 lands)" "diff-aware: no frontend/e2e inputs touched"
+fi
 
 # ---------------- Drift gates -----------------------------------------------
 # Both scripts already follow the same pattern as the rust side: they
 # regenerate the snapshot, then fail if `git diff --exit-code` shows drift.
-run_step "openapi drift" "scripts/check-openapi-drift.sh"
+if (( diff_touch_php )); then
+  run_step "openapi drift" "scripts/check-openapi-drift.sh"
+else
+  skip_step "openapi drift" "diff-aware: no PHP API inputs touched"
+fi
 
 # In parkhub-php this is a no-op (the shared TS API types are
 # generated by ts-rs in parkhub-rust and committed into parkhub-web
 # read-only). Keep it for symmetry with parkhub-rust's local-ci so
 # operators can read the same step list, but label it explicitly so
 # nobody mistakes the always-pass for a real drift signal.
-run_step "types drift (no-op in php; gated by parkhub-rust)" "scripts/check-types-drift.sh"
+if (( diff_touch_php || diff_touch_frontend )); then
+  run_step "types drift (no-op in php; gated by parkhub-rust)" "scripts/check-types-drift.sh"
+else
+  skip_step "types drift (no-op in php; gated by parkhub-rust)" "diff-aware: no PHP or frontend inputs touched"
+fi
 
 # ---------------- Local OSS security mirror ---------------------------------
 # Mirrors the GitHub/Gitea security + workflow hygiene jobs with local
@@ -377,7 +535,11 @@ security_profile="pr"
 if [[ "$profile" == "cd" ]]; then
   security_profile="cd"
 fi
-run_step "local security audit (${security_profile} mirror)" "scripts/ci/local-security-audit.sh --profile ${security_profile}"
+if (( diff_touch_security )); then
+  run_step "local security audit (${security_profile} mirror)" "scripts/ci/local-security-audit.sh --profile ${security_profile}"
+else
+  skip_step "local security audit (${security_profile} mirror)" "diff-aware: no security-relevant inputs touched"
+fi
 
 # `cd` profile is documented as `full + cd-specific steps`, so the full
 # block runs for both `full` and `cd`. Without this, `cd` would skip
@@ -420,7 +582,11 @@ fi
 # comments) are filtered. Severity matches the workflow: CRITICAL,HIGH only.
 trivy_required=0
 [[ "$profile" == "cd" || "$profile" == "full" ]] && trivy_required=1
-if command -v trivy >/dev/null 2>&1; then
+trivy_should_run="$trivy_required"
+[[ "$profile" == "pr" && "$diff_touch_security" -eq 1 ]] && trivy_should_run=1
+if [[ "$trivy_should_run" -eq 0 ]]; then
+  skip_step "trivy filesystem scan" "diff-aware: no security-relevant inputs touched"
+elif command -v trivy >/dev/null 2>&1; then
   run_step "trivy filesystem scan" "trivy fs --quiet --exit-code 1 --scanners=vuln,misconfig --severity=CRITICAL,HIGH --ignorefile .trivyignore --skip-dirs=node_modules,vendor,parkhub-web/node_modules,resources/js/node_modules,.claude/worktrees ."
 elif [[ $trivy_required -eq 1 ]]; then
   echo "✗ trivy filesystem scan FAILED: trivy not on PATH (required for ${profile} profile)" >&2
@@ -441,7 +607,9 @@ fi
 # findings as informational but does NOT fail the gate. Promote to a hard
 # failure (drop the `|| true`) once the open-finding inventory is at zero.
 # Suppressions live in zizmor.yml with per-rule justification.
-if command -v zizmor >/dev/null 2>&1; then
+if (( ! diff_touch_workflows )); then
+  skip_step "zizmor (GHA SAST)" "diff-aware: no workflow inputs touched"
+elif command -v zizmor >/dev/null 2>&1; then
   run_step "zizmor (GHA SAST, advisory)" "zizmor --persona=auditor --min-severity=high --no-online-audits .github/workflows/ .gitea/workflows/ || echo 'zizmor returned non-zero (advisory — see findings above)'"
 else
   skip_step "zizmor (GHA SAST)" "zizmor not on PATH (install: cargo install zizmor or https://docs.zizmor.sh)"

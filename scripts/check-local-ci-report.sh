@@ -45,12 +45,15 @@ if (!is_array($data)) {
     exit(1);
 }
 $expected = [
-    "schema" => "parkhub.local-ci.v1",
     "profile" => $profile,
     "state" => "success",
     "commit" => $sha,
     "context" => "fop/local-ci/" . $profile,
 ];
+if (!in_array(($data["schema"] ?? null), ["parkhub.local-ci.v1", "parkhub.local-ci.v2"], true)) {
+    fwrite(STDERR, "ERROR: report field schema expected parkhub.local-ci.v1 or parkhub.local-ci.v2\n");
+    exit(1);
+}
 foreach ($expected as $key => $value) {
     if (($data[$key] ?? null) !== $value) {
         fwrite(STDERR, "ERROR: report field " . $key . " expected " . $value . "\n");
