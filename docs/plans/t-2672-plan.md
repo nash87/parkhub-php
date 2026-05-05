@@ -5,7 +5,7 @@ type: "handoff"
 priority: "high"
 status: "in_progress"
 task_id: "T-2705"
-updated: "2026-05-05 17:51 CEST"
+updated: "2026-05-05 18:03 CEST"
 ---
 
 # T-2705 ParkHub CI and local-dev reconciliation handoff
@@ -542,9 +542,14 @@ Live update `2026-05-05 14:33 CEST`:
   - PHP/Rust `git diff --check`: clean on the UI branches.
 - Nix/Garnix baseline:
   - PHP worktree `/var/home/florian/dev/parkhub-php.nix-garnix`, head
-    `4774e84`, clean/ahead 1, `make nix-contract` passed through fop.
+    `2df83cb`, clean/ahead 2, `make nix-contract` passes and
+    `make nix-contract-strict` fails until `flake.lock` exists.
   - Rust worktree `/var/home/florian/dev/parkhub-rust.nix-garnix`, head
-    `8860b016`, clean/ahead 1, `make nix-contract` passed through fop.
+    `f3324a4f`, clean/ahead 2, `make nix-contract` passes and
+    `make nix-contract-strict` fails until `flake.lock` exists.
+  - Both repos now expose `scripts/check-nix-garnix-contract.sh --require-lock`
+    / `--strict` plus `make nix-contract-strict` as the release-grade lock
+    gate.
   - This shell still has no `nix` or `garnix` on PATH, so real
     `nix flake lock` / `nix flake check` remains host-tooling work.
 - PHP image-security branch:
@@ -603,6 +608,8 @@ Live update `2026-05-05 14:33 CEST`:
   - GitHub push/PR/status/merge actions;
   - image build + Trivy image proof;
   - real Nix/Garnix checks.
+  - Current Codex approval reset reported by the reviewer is
+    `2026-05-05 20:37 CEST`.
 
 Post-`2026-05-05 05:35 CEST` external-action sequence:
 
