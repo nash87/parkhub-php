@@ -1,10 +1,19 @@
 #!/bin/bash
 set -e
 
-# Configure Apache port from PORT env var (default: 10000 for Render, override for self-hosting)
+# Configure Apache port from PORT env var (default: 10000 for Render, override for self-hosting).
+#
+# Path layout differs between Debian and Wolfi runtimes — the script targets both
+# so it stays drop-in across the Wolfi rebase. Each sed has `|| true` so the
+# inactive variant on a given runtime fails-silent, never blocks startup.
+#   - Debian (legacy):   /etc/apache2/ports.conf + sites-available/*.conf
+#   - Wolfi (SOTA-2026): /etc/apache2/conf.d/zz-parkhub.conf (single overlay file)
 if [ -n "$PORT" ]; then
+    # Debian variant
     sed -i "s/Listen 80/Listen $PORT/" /etc/apache2/ports.conf 2>/dev/null || true
     sed -i "s/<VirtualHost \*:80>/<VirtualHost *:$PORT>/" /etc/apache2/sites-available/*.conf 2>/dev/null || true
+    # Wolfi variant — overlay conf already pins Listen 10000 by default
+    sed -i "s/^Listen 10000$/Listen $PORT/" /etc/apache2/conf.d/zz-parkhub.conf 2>/dev/null || true
 fi
 
 # Ensure .env exists so artisan commands work
