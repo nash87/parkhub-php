@@ -176,6 +176,9 @@ export function ProfilePage() {
   };
   const isVoid = designTheme === 'void';
   const summaryTone = isVoid ? 'void' : 'marble';
+  const designThemeLabel = isVoid
+    ? t('profile.designThemeDark', 'Operations Dark')
+    : t('profile.designThemeStandard', 'Standard');
   const container = staggerSlow;
   const item = fadeUp;
   const totalBookings = stats?.total_bookings ?? 0;
@@ -287,7 +290,7 @@ export function ProfilePage() {
               />
               <PanelMetric
                 label={t('profile.designTheme', 'Design theme')}
-                value={isVoid ? 'Void' : 'Marble'}
+                value={designThemeLabel}
                 isVoid={isVoid}
               />
             </div>
@@ -368,7 +371,7 @@ export function ProfilePage() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2">
               <ReadOnlyMetric label={t('profile.totalBookings', 'Total bookings')} value={String(totalBookings)} />
-              <ReadOnlyMetric label={t('profile.designTheme', 'Design theme')} value={isVoid ? 'Void' : 'Marble'} />
+              <ReadOnlyMetric label={t('profile.designTheme', 'Design theme')} value={designThemeLabel} />
               <ReadOnlyMetric label={t('profile.memberId', 'Member ID')} value={user?.id || '—'} />
               <ReadOnlyMetric label={t('profile.syncState', 'Sync state')} value={t('profile.readyState', 'Ready')} />
             </div>
