@@ -111,7 +111,10 @@ compute_design_smoke_gate() {
     return 0
   fi
 
-  if grep -qE '^(parkhub-web/(src/(design-v5|views|components|context|api|lib|styles)/|src/(App|main)\.tsx|package(-lock)?\.json|astro\.config\.mjs|playwright\.config\.ts)|resources/js/|e2e/|playwright\.config\.ts|package(-lock)?\.json)$' <<<"$diff_paths"; then
+  # `git diff --name-only` emits FILE paths (e.g. parkhub-web/src/design-v5/screens/Policies.tsx),
+  # so directory alternatives must allow a tail (`/.*`). Also include `hooks/` since v5 screens
+  # import shared hooks like useDraftFromActive — edits there can break the gate.
+  if grep -qE '^(parkhub-web/(src/(design-v5|views|components|context|api|lib|styles|hooks)/.*|src/(App|main)\.tsx|package(-lock)?\.json|astro\.config\.mjs|playwright\.config\.ts)|resources/js/.*|e2e/.*|playwright\.config\.ts|package(-lock)?\.json)$' <<<"$diff_paths"; then
     diff_touch_design_smoke=1
   fi
 
