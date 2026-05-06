@@ -76,7 +76,7 @@ jobs:
           # base images from public registries. Dockerfile defaults to LAN
           # for local + gitea-runner builds.
           build-args: |
-            NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+            NODE_BASE=docker.io/library/node:22-slim@sha256:d415caac2f1f77b98caaf9415c5f807e14bc8d7bdea62561ea2fef4fbd08a73c
             WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest
 
       - name: Scan image with Trivy
@@ -103,7 +103,7 @@ jobs:
           sbom: true
           # Same public-registry override as the scan build above.
           build-args: |
-            NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+            NODE_BASE=docker.io/library/node:22-slim@sha256:d415caac2f1f77b98caaf9415c5f807e14bc8d7bdea62561ea2fef4fbd08a73c
             WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest
 
       - name: Attest image provenance
