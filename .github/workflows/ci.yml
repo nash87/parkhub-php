@@ -56,8 +56,8 @@ jobs:
       - name: Validate Docker Compose
         run: docker compose -f docker-compose.yml config -q
 
-      - name: Validate Nix/Garnix contract
-        run: make nix-contract
+      - name: Validate Nix/Garnix contract (strict, --require-lock)
+        run: make nix-contract-strict
 
       - name: Validate devcontainer contract
         run: make devcontainer-contract
