@@ -72,6 +72,12 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:scan
           cache-from: type=gha,scope=release-docker
           cache-to: type=gha,scope=release-docker,mode=max
+          # Cloud runners can't reach the homelab LAN mirror; pull the same
+          # base images from public registries. Dockerfile defaults to LAN
+          # for local + gitea-runner builds.
+          build-args: |
+            NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+            WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -95,6 +101,10 @@ jobs:
           cache-to: type=gha,scope=release-docker,mode=max
           provenance: mode=max
           sbom: true
+          # Same public-registry override as the scan build above.
+          build-args: |
+            NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+            WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest
 
       - name: Attest image provenance
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4

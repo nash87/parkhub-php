@@ -17,8 +17,17 @@
 # ---------------------------------------------------------------------------
 # Stage 1: Frontend build (Astro + Vite)
 # Mirrored node:22-slim — pinned to the registry digest, NOT Docker Hub.
+#
+# NODE_BASE / WOLFI_BASE are parameterized so cloud CI (GitHub Actions) can
+# pass --build-arg NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90...
+# and --build-arg WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest while
+# local + gitea-runner builds default to the LAN mirror. Same images either
+# way, just different ingress to them.
 # ---------------------------------------------------------------------------
-FROM 192.168.178.250:5000/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104 AS frontend
+ARG NODE_BASE=192.168.178.250:5000/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+ARG WOLFI_BASE=192.168.178.250:5000/wolfi-base:latest
+
+FROM ${NODE_BASE} AS frontend
 WORKDIR /app
 COPY parkhub-web/package*.json ./
 RUN npm ci
@@ -30,7 +39,7 @@ RUN DOCKER=1 npm run build
 # Wolfi base + apk-installed php-8.4 + composer + git — replaces composer:2
 # Docker Hub image. Smaller surface, no Hub pull.
 # ---------------------------------------------------------------------------
-FROM 192.168.178.250:5000/wolfi-base:latest AS vendor
+FROM ${WOLFI_BASE} AS vendor
 # Vendor stage runs `composer install` + `composer dump-autoload`. The latter
 # triggers Laravel's `package:discover` post-autoload-dump script, which
 # touches the DB layer (PDO) — so pdo + pdo_sqlite are needed even though
@@ -72,7 +81,7 @@ RUN composer dump-autoload --optimize --no-dev --no-scripts
 # libc6 CVE-2026-5450 because Wolfi tracks current upstream and is
 # scanned daily by Chainguard.
 # ---------------------------------------------------------------------------
-FROM 192.168.178.250:5000/wolfi-base:latest AS runtime
+FROM ${WOLFI_BASE} AS runtime
 
 # Single apk layer. `apk upgrade --no-cache` first to pull current glibc/etc.
 # (mirrored wolfi-base:latest can lag the apk repo by a release; without
