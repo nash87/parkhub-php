@@ -66,3 +66,22 @@ pre-push:
       skip:
         - run: 'test ! -x "$(command -v gh 2>/dev/null)"'
       run: 'bash scripts/post-attestation-deferred.sh success "Local-first attestation - lefthook pre-push gates clean (php)"'
+
+    image-scan:
+      # Local container image vulnerability scan — fleet parity port from
+      # parkhub-rust + fop-web-ui#171 + fop-web-backend#62. Gating only on
+      # changes to files that drive image content (Dockerfile,
+      # composer.lock, parkhub-web/package-lock.json) so most pushes hit
+      # the cached stamp and skip in milliseconds.
+      #
+      # Skips entirely when podman/trivy/grype are missing on PATH (the
+      # script handles tool detection internally and exits 0). Bazzite
+      # devs and CI runners with the tools installed get the gate; others
+      # see a one-line skip notice.
+      glob: "{Dockerfile,composer.lock,parkhub-web/package-lock.json}"
+      skip:
+        - run: 'test ! -x scripts/local-image-scan.sh'
+      run: ./scripts/local-image-scan.sh
+      fail_text: |
+        Container image scan surfaced CRITICAL/HIGH vulnerabilities.
+        Triage with: trivy image parkhub-php-local:ci-* (see scripts/local-image-scan.sh)
