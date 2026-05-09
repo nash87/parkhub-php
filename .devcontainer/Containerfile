@@ -6,6 +6,11 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG NODE_MAJOR=22
 ARG HELM_VERSION=v3.18.4
 ARG ACTIONLINT_VERSION=1.7.12
+# Docker Compose v2 plugin — installed via official binary release because
+# Debian Bookworm's `docker-compose-plugin` apt package needs Docker's apt
+# repo which we don't add here. Compose v2 is required by
+# scripts/ci/local-security-audit.sh (`docker compose config -q`).
+ARG DOCKER_COMPOSE_VERSION=v2.41.0
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
@@ -19,6 +24,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-install -j"$(nproc)" \
         bcmath curl gd intl mbstring pdo_mysql pdo_sqlite zip \
     && rm -rf /var/lib/apt/lists/*
+
+# Docker Compose v2 plugin — official binary release (Debian's
+# `docker-compose-plugin` package needs Docker's apt repo, which we'd rather
+# not add). Installed into the standard cli-plugins path so `docker compose`
+# subcommand works alongside the `docker.io` package above.
+RUN mkdir -p /usr/libexec/docker/cli-plugins \
+    && curl -fsSL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+        -o /usr/libexec/docker/cli-plugins/docker-compose \
+    && chmod +x /usr/libexec/docker/cli-plugins/docker-compose \
+    && docker compose version
 
 # NodeSource v22 ships with a recent npm; the `npm install -g npm@latest`
 # self-upgrade fails with `MODULE_NOT_FOUND` on the bundled `npm-cli.js`
