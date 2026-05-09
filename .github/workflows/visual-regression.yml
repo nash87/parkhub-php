@@ -155,6 +155,10 @@ jobs:
           path: |
             test-results/**/*-diff.png
             test-results/**/*-actual.png
+            test-results/**/*-expected.png
+            playwright-report/
+          retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload regenerated baselines
         if: always() && inputs.update-snapshots == true
@@ -166,10 +170,6 @@ jobs:
             e2e/v5-visual.spec.ts-snapshots/**
             e2e/v5-happy-paths.spec.ts-snapshots/**
           retention-days: 14
-            test-results/**/*-expected.png
-            playwright-report/
-          retention-days: 14
-          if-no-files-found: ignore
 
       - name: Upload full Playwright report
         if: always()
