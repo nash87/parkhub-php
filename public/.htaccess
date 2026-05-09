@@ -14,7 +14,32 @@
     # Cloudflare / browsers skip revalidation entirely on repeat visits.
     <If "%{REQUEST_URI} =~ m#^/_astro/#">
         Header set Cache-Control "public, max-age=31536000, immutable"
+        # CORP cross-origin for static assets so WebKit can load module
+        # chunks under COEP `credentialless` (the document is set
+        # credentialless by SecurityHeaders.php; without `cross-origin`
+        # CORP on the asset, Safari 18+ rejects the module fetch with
+        # `access control checks`). Apache serves these files directly —
+        # they never hit the Laravel middleware that sets CORP for the
+        # rest of the surface — so the header has to live here.
+        # Asset responses are public/static and contain no user-specific
+        # data; promoting them to cross-origin is structurally safe even
+        # though same-origin cookies (parkhub_token, laravel_session) are
+        # sent on the request.
+        Header set Cross-Origin-Resource-Policy "cross-origin"
     </If>
+
+    # Same CORP promotion for Laravel-built assets (/build/*) and bare
+    # public/{js,css,fonts,images}/ trees served by Apache without
+    # rewriting through index.php.
+    <If "%{REQUEST_URI} =~ m#^/(build|js|css|fonts|images)/#">
+        Header set Cross-Origin-Resource-Policy "cross-origin"
+    </If>
+
+    # Static asset extensions served directly by Apache (any path) —
+    # belt-and-suspenders for asset paths not under the prefix dirs above.
+    <FilesMatch "\.(js|css|map|woff2?|ttf|eot|png|jpe?g|gif|webp|avif|svg|ico)$">
+        Header set Cross-Origin-Resource-Policy "cross-origin"
+    </FilesMatch>
 
     # Favicons, manifest, SW: short cache, must revalidate. These don't
     # have hashed filenames so they need to update when the source does.

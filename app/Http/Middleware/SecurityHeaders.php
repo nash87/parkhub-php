@@ -85,18 +85,31 @@ class SecurityHeaders
 
         // CORP `same-origin` is the right default for HTML/JSON responses,
         // but under COEP `credentialless` (set below) WebKit (Safari 18+,
-        // mobile-safari Playwright) refuses to load same-origin module
-        // chunks like `/_astro/*.js` from a `same-origin` document with
-        // CORP `same-origin` — the page document and its scripts disagree
-        // about the credential mode and the module fetch is blocked with
-        // `access control checks` (visible in nightly E2E as a CORS-style
-        // failure on every v5 lazy-loaded screen).
+        // mobile-safari Playwright) refuses to load module chunks like
+        // `/_astro/*.js` because the document is in credentialless mode
+        // and CORP `same-origin` mismatches — module fetch is blocked
+        // with `access control checks` (visible in nightly E2E as a
+        // CORS-style failure on every v5 lazy-loaded screen).
         //
-        // The mitigation: serve static asset paths with CORP `cross-origin`
-        // so WebKit can load them under credentialless mode, while keeping
-        // HTML/JSON tight at `same-origin`. The asset paths are served by
-        // Laravel's static handler and don't carry session cookies, so
-        // promoting them to cross-origin is safe.
+        // The mitigation has TWO layers because Apache serves real files
+        // under `public/` directly (`.htaccess` rewrites only non-files
+        // to index.php), so `/_astro/*.js` etc. NEVER reach this middleware:
+        //   1. `public/.htaccess` mod_headers sets `Cross-Origin-
+        //      Resource-Policy: cross-origin` for asset path prefixes +
+        //      extensions — handles real-file responses Apache serves.
+        //   2. This middleware applies the same path-aware switch for
+        //      any asset-shaped path that DOES route through Laravel
+        //      (e.g. dev setups using `php artisan serve` without Apache,
+        //      or fallback handlers that proxy to disk-backed storage).
+        //
+        // Asset responses are public/static and contain no user-specific
+        // data; promoting them to `cross-origin` is structurally safe even
+        // though same-origin cookies (`parkhub_token`, `laravel_session`)
+        // are sent on the request — Laravel/Sanctum default both to
+        // `path: '/'`, so cookies travel with /_astro/*.js requests too.
+        // CORP `cross-origin` controls EMBEDDING ability, not request
+        // credentials, so cookie-on-request + cross-origin-on-response
+        // is the correct combination here.
         $path = $request->getPathInfo();
         $isStaticAsset = (bool) preg_match(
             '#^/(_astro|build|js|css|fonts|images)/|\.(?:js|css|map|woff2?|png|jpe?g|gif|svg|ico|webp|avif)$#i',
