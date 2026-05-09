@@ -432,8 +432,15 @@ jobs:
           # NODE_BASE / WOLFI_BASE default to the homelab internal registry,
           # which GitHub-hosted runners can't reach. Override with public images
           # so the CI Docker build step succeeds. Mirrors the install-smoke fix.
+          # NODE_BASE pinned to the same sha256 the Dockerfile defaults to so
+          # cloud + homelab builds run on identical bytes. WOLFI_BASE stays
+          # tag-only because Chainguard recommends `:latest` for continuous
+          # CVE patching — pinning a wolfi digest defeats the security model.
+          # The .gitea/workflows/ci.yaml mirror is intentionally NOT updated:
+          # Gitea runners run on the homelab LAN and can reach the internal
+          # registry, so the Dockerfile defaults are correct there.
           build-args: |
-            NODE_BASE=docker.io/library/node:22-slim
+            NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
             WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest
 
   integration:
