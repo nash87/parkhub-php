@@ -56,6 +56,18 @@ pre-push:
       run: bash scripts/check-local-ci-report.sh pr
       fail_text: "Local fop CI report missing or stale. Run `make ci`, then push again."
 
+    workflow-drift:
+      # Advisory check: warns if .github/workflows/* and .gitea/workflows/*
+      # have drifted (missing files OR different `on:` triggers OR different
+      # `jobs:` keys). Mirror of parkhub-rust's pre-push drift gate. Only
+      # fails on missing files (gating); trigger/job drift exits 0 since
+      # gitea-runner and github-actions intentionally diverge in places.
+      run: bash scripts/local-workflow-drift.sh
+      fail_text: |
+        Workflow file missing in one side. Either add the corresponding file
+        in .gitea/workflows/ or .github/workflows/, or document the split in
+        scripts/local-workflow-drift.sh's EXEMPT list.
+
     post-attestation:
       # Forks a deferred poll-and-post that waits until the SHA shows up
       # on GitHub (after `git push` transmits the commit) and then
