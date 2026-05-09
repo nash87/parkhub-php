@@ -81,11 +81,31 @@ class SecurityHeaders
         // --- Site isolation: COOP + COEP + CORP ---
         // COOP same-origin prevents cross-origin windows from sharing a
         // browsing context group (blocks window.opener attacks).
-        // CORP same-origin stops this origin's responses from being embedded
-        // cross-origin. Both are safe for a standalone app — we don't embed
-        // or get embedded.
         $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
-        $response->headers->set('Cross-Origin-Resource-Policy', 'same-origin');
+
+        // CORP `same-origin` is the right default for HTML/JSON responses,
+        // but under COEP `credentialless` (set below) WebKit (Safari 18+,
+        // mobile-safari Playwright) refuses to load same-origin module
+        // chunks like `/_astro/*.js` from a `same-origin` document with
+        // CORP `same-origin` — the page document and its scripts disagree
+        // about the credential mode and the module fetch is blocked with
+        // `access control checks` (visible in nightly E2E as a CORS-style
+        // failure on every v5 lazy-loaded screen).
+        //
+        // The mitigation: serve static asset paths with CORP `cross-origin`
+        // so WebKit can load them under credentialless mode, while keeping
+        // HTML/JSON tight at `same-origin`. The asset paths are served by
+        // Laravel's static handler and don't carry session cookies, so
+        // promoting them to cross-origin is safe.
+        $path = $request->getPathInfo();
+        $isStaticAsset = (bool) preg_match(
+            '#^/(_astro|build|js|css|fonts|images)/|\.(?:js|css|map|woff2?|png|jpe?g|gif|svg|ico|webp|avif)$#i',
+            $path,
+        );
+        $response->headers->set(
+            'Cross-Origin-Resource-Policy',
+            $isStaticAsset ? 'cross-origin' : 'same-origin',
+        );
 
         // COEP `credentialless` is the modern default (2026): it gives us
         // crossOriginIsolated so we can use SharedArrayBuffer and high-res
