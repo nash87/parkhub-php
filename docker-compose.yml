@@ -4,9 +4,18 @@
 # and set real passwords there, or use a .env file. Never commit real credentials.
 # Defaults below are safe example placeholders for local dev only.
 
+# Build block shared by all services. NODE_BASE / WOLFI_BASE default to the
+# homelab internal registry (unreachable from public CI) and are overridden via
+# env vars when running on GitHub-hosted runners — see .github/workflows/install-smoke.yml.
+x-build: &build
+  context: .
+  args:
+    NODE_BASE: ${NODE_BASE:-192.168.178.250:5000/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104}
+    WOLFI_BASE: ${WOLFI_BASE:-192.168.178.250:5000/wolfi-base:latest}
+
 services:
   app:
-    build: .
+    build: *build
     restart: unless-stopped
     ports:
       - "8080:10000"
@@ -89,7 +98,7 @@ services:
           memory: 128M
 
   worker:
-    build: .
+    build: *build
     restart: unless-stopped
     command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
     env_file:
@@ -128,7 +137,7 @@ services:
           memory: 64M
 
   scheduler:
-    build: .
+    build: *build
     restart: unless-stopped
     command: >
       sh -c "while true; do php artisan schedule:run --verbose --no-interaction; sleep 60; done"
