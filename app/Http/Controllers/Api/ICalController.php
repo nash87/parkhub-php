@@ -124,7 +124,16 @@ class ICalController extends Controller
             $lines[] = 'DTEND:'.$end;
             $lines[] = 'SUMMARY:'.$this->escapeIcal($summary);
             $lines[] = 'DESCRIPTION:'.$this->escapeIcal($description);
-            $lines[] = 'STATUS:'.strtoupper($booking->status ?? 'CONFIRMED');
+            // Defense in depth (audit L-4): `status` is an enum today but
+            // a future migration could allow free-form text. Whitelist the
+            // values RFC 5545 §3.8.1.11 defines for VEVENT to prevent
+            // header-injection if `\r\n` ever sneaks in via the column.
+            $status = strtoupper((string) ($booking->status ?? 'CONFIRMED'));
+            $allowedStatuses = ['TENTATIVE', 'CONFIRMED', 'CANCELLED'];
+            if (! in_array($status, $allowedStatuses, true)) {
+                $status = 'CONFIRMED';
+            }
+            $lines[] = 'STATUS:'.$status;
             $lines[] = 'END:VEVENT';
         }
 
