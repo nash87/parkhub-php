@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\User;
 use Carbon\Carbon;
@@ -32,20 +33,47 @@ class ICalController extends Controller
     /**
      * GET /api/v1/calendar/ical/{token} — public iCal feed via token (no auth).
      */
-    public function publicFeed(string $token): Response
+    public function publicFeed(string $token, Request $request): Response
     {
         $user = User::where('ical_token', $token)->first();
 
         if (! $user) {
+            // Audit log even on miss so brute-force token guessing leaves a trail.
+            AuditLog::log([
+                'user_id' => null,
+                'username' => null,
+                'action' => 'ical.public.fetch.miss',
+                'ip_address' => $request->ip(),
+            ]);
+
             return response('Not Found', 404);
         }
+
+        // Audit-log every successful fetch (audit M-3): a leaked iCal token
+        // would otherwise be polled for months with no detection signal. The
+        // entry costs one DB row per request, throttled by the route-level
+        // `throttle:api` middleware so it can't be amplified into a write DoS.
+        AuditLog::log([
+            'user_id' => $user->id,
+            'username' => $user->username,
+            'action' => 'ical.public.fetch',
+            'ip_address' => $request->ip(),
+        ]);
 
         $bookings = Booking::where('user_id', $user->id)
             ->where('start_time', '>=', now()->subMonths(3))
             ->orderBy('start_time')
             ->get();
 
-        return $this->buildIcal($bookings, $user->name ?? $user->username);
+        $response = $this->buildIcal($bookings, $user->name ?? $user->username);
+
+        // `private, max-age=60` lets the user's own calendar app cache for a
+        // minute while preventing shared / CDN caches from holding the feed
+        // (which would otherwise stale stress on a refresh storm and leak
+        // booking data to any cache layer in front of us).
+        $response->headers->set('Cache-Control', 'private, max-age=60');
+
+        return $response;
     }
 
     /**
