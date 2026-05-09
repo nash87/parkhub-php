@@ -429,6 +429,12 @@ jobs:
           tags: parkhub-php:ci
           cache-from: type=gha,scope=ci-docker
           cache-to: type=gha,scope=ci-docker,mode=max
+          # NODE_BASE / WOLFI_BASE default to the homelab internal registry,
+          # which GitHub-hosted runners can't reach. Override with public images
+          # so the CI Docker build step succeeds. Mirrors the install-smoke fix.
+          build-args: |
+            NODE_BASE=docker.io/library/node:22-slim
+            WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest
 
   integration:
     name: Integration tests
