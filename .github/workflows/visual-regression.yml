@@ -20,7 +20,7 @@ on:
       update-snapshots:
         description: 'Regenerate visual baselines (uploads new PNGs as artifact for manual commit)'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 concurrency:
@@ -105,7 +105,9 @@ jobs:
           PARKHUB_ADMIN_PASSWORD: demo
           PARKHUB_DISABLE_RATE_LIMITS: 'true'
           RUN_STORAGE_LINK: '1'
-          UPDATE_SNAPSHOTS: ${{ inputs.update-snapshots || 'false' }}
+          # `inputs` is null on `schedule` triggers — coerce to false so we
+          # never accidentally regenerate baselines on the nightly run.
+          UPDATE_SNAPSHOTS: ${{ github.event_name == 'workflow_dispatch' && inputs.update-snapshots || false }}
         run: |
           ./scripts/ci/bootstrap-laravel.sh
           php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
@@ -143,8 +145,16 @@ jobs:
           visual_status=$?
           set -e
 
-          if [ "${visual_status}" -ne 0 ] && [ "${UPDATE_SNAPSHOTS}" != "true" ]; then
-            echo "::warning title=Visual regression detected::Playwright exited ${visual_status}. See uploaded diff and report artifacts."
+          # Always emit a warning on non-zero exit. With UPDATE_SNAPSHOTS=true,
+          # Playwright should ALSO succeed (it just writes new baselines) — a
+          # crash there means the suite couldn't even start, so the warning
+          # is still the right signal.
+          if [ "${visual_status}" -ne 0 ]; then
+            if [ "${UPDATE_SNAPSHOTS}" = "true" ]; then
+              echo "::warning title=Baseline regen failed::Playwright exited ${visual_status} during --update-snapshots. The visual-baselines artifact may be partial; check uploaded report."
+            else
+              echo "::warning title=Visual regression detected::Playwright exited ${visual_status}. See uploaded diff and report artifacts."
+            fi
           fi
 
       - name: Upload diff artifacts
@@ -161,7 +171,9 @@ jobs:
           if-no-files-found: ignore
 
       - name: Upload regenerated baselines
-        if: always() && inputs.update-snapshots == true
+        # `inputs` is only populated for workflow_dispatch — guard so the
+        # nightly schedule never accidentally uploads a baselines artifact.
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.update-snapshots == true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: visual-baselines
