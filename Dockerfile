@@ -108,6 +108,7 @@ RUN apk update && apk upgrade --no-cache --available && apk add --no-cache \
         php-8.4-opcache \
         php-8.4-openssl \
         php-8.4-pdo \
+        php-8.4-mysqlnd \
         php-8.4-pdo_mysql \
         php-8.4-pdo_pgsql \
         php-8.4-pdo_sqlite \
