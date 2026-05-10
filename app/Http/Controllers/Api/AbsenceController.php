@@ -118,9 +118,18 @@ class AbsenceController extends Controller
         $user = $request->user();
         $created = 0;
 
-        // Simple iCal parser
+        // Simple iCal parser. Audit M-2: cap event count at 1000/request to
+        // bound backtracking risk in the lazy `(.*?)` quantifier and to
+        // prevent a single import call from creating millions of rows.
+        // ImportIcalRequest enforces the matching 256 KiB payload cap.
+        // Long-term, replace with sabre/vobject for proper streaming parse;
+        // tracked as a follow-up since it adds a runtime dep.
         preg_match_all('/BEGIN:VEVENT(.*?)END:VEVENT/s', $ical, $events);
+        $maxEventsPerImport = 1000;
         foreach ($events[1] as $event) {
+            if ($created >= $maxEventsPerImport) {
+                break;
+            }
             preg_match('/DTSTART[^:]*:(\S+)/', $event, $start);
             preg_match('/DTEND[^:]*:(\S+)/', $event, $end);
             preg_match('/SUMMARY:(.+)/m', $event, $summary);
