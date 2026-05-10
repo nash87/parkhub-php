@@ -67,18 +67,33 @@ jobs:
           # Align MYSQL_PASSWORD with DB_PASSWORD so app and db agree
           sed -i "s|^MYSQL_PASSWORD=.*|MYSQL_PASSWORD=$(grep '^DB_PASSWORD=' .env | cut -d= -f2-)|" .env
           # Step 4 — start
-          docker compose up -d
-          # Step 5 — verify
-          for i in {1..60}; do
-            if curl -sf http://localhost:8080/api/health >/dev/null 2>&1; then
-              echo "READY after ${i}s"
-              exit 0
+          # Bring up only `app` (which transitively pulls in `db`). Skipping
+          # worker/scheduler keeps compose from gating `up -d` on app's
+          # healthcheck — they declare `depends_on: app: condition:
+          # service_healthy`, so including them blocks the workflow for the
+          # full healthcheck timeout window before bash even reaches the
+          # external probe loop. With just `app`, `up -d` returns once
+          # containers are started, so the external poll runs concurrently
+          # with app's bootstrap and we get fast feedback either way.
+          docker compose up -d app
+          # Step 5 — verify; ~3 min budget for migrations + cache:warm + apache
+          ready=0
+          for i in {1..90}; do
+            if curl -sf http://localhost:8080/api/health/live >/dev/null 2>&1; then
+              echo "READY after $((i*2))s"
+              ready=1
+              break
             fi
             sleep 2
           done
-          echo "FAIL: /api/health never green"
-          docker compose logs
-          exit 1
+          if [[ "$ready" -ne 1 ]]; then
+            echo "FAIL: /api/health/live never green externally"
+            echo "--- compose ps ---"
+            docker compose ps -a
+            echo "--- app + db logs (last 200 lines each) ---"
+            docker compose logs --no-color --timestamps --tail=200 app db
+            exit 1
+          fi
       - name: Teardown
         if: always()
         working-directory: /tmp/smoke
