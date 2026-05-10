@@ -175,6 +175,21 @@ RUN mkdir -p /etc/apache2/conf.d \
         echo "CustomLog /dev/stdout combined"; \
     } > /etc/apache2/conf.d/zz-parkhub.conf
 
+# Wolfi's stock httpd.conf does not auto-include `conf.d/*.conf` (unlike
+# Debian) and does not load mod_php — the php-8.4-apache package only ships
+# `modules/libphp.so` plus `extra/php_module.conf`, leaving wiring to the
+# operator. Without these three lines the runtime serves zero PHP: Apache
+# starts cleanly, but every request to /index.php returns raw source (or
+# 403/404 depending on handler order) and the /api/v1/health/live probe
+# never goes green.
+RUN { \
+        echo ""; \
+        echo "# parkhub wiring — load mod_php and pull in the conf.d overlay."; \
+        echo "LoadModule php_module /usr/lib/apache2/modules/libphp.so"; \
+        echo "Include /etc/apache2/extra/php_module.conf"; \
+        echo "Include /etc/apache2/conf.d/*.conf"; \
+    } >> /etc/apache2/httpd.conf
+
 WORKDIR /var/www/html
 
 # Copy application code (without vendor/ and node_modules/ per .dockerignore).
