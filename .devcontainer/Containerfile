@@ -72,3 +72,6 @@ RUN groupadd --gid "$USER_GID" "$USERNAME" \
 USER $USERNAME
 WORKDIR /workspaces/parkhub-php
 ENV PATH="/home/vscode/.local/bin:/home/vscode/.local/share/mise/shims:${PATH}"
+
+HEALTHCHECK --interval=1m --timeout=10s --start-period=30s --retries=3 \
+    CMD php -v >/dev/null && composer --version >/dev/null || exit 1

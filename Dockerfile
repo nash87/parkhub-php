@@ -20,12 +20,12 @@
 #
 # NODE_BASE / WOLFI_BASE are parameterized so cloud CI (GitHub Actions) can
 # pass --build-arg NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90...
-# and --build-arg WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest while
+# and --build-arg WOLFI_BASE=cgr.dev/chainguard/wolfi-base@sha256:4973aa3c2ccbe13fe2049aab539b0ab342ec584bd5b54a269d55d4891091c639 while
 # local + gitea-runner builds default to the LAN mirror. Same images either
 # way, just different ingress to them.
 # ---------------------------------------------------------------------------
 ARG NODE_BASE=192.168.178.250:5000/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
-ARG WOLFI_BASE=192.168.178.250:5000/wolfi-base:latest
+ARG WOLFI_BASE=192.168.178.250:5000/wolfi-base@sha256:4973aa3c2ccbe13fe2049aab539b0ab342ec584bd5b54a269d55d4891091c639
 
 FROM ${NODE_BASE} AS frontend
 WORKDIR /app
@@ -42,8 +42,9 @@ RUN DOCKER=1 npm run build
 FROM ${WOLFI_BASE} AS vendor
 # Vendor stage runs `composer install` + `composer dump-autoload`. The latter
 # triggers Laravel's `package:discover` post-autoload-dump script, which
-# touches the DB layer (PDO) — so pdo + pdo_sqlite are needed even though
-# this stage doesn't ship to runtime.
+# touches the DB layer (PDO). Composer's Wolfi package depends on virtual PHP
+# extension packages, so pin every provider to php-8.4 to avoid mixing modules
+# from the default PHP stream.
 # `apk upgrade` first to align with current Wolfi repo (mirrored base may
 # lag); keeps vendor layer's transitive libs scan-clean too.
 RUN apk update && apk upgrade --no-cache --available && apk add --no-cache \
@@ -52,6 +53,7 @@ RUN apk update && apk upgrade --no-cache --available && apk add --no-cache \
         composer \
         git \
         php-8.4 \
+        php-8.4-ctype \
         php-8.4-curl \
         php-8.4-dom \
         php-8.4-fileinfo \
@@ -84,7 +86,7 @@ RUN composer dump-autoload --optimize --no-dev --no-scripts
 FROM ${WOLFI_BASE} AS runtime
 
 # Single apk layer. `apk upgrade --no-cache` first to pull current glibc/etc.
-# (mirrored wolfi-base:latest can lag the apk repo by a release; without
+# (mirrored wolfi-base digest can lag the apk repo by a release; without
 # upgrade, grype flags glibc 2.43-r6 → 2.43-r7 CVE-2026-5450/-5928).
 RUN apk update && apk upgrade --no-cache --available && apk add --no-cache \
         apache2 \
@@ -96,6 +98,7 @@ RUN apk update && apk upgrade --no-cache --available && apk add --no-cache \
         php-8.4 \
         php-8.4-apache \
         php-8.4-bcmath \
+        php-8.4-ctype \
         php-8.4-curl \
         php-8.4-dom \
         php-8.4-fileinfo \

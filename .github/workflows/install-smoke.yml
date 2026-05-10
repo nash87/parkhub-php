@@ -41,10 +41,10 @@ jobs:
           # We pin Docker Hub's actual digest for `node:22-slim` here so
           # cloud CI is reproducible without trying to pull the homelab
           # mirror digest from Docker Hub (which 404s).
-          # WOLFI_BASE stays tag-only because Chainguard's continuous-CVE
-          # patching model recommends `:latest`.
+          # WOLFI_BASE is pinned to the public Chainguard digest exercised by
+          # this smoke test so cloud CI does not drift independently of the PR.
           NODE_BASE: docker.io/library/node:22-slim@sha256:868499d55378719bffa87b0ed1f099591823c029b543043c09c2483468e93201
-          WOLFI_BASE: cgr.dev/chainguard/wolfi-base:latest
+          WOLFI_BASE: cgr.dev/chainguard/wolfi-base@sha256:4ac37aff83b3f67e96674ddf86d878f8c2a8f16ef1420b02611600bbe94ea8c9
         run: |
           # Step 2 — seed required secrets
           {
