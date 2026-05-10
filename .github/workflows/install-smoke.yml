@@ -25,8 +25,17 @@ jobs:
         with:
           persist-credentials: false
       - name: Cold clone
+        # Clone the ref that triggered this run. For workflow_dispatch this is
+        # the branch the user dispatched against (so PRs can validate their
+        # Dockerfile changes before merge). For the nightly schedule it resolves
+        # to the default branch, matching prior behavior. Without this, smoke
+        # always tested main and PR-level Dockerfile fixes (e.g. PHP extension
+        # pins) were invisible to CI until after merge.
+        env:
+          SMOKE_REF: ${{ github.ref_name }}
         run: |
-          git clone --depth 1 https://github.com/nash87/parkhub-php.git /tmp/smoke
+          git clone --depth 1 --branch "${SMOKE_REF}" \
+            https://github.com/nash87/parkhub-php.git /tmp/smoke
       - name: Follow INSTALLATION.md Docker Compose steps
         working-directory: /tmp/smoke
         # GitHub-hosted runners cannot reach the homelab internal registry
