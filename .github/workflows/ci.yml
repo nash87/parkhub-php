@@ -443,7 +443,7 @@ jobs:
           # Gitea runners run on the homelab LAN and can reach the internal
           # registry, so the Dockerfile defaults are correct there.
           build-args: |
-            NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+            NODE_BASE=docker.io/library/node:22-slim@sha256:868499d55378719bffa87b0ed1f099591823c029b543043c09c2483468e93201
             WOLFI_BASE=cgr.dev/chainguard/wolfi-base:latest
 
   integration:

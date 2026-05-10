@@ -8,9 +8,11 @@ ARG HELM_VERSION=v3.18.4
 ARG ACTIONLINT_VERSION=1.7.12
 # Docker Compose v2 plugin — installed via official binary release because
 # Debian Bookworm's `docker-compose-plugin` apt package needs Docker's apt
-# repo which we don't add here. Compose v2 is required by
+# repo which we don't add here. Compose v2/v5 is required by
 # scripts/ci/local-security-audit.sh (`docker compose config -q`).
-ARG DOCKER_COMPOSE_VERSION=v2.41.0
+# Note: docker/compose project versioned past 2.x → 5.x line; v5.1.3 is
+# the current stable plugin binary as of 2026-05-10. Bump regularly.
+ARG DOCKER_COMPOSE_VERSION=v5.1.3
 
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 

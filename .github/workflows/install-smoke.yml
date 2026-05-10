@@ -34,11 +34,16 @@ jobs:
         # consumed by docker-compose.yml's build args block, pointing at public
         # images that match the same Wolfi/Node major versions.
         env:
-          # Pin NODE_BASE to the same sha256 the Dockerfile defaults to so
-          # cloud + homelab smoke tests run on byte-identical bytes.
+          # Pin NODE_BASE to a real Docker Hub digest. The Dockerfile's
+          # default digest (aa8ccf90...) is the homelab MIRROR's stored
+          # manifest, NOT the Docker Hub original — pushing to a private
+          # registry re-encodes the manifest, so the digest differs.
+          # We pin Docker Hub's actual digest for `node:22-slim` here so
+          # cloud CI is reproducible without trying to pull the homelab
+          # mirror digest from Docker Hub (which 404s).
           # WOLFI_BASE stays tag-only because Chainguard's continuous-CVE
           # patching model recommends `:latest`.
-          NODE_BASE: docker.io/library/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+          NODE_BASE: docker.io/library/node:22-slim@sha256:868499d55378719bffa87b0ed1f099591823c029b543043c09c2483468e93201
           WOLFI_BASE: cgr.dev/chainguard/wolfi-base:latest
         run: |
           # Step 2 — seed required secrets
