@@ -80,11 +80,19 @@ services:
     networks:
       - parkhub-internal
     # DB port intentionally NOT exposed to host — access only through the internal network
+    # Force TCP on 3306. The official mysql image runs a *temporary internal
+    # server* during init (creating database/user) which uses port:0 and a
+    # unix socket — `mysqladmin ping -h localhost` accepts that, so compose
+    # releases the depends_on gate before the *real* mysqld has bound to TCP
+    # 3306, and dependent containers race-fail on "Connection refused".
+    # `--protocol=tcp -P 3306` only succeeds once the real server is
+    # listening, which is the actual readiness condition the app cares about.
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-P", "3306", "--protocol=tcp"]
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 30s
     logging:
       driver: json-file
       options:
