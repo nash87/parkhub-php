@@ -53,6 +53,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Admin-Session Absolute Lifetime
+    |--------------------------------------------------------------------------
+    |
+    | OWASP ASVS 3.3.2 recommends a tighter cap for sensitive admin sessions
+    | than for end-user sessions. Default: 720 minutes (12h) per audit L-3.
+    | Override via SESSION_ABSOLUTE_LIFETIME_ADMIN env var.
+    |
+    | Applied by EnforceAbsoluteSessionLifetime middleware when the
+    | authenticated user has admin/superadmin role.
+    |
+    */
+
+    'absolute_lifetime_admin' => (int) env('SESSION_ABSOLUTE_LIFETIME_ADMIN', 720),
+
+    /*
+    |--------------------------------------------------------------------------
     | Session Encryption
     |--------------------------------------------------------------------------
     |

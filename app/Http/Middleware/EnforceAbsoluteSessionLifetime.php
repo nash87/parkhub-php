@@ -39,7 +39,17 @@ class EnforceAbsoluteSessionLifetime
             return $next($request);
         }
 
-        $absoluteLifetimeMinutes = (int) config('session.absolute_lifetime', 1440);
+        // Default cap is 24h (1440 min). Admin sessions get a tighter
+        // 12h cap (720 min) per OWASP ASVS 3.3.2 + audit L-3 — admin
+        // privileges merit a more aggressive re-auth interval.
+        // Override via env: SESSION_ABSOLUTE_LIFETIME (default cap),
+        // SESSION_ABSOLUTE_LIFETIME_ADMIN (admin-specific cap).
+        $defaultMinutes = (int) config('session.absolute_lifetime', 1440);
+        $adminMinutes = (int) config('session.absolute_lifetime_admin', 720);
+        $isAdmin = method_exists($user, 'hasRole')
+            ? ((bool) $user->hasRole('admin') || (bool) $user->hasRole('superadmin'))
+            : (in_array($user->role ?? null, ['admin', 'superadmin'], true));
+        $absoluteLifetimeMinutes = $isAdmin ? $adminMinutes : $defaultMinutes;
         $absoluteLifetimeSeconds = $absoluteLifetimeMinutes * 60;
 
         $session = $request->session();
