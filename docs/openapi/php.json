@@ -1304,7 +1304,7 @@
         "description": "Accepts iCal payloads either as a multipart file upload or a raw string\nbody. Rules are conditional on the transport so callers can use whichever\nshape fits their client without us routing to two separate endpoints.",
         "properties": {
           "ical": {
-            "maxLength": 1048576,
+            "maxLength": 262144,
             "type": "string"
           }
         },
