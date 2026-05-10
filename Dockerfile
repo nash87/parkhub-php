@@ -153,13 +153,13 @@ RUN mkdir -p /etc/apache2/conf.d \
         echo "ServerSignature Off"; \
         echo "TraceEnable Off"; \
         echo "Listen 10000"; \
-        echo "LoadModule rewrite_module modules/mod_rewrite.so"; \
-        echo "LoadModule headers_module modules/mod_headers.so"; \
-        echo "LoadModule deflate_module modules/mod_deflate.so"; \
-        echo "LoadModule expires_module modules/mod_expires.so"; \
-        echo "LoadModule mime_module modules/mod_mime.so"; \
-        echo "LoadModule dir_module modules/mod_dir.so"; \
-        echo "LoadModule env_module modules/mod_env.so"; \
+        echo "LoadModule rewrite_module /usr/lib/apache2/modules/mod_rewrite.so"; \
+        echo "LoadModule headers_module /usr/lib/apache2/modules/mod_headers.so"; \
+        echo "LoadModule deflate_module /usr/lib/apache2/modules/mod_deflate.so"; \
+        echo "LoadModule expires_module /usr/lib/apache2/modules/mod_expires.so"; \
+        echo "LoadModule mime_module /usr/lib/apache2/modules/mod_mime.so"; \
+        echo "LoadModule dir_module /usr/lib/apache2/modules/mod_dir.so"; \
+        echo "LoadModule env_module /usr/lib/apache2/modules/mod_env.so"; \
         echo ""; \
         echo "ServerName parkhub.local"; \
         echo "DocumentRoot /var/www/html/public"; \
