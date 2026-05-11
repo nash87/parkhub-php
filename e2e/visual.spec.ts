@@ -51,6 +51,14 @@ const VIEWPORTS = [
 ] as const;
 
 const THEMES = ['light', 'dark'] as const;
+const VISUAL_CLOCK = new Date('2026-05-11T12:00:00Z');
+
+test.use({
+  locale: 'en-US',
+  reducedMotion: 'reduce',
+  serviceWorkers: 'block',
+  timezoneId: 'UTC',
+});
 
 for (const viewport of VIEWPORTS) {
   for (const theme of THEMES) {
@@ -68,6 +76,8 @@ for (const viewport of VIEWPORTS) {
 
       for (const surface of SURFACES) {
         test(`${surface.name}`, async ({ page }) => {
+          await page.clock.setFixedTime(VISUAL_CLOCK);
+
           if (surface.auth) {
             await loginViaUi(page);
           }
