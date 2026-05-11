@@ -92,6 +92,29 @@ export function v5ScreenTitle(page: Page) {
   return page.getByTestId('v5-screen-title');
 }
 
+async function pinRemoteV5Mode(page: Page, mode: V5Mode): Promise<void> {
+  await page.unroute('**/api/v1/me/settings').catch(() => {
+    /* no prior route */
+  });
+  await page.route('**/api/v1/me/settings', async (route) => {
+    if (route.request().method() !== 'GET') {
+      await route.continue();
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        data: {
+          appearance: { mode },
+        },
+      }),
+    });
+  });
+}
+
 /**
  * Pre-seed localStorage so the v5 shell boots already on the target
  * screen + mode, then navigate to `/v5/index.html` and wait for the
@@ -102,6 +125,7 @@ export async function openV5(
   screen: V5Screen,
   mode: V5Mode = 'marble_light',
 ): Promise<void> {
+  await pinRemoteV5Mode(page, mode);
   await page.addInitScript(
     ([s, m]) => {
       try {

@@ -210,6 +210,9 @@ jobs:
           CI: true
           DB_CONNECTION: sqlite
           DB_DATABASE: database/database.sqlite
+          APP_URL: http://127.0.0.1:8082
+          APP_EXTRA_ALLOWED_ORIGINS: http://127.0.0.1:8082,http://localhost:8082
+          SANCTUM_STATEFUL_DOMAINS: 127.0.0.1,127.0.0.1:8082,localhost,localhost:8082
           # File-based cache / session. The default SQLite-backed cache
           # store locks under concurrent requests (Playwright fires
           # dozens of parallel requests per test) and every
