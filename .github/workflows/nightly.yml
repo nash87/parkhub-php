@@ -236,7 +236,7 @@ jobs:
           # empty database and everything that walks a list 404s.
           php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
 
-          php artisan serve --host=127.0.0.1 --port=8082 > "/tmp/parkhub-nightly-e2e-${MATRIX_PROJECT}-${MATRIX_SHARD}.log" 2>&1 &
+          php -S 127.0.0.1:8082 -t public scripts/e2e-router.php > "/tmp/parkhub-nightly-e2e-${MATRIX_PROJECT}-${MATRIX_SHARD}.log" 2>&1 &
           server_pid=$!
           trap 'kill "${server_pid}" 2>/dev/null || true' EXIT
 
