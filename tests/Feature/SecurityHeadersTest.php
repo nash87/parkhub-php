@@ -151,15 +151,16 @@ class SecurityHeadersTest extends TestCase
         }
     }
 
-    public function test_coep_credentialless_set_globally(): void
+    public function test_coep_credentialless_set_on_html_documents_only(): void
     {
         // COEP credentialless lets us use crossOriginIsolated APIs
         // (SharedArrayBuffer, high-res performance.now()) without forcing
-        // every embed to send CORP. Asserted globally — same value on
-        // HTML, JSON, and asset paths.
-        foreach (['/api/v1/health', '/'] as $path) {
-            $response = $this->get($path);
-            $response->assertHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-        }
+        // every embed to send CORP. It is document-level policy: HTML
+        // receives it, JSON subresources do not.
+        $html = $this->get('/');
+        $html->assertHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+
+        $json = $this->getJson('/api/v1/health');
+        $this->assertNull($json->headers->get('Cross-Origin-Embedder-Policy'));
     }
 }

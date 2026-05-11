@@ -98,7 +98,7 @@ class SecurityReportTest extends TestCase
         $this->assertLessThanOrEqual(10, $successes, 'More than 10 requests slipped through the limiter');
     }
 
-    public function test_security_response_headers_include_reporting_endpoints_nel_coep(): void
+    public function test_security_response_headers_include_reporting_endpoints_and_nel(): void
     {
         $response = $this->getJson('/api/v1/health');
 
@@ -113,7 +113,7 @@ class SecurityReportTest extends TestCase
         $this->assertStringContainsString('"max_age":2592000', $nel);
         $this->assertStringContainsString('"include_subdomains":true', $nel);
 
-        $this->assertSame('credentialless', $response->headers->get('Cross-Origin-Embedder-Policy'));
+        $this->assertNull($response->headers->get('Cross-Origin-Embedder-Policy'));
     }
 
     public function test_audit_log_persists_full_payload(): void

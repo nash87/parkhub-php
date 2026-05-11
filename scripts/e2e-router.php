@@ -65,12 +65,16 @@ if (
     && str_starts_with($candidate, $publicRoot.DIRECTORY_SEPARATOR)
 ) {
     $extension = strtolower(pathinfo($candidate, PATHINFO_EXTENSION));
+    $isDocument = in_array($extension, ['html', 'htm'], true);
 
     header('X-Content-Type-Options: nosniff');
-    header('Cross-Origin-Opener-Policy: same-origin');
-    header('Cross-Origin-Embedder-Policy: credentialless');
     header('Cross-Origin-Resource-Policy: '.(parkhub_e2e_is_public_asset($extension) ? 'cross-origin' : 'same-origin'));
     header('Content-Type: '.parkhub_e2e_content_type($extension));
+
+    if ($isDocument) {
+        header('Cross-Origin-Opener-Policy: same-origin');
+        header('Cross-Origin-Embedder-Policy: credentialless');
+    }
 
     if (str_starts_with($decodedPath, '/_astro/')) {
         header('Cache-Control: public, max-age=31536000, immutable');

@@ -79,10 +79,6 @@ class SecurityHeaders
         }
 
         // --- Site isolation: COOP + COEP + CORP ---
-        // COOP same-origin prevents cross-origin windows from sharing a
-        // browsing context group (blocks window.opener attacks).
-        $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
-
         // CORP `same-origin` is the right default for HTML/JSON responses,
         // but under COEP `credentialless` (set below) WebKit (Safari 18+,
         // mobile-safari Playwright) refuses to load module chunks like
@@ -120,15 +116,6 @@ class SecurityHeaders
             $isStaticAsset ? 'cross-origin' : 'same-origin',
         );
 
-        // COEP `credentialless` is the modern default (2026): it gives us
-        // crossOriginIsolated so we can use SharedArrayBuffer and high-res
-        // `performance.now()`, without forcing every embedded third-party
-        // resource to send CORP (`require-corp` would do that and break
-        // Stripe/Bunny/etc. in one step). Sub-resources are fetched without
-        // credentials and the server can't smuggle cookies into them.
-        // Safari shipped this in 16.4, Firefox in 110, Chromium in 96.
-        $response->headers->set('Cross-Origin-Embedder-Policy', 'credentialless');
-
         // --- Reporting-Endpoints + NEL ---
         // Reporting-Endpoints is the successor to Report-To (which is being
         // removed). The `csp` endpoint receives CSP violation reports; the
@@ -148,9 +135,25 @@ class SecurityHeaders
         );
 
         // --- Content-Security-Policy for the SPA ---
-        // Only apply CSP to HTML responses (not API JSON or static assets)
+        // Only apply document-level headers to HTML responses (not API JSON
+        // or static assets). WebKit reports same-origin JSON/module requests
+        // as access-control failures if those subresources also carry COEP,
+        // even though the document already has the isolation policy.
         $contentType = $response->headers->get('Content-Type', '');
         if (str_contains($contentType, 'text/html')) {
+            // COOP same-origin prevents cross-origin windows from sharing a
+            // browsing context group (blocks window.opener attacks).
+            $response->headers->set('Cross-Origin-Opener-Policy', 'same-origin');
+
+            // COEP `credentialless` is the modern default (2026): it gives us
+            // crossOriginIsolated so we can use SharedArrayBuffer and high-res
+            // `performance.now()`, without forcing every embedded third-party
+            // resource to send CORP (`require-corp` would do that and break
+            // Stripe/Bunny/etc. in one step). Sub-resources are fetched without
+            // credentials and the server can't smuggle cookies into them.
+            // Safari shipped this in 16.4, Firefox in 110, Chromium in 96.
+            $response->headers->set('Cross-Origin-Embedder-Policy', 'credentialless');
+
             $csp = $this->buildCsp($request, $nonce);
             $response->headers->set('Content-Security-Policy', $csp);
         }
