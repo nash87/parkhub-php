@@ -182,10 +182,25 @@ jobs:
           npm ci --prefix parkhub-web
 
       - name: Install Playwright browsers
+        env:
+          MATRIX_PROJECT: ${{ matrix.project }}
         run: |
-          CI_TIMEOUT_LABEL="Install Playwright browsers for nightly E2E" \
-            bash scripts/ci/run-with-timeout.sh 12m \
-              npx --no-install playwright install --with-deps chromium webkit
+          case "${MATRIX_PROJECT}" in
+            chromium|mobile-chrome)
+              playwright_browser=chromium
+              ;;
+            mobile-safari)
+              playwright_browser=webkit
+              ;;
+            *)
+              echo "Unsupported Playwright project: ${MATRIX_PROJECT}" >&2
+              exit 2
+              ;;
+          esac
+
+          CI_TIMEOUT_LABEL="Install Playwright ${playwright_browser} for nightly E2E" \
+            bash scripts/ci/run-with-timeout.sh 20m \
+              npx --no-install playwright install --with-deps "${playwright_browser}"
 
       - name: Build browser assets for Laravel
         run: npm run build:php --prefix parkhub-web
