@@ -70,6 +70,22 @@ fi
 
 green "    OK"
 
+echo "==> fop-local-ci pr dry-run prepares Composer deps before design smoke"
+FOP_LOCAL_CI_DIFF_PATHS=$'package-lock.json\nparkhub-web/package-lock.json' \
+    .github/scripts/fop-local-ci.sh --profile pr --dry-run >"$tmp_dir/design-smoke-dry-run" 2>&1
+
+for pattern in \
+    'composer install for Laravel design smoke' \
+    'frontend route \+ v5 design smoke'; do
+    if ! grep -Eq "$pattern" "$tmp_dir/design-smoke-dry-run"; then
+        red "    FAILED: design-smoke dry-run output missing pattern: $pattern"
+        cat "$tmp_dir/design-smoke-dry-run"
+        exit 1
+    fi
+done
+
+green "    OK"
+
 echo "==> fop-local-ci background mode returns a PID and writes a log"
 FOP_LOCAL_CI_BG_LOG_DIR="$tmp_dir/bg" \
 FOP_LOCAL_CI_DIFF_PATHS=$'docs/parkhub-notes.md' \
