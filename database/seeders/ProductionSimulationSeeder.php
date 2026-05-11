@@ -83,42 +83,61 @@ class ProductionSimulationSeeder extends Seeder
 
     public function run(): void
     {
-        $this->command->info('🏁 ParkHub Production Simulation Seeder starting...');
+        $simulationSeed = env('PARKHUB_SIMULATION_SEED');
+        $simulationNow = env('PARKHUB_SIMULATION_NOW');
+        $hasFixedNow = is_string($simulationNow) && $simulationNow !== '';
 
-        DB::statement('PRAGMA foreign_keys = OFF');
+        if ($simulationSeed !== null && $simulationSeed !== '') {
+            srand((int) $simulationSeed);
+            mt_srand((int) $simulationSeed);
+        }
 
-        $this->seedSettings();
-        $adminIds = $this->seedAdmins();
-        $lotData = $this->seedLots();
-        $userIds = $this->seedUsers();
-        $this->seedBookings($lotData, $userIds);
-        $this->seedAdminBookings($adminIds, $lotData);
-        $this->seedAbsences($userIds);
-        $this->seedAnnouncements($adminIds);
-        $this->seedNotifications($userIds);
-        $this->seedFavorites($userIds, $lotData);
-        $this->seedGuestBookings($adminIds, $lotData);
-        $this->seedAuditLog($userIds, $adminIds);
+        if ($hasFixedNow) {
+            Carbon::setTestNow(Carbon::parse($simulationNow));
+        }
 
-        DB::statement('PRAGMA foreign_keys = ON');
+        try {
+            $this->command->info('🏁 ParkHub Production Simulation Seeder starting...');
 
-        $this->command->info('✅ Seed complete! Stats:');
-        $this->command->table(
-            ['Entity', 'Count'],
-            [
-                ['Parking Lots',    DB::table('parking_lots')->count()],
-                ['Parking Slots',   DB::table('parking_slots')->count()],
-                ['Users',           DB::table('users')->count()],
-                ['Vehicles',        DB::table('vehicles')->count()],
-                ['Bookings',        DB::table('bookings')->count()],
-                ['Absences',        DB::table('absences')->count()],
-                ['Announcements',   DB::table('announcements')->count()],
-                ['Notifications',   DB::table('notifications_custom')->count()],
-                ['Favorites',       DB::table('favorites')->count()],
-                ['Guest Bookings',  DB::table('guest_bookings')->count()],
-                ['Audit Log',       DB::table('audit_log')->count()],
-            ]
-        );
+            DB::statement('PRAGMA foreign_keys = OFF');
+
+            $this->seedSettings();
+            $adminIds = $this->seedAdmins();
+            $lotData = $this->seedLots();
+            $userIds = $this->seedUsers();
+            $this->seedBookings($lotData, $userIds);
+            $this->seedAdminBookings($adminIds, $lotData);
+            $this->seedAbsences($userIds);
+            $this->seedAnnouncements($adminIds);
+            $this->seedNotifications($userIds);
+            $this->seedFavorites($userIds, $lotData);
+            $this->seedGuestBookings($adminIds, $lotData);
+            $this->seedAuditLog($userIds, $adminIds);
+
+            DB::statement('PRAGMA foreign_keys = ON');
+
+            $this->command->info('✅ Seed complete! Stats:');
+            $this->command->table(
+                ['Entity', 'Count'],
+                [
+                    ['Parking Lots',    DB::table('parking_lots')->count()],
+                    ['Parking Slots',   DB::table('parking_slots')->count()],
+                    ['Users',           DB::table('users')->count()],
+                    ['Vehicles',        DB::table('vehicles')->count()],
+                    ['Bookings',        DB::table('bookings')->count()],
+                    ['Absences',        DB::table('absences')->count()],
+                    ['Announcements',   DB::table('announcements')->count()],
+                    ['Notifications',   DB::table('notifications_custom')->count()],
+                    ['Favorites',       DB::table('favorites')->count()],
+                    ['Guest Bookings',  DB::table('guest_bookings')->count()],
+                    ['Audit Log',       DB::table('audit_log')->count()],
+                ]
+            );
+        } finally {
+            if ($hasFixedNow) {
+                Carbon::setTestNow();
+            }
+        }
     }
 
     // -------------------------------------------------------------------------

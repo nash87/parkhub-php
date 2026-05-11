@@ -224,6 +224,8 @@ jobs:
           PARKHUB_ADMIN_EMAIL: admin@parkhub.test
           PARKHUB_ADMIN_PASSWORD: demo
           PARKHUB_DISABLE_RATE_LIMITS: 'true'
+          PARKHUB_SIMULATION_NOW: '2026-05-11 12:00:00'
+          PARKHUB_SIMULATION_SEED: '50101'
           RUN_STORAGE_LINK: '1'
           # Surface the matrix axes via env so they aren't directly expanded
           # into the run script body (zizmor: template-injection).
