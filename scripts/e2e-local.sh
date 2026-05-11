@@ -32,7 +32,7 @@ echo "== bootstrap Laravel =="
 php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force
 
 echo "== start Laravel app on ${E2E_BASE_URL} =="
-php artisan serve --host="${SERVER_HOST}" --port="${SERVER_PORT}" > "${SERVER_LOG}" 2>&1 &
+php -S "${SERVER_HOST}:${SERVER_PORT}" -t public scripts/e2e-router.php > "${SERVER_LOG}" 2>&1 &
 SERVER_PID=$!
 cleanup() {
   kill "${SERVER_PID}" 2>/dev/null || true
