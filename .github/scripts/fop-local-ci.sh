@@ -491,6 +491,10 @@ if (( diff_touch_frontend || diff_touch_e2e )); then
   run_step "frontend build" "cd parkhub-web && CI=true npm run build && cd .. && CI=true npm run build"
 
   if (( diff_touch_design_smoke )); then
+    # The design-smoke harness boots Laravel even for frontend-only diffs.
+    # Clean Dependabot worktrees may not have vendor/ when PHP gates are
+    # diff-skipped, so ensure Composer deps exist before scripts/e2e-local.sh.
+    run_step "composer install for Laravel design smoke" "if [[ -f vendor/autoload.php ]]; then echo 'vendor/autoload.php already present'; else composer install --prefer-dist --no-interaction --no-progress; fi"
     run_step_heavy "frontend route + v5 design smoke" "npm run test:e2e:design-smoke"
   else
     skip_step "frontend route + v5 design smoke" "diff-aware: no route/design/e2e files touched"
