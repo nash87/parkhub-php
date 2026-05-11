@@ -24,29 +24,41 @@ See also:
 
 ---
 
-## Current parity (2026-04-17)
+## Current parity (2026-05-12)
 
-A cross-repo diff from the running servers against the committed route
-listings shows roughly:
+Latest committed-dump comparison from `github/main`:
 
-| Source | Path count (normalised, `/api/v1/*`) |
-|--------|--------------------------------------|
-| Rust (`utoipa::path` macros) | ~223 |
-| PHP (Scramble-derived)       | ~279 |
-| Shared                       | ~140 |
-| Drift                        | ~160 (split ~80 / 80 between the two repos) |
+- Rust input: `parkhub-rust@779eba97f8e6e8ff7e7b65cd1574bb04e4ae00e0`
+  (`docs/openapi/rust.json`)
+- PHP input: `parkhub-php@e0883df46d1b7c587b7798bddddbb3ae19f06cd8`
+  (`docs/openapi/php.json`)
 
-The real shared set is almost certainly larger than 140 because the naive
-static extractor used for that number doesn't always resolve Laravel's
-nested `Route::prefix('admin')->group(...)` chains — an admin route
-declared inside that group as `Route::get('/compliance/report')` becomes
-`/api/v1/admin/compliance/report` at runtime, not the `/api/v1/compliance/report`
-a grep-level script captures.
+| Source | Path count (normalised) |
+|--------|-------------------------|
+| Rust (`utoipa`) | 233 |
+| PHP (Scramble) | 314 |
+| Shared | 201 |
+| Rust-only drift | 32 |
+| PHP-only drift | 113 |
+| Total drift | 145 |
 
-For that reason the numbers above are **upper bounds on drift**; the real
-drift is smaller. The only way to get a ground-truth number is to run both
-servers and compare the emitted OpenAPI JSON. `scripts/diff-openapi.sh`
-does exactly that — see "Methodology" below.
+The numbers above come from committed OpenAPI dumps, not grep/static route
+extractors. They still need a later live-server regeneration pass, but they are
+the current reviewable contract evidence on `github/main`.
+
+Current drift clusters:
+
+| Cluster | Rust-only | PHP-only |
+|---|---:|---:|
+| Admin/reporting/settings | 12 | 35 |
+| Auth/profile aliases | 1 | 7 |
+| Booking/QR | 3 | 16 |
+| Demo/discovery/public | 0 | 6 |
+| Health/docs/status | 8 | 1 |
+| Import/export | 1 | 3 |
+| Payments/billing | 1 | 2 |
+| User/tenant/vehicle | 1 | 4 |
+| Other | 5 | 39 |
 
 ## Methodology
 
@@ -96,7 +108,7 @@ With the current committed snapshots and the input-specific normalisation in
 `scripts/diff-openapi.sh`, the parity diff is still materially open:
 
 - Rust-only paths: `32`
-- PHP-only paths: `108`
+- PHP-only paths: `113`
 
 That means parity is **not** currently “just static-extractor noise”. The
 remaining drift falls into four broad buckets:
