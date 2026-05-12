@@ -63,11 +63,17 @@ Route::prefix('demo')->group(function () {
 });
 
 // Health (no auth)
+Route::get('/status', [PublicController::class, 'healthCheck'])->name('api.v1.status');
 Route::get('/health', [PublicController::class, 'healthCheck']);
 Route::get('/health/live', [HealthController::class, 'live']);
 Route::get('/health/ready', [HealthController::class, 'ready']);
 Route::get('/health/info', [HealthController::class, 'info']);
 Route::get('/health/detailed', [HealthController::class, 'info']);
+
+// API docs/spec aliases (no auth)
+Route::get('/docs', [PublicController::class, 'apiDocs'])->name('api.v1.docs');
+Route::get('/docs/openapi.json', [PublicController::class, 'openApiSpecification'])->name('api.v1.docs.openapi');
+Route::get('/docs/postman.json', [PublicController::class, 'postmanCollection'])->name('api.v1.docs.postman');
 
 // System (public)
 Route::get('/system/version', [SystemController::class, 'version']);

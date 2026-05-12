@@ -35,6 +35,14 @@ class HealthTest extends TestCase
             ->assertJsonPath('data.status', 'ok');
     }
 
+    public function test_status_alias_matches_health_contract(): void
+    {
+        $response = $this->getJson('/api/v1/status');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.status', 'ok');
+    }
+
     public function test_health_endpoints_require_no_auth(): void
     {
         // All health endpoints must work without authentication

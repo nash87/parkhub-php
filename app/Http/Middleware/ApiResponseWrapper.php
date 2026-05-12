@@ -14,6 +14,10 @@ class ApiResponseWrapper
     {
         $response = $next($request);
 
+        if ($request->is('api/v1/docs') || $request->is('api/v1/docs/*')) {
+            return $response;
+        }
+
         // Only wrap JSON responses from API routes
         if (! $request->is('api/*') || ! $response->headers->contains('Content-Type', 'application/json')) {
             // Try to detect JSON responses

@@ -27307,18 +27307,28 @@
                               "type": "string"
                             },
                             "docs": {
-                              "const": "/docs/api",
+                              "const": "/api/v1/docs",
                               "type": "string"
                             },
                             "health": {
                               "const": "/api/v1/health",
+                              "type": "string"
+                            },
+                            "openapi": {
+                              "const": "/api/v1/docs/openapi.json",
+                              "type": "string"
+                            },
+                            "postman": {
+                              "const": "/api/v1/docs/postman.json",
                               "type": "string"
                             }
                           },
                           "required": [
                             "auth",
                             "health",
-                            "docs"
+                            "docs",
+                            "openapi",
+                            "postman"
                           ],
                           "type": "object"
                         },
@@ -27367,6 +27377,69 @@
           }
         },
         "summary": "GET /api/v1/discover\nHandshake/discovery endpoint — returns API version, capabilities, and available modules",
+        "tags": [
+          "Public"
+        ]
+      }
+    },
+    "/v1/docs": {
+      "get": {
+        "operationId": "v1.docs",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "Public"
+        ]
+      }
+    },
+    "/v1/docs/openapi.json": {
+      "get": {
+        "operationId": "v1.docs.openapi",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "Public"
+        ]
+      }
+    },
+    "/v1/docs/postman.json": {
+      "get": {
+        "operationId": "v1.docs.postman",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "description": ""
+          }
+        },
         "tags": [
           "Public"
         ]
@@ -35366,6 +35439,39 @@
         "summary": "Get current SSE connection status info",
         "tags": [
           "Sse"
+        ]
+      }
+    },
+    "/v1/status": {
+      "get": {
+        "operationId": "v1.status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "status": {
+                      "const": "ok",
+                      "type": "string"
+                    },
+                    "version": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "version"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "tags": [
+          "Public"
         ]
       }
     },

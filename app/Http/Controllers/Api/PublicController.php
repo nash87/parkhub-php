@@ -11,6 +11,7 @@ use App\Models\ParkingLot;
 use App\Models\Setting;
 use App\Services\ModuleRegistry;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 
 class PublicController extends Controller
@@ -143,6 +144,28 @@ class PublicController extends Controller
         return response()->json(['status' => 'ok', 'version' => SystemController::appVersion()]);
     }
 
+    public function apiDocs(): RedirectResponse
+    {
+        return redirect('/docs/api');
+    }
+
+    public function openApiSpecification(): RedirectResponse
+    {
+        return redirect('/docs/api.json');
+    }
+
+    public function postmanCollection(): JsonResponse
+    {
+        $collection = json_decode(
+            file_get_contents(base_path('docs/postman/ParkHub.postman_collection.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR,
+        );
+
+        return response()->json($collection);
+    }
+
     public function updateCheck(): JsonResponse
     {
         return response()->json(['update_available' => false, 'current_version' => SystemController::appVersion()]);
@@ -206,7 +229,9 @@ class PublicController extends Controller
                 'endpoints' => [
                     'auth' => '/api/v1/auth/login',
                     'health' => '/api/v1/health',
-                    'docs' => '/docs/api',
+                    'docs' => '/api/v1/docs',
+                    'openapi' => '/api/v1/docs/openapi.json',
+                    'postman' => '/api/v1/docs/postman.json',
                 ],
             ],
             'error' => null,

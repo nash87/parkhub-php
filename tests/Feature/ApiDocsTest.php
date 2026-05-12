@@ -30,6 +30,26 @@ class ApiDocsTest extends TestCase
             "Expected 200/301/302 but got {$status}");
     }
 
+    public function test_api_v1_docs_alias_redirects_to_scramble_docs(): void
+    {
+        $this->get('/api/v1/docs')
+            ->assertRedirect('/docs/api');
+    }
+
+    public function test_api_v1_openapi_alias_redirects_to_scramble_json(): void
+    {
+        $this->get('/api/v1/docs/openapi.json')
+            ->assertRedirect('/docs/api.json');
+    }
+
+    public function test_api_v1_postman_alias_serves_collection(): void
+    {
+        $response = $this->get('/api/v1/docs/postman.json');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('info._postman_id', 'parkhub-collection-v1');
+    }
+
     public function test_api_docs_module_is_enabled(): void
     {
         $this->assertTrue(
