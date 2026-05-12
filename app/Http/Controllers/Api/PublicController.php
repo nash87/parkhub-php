@@ -10,9 +10,12 @@ use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\Setting;
 use App\Services\ModuleRegistry;
+use Dedoc\Scramble\Attributes\Header;
+use Dedoc\Scramble\Attributes\Response;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use JsonException;
 
 class PublicController extends Controller
 {
@@ -144,24 +147,67 @@ class PublicController extends Controller
         return response()->json(['status' => 'ok', 'version' => SystemController::appVersion()]);
     }
 
+    #[Header('Location', 'Scramble documentation UI URL.', type: 'string', status: 302, example: '/docs/api')]
+    #[Response(302, 'Redirects to the Scramble documentation UI.', mediaType: 'text/html', type: 'string')]
     public function apiDocs(): RedirectResponse
     {
+        /**
+         * @status 302
+         *
+         * @body string
+         */
         return redirect('/docs/api');
     }
 
+    #[Header('Location', 'Scramble OpenAPI JSON URL.', type: 'string', status: 302, example: '/docs/api.json')]
+    #[Response(302, 'Redirects to the Scramble OpenAPI JSON document.', mediaType: 'text/html', type: 'string')]
     public function openApiSpecification(): RedirectResponse
     {
+        /**
+         * @status 302
+         *
+         * @body string
+         */
         return redirect('/docs/api.json');
     }
 
+    #[Response(200, 'Postman collection JSON.', type: 'array{info: array, item: array}')]
+    #[Response(404, 'Postman collection asset not found.', type: 'array{error: string, message: string}')]
+    #[Response(500, 'Postman collection asset is unreadable or invalid.', type: 'array{error: string, message: string}')]
     public function postmanCollection(): JsonResponse
     {
-        $collection = json_decode(
-            file_get_contents(base_path('docs/postman/ParkHub.postman_collection.json')),
-            true,
-            512,
-            JSON_THROW_ON_ERROR,
-        );
+        $path = resource_path('docs/ParkHub.postman_collection.json');
+
+        if (! is_readable($path)) {
+            return response()->json([
+                'error' => 'DOCS_ASSET_NOT_FOUND',
+                'message' => 'Postman collection asset is not available.',
+            ], 404);
+        }
+
+        $raw = file_get_contents($path);
+        if ($raw === false) {
+            return response()->json([
+                'error' => 'DOCS_ASSET_UNREADABLE',
+                'message' => 'Postman collection asset could not be read.',
+            ], 500);
+        }
+
+        try {
+            $collection = json_decode($raw, true, 512, JSON_THROW_ON_ERROR);
+        } catch (JsonException) {
+            return response()->json([
+                'error' => 'DOCS_ASSET_INVALID',
+                'message' => 'Postman collection asset contains invalid JSON.',
+            ], 500);
+        }
+
+        if (! is_array($collection)) {
+            return response()->json([
+                'error' => 'DOCS_ASSET_INVALID',
+                'message' => 'Postman collection asset must be a JSON object.',
+            ], 500);
+        }
 
         return response()->json($collection);
     }

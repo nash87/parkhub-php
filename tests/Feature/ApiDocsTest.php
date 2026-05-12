@@ -50,6 +50,11 @@ class ApiDocsTest extends TestCase
             ->assertJsonPath('info._postman_id', 'parkhub-collection-v1');
     }
 
+    public function test_api_v1_postman_alias_uses_runtime_included_asset(): void
+    {
+        $this->assertFileExists(resource_path('docs/ParkHub.postman_collection.json'));
+    }
+
     public function test_api_docs_module_is_enabled(): void
     {
         $this->assertTrue(
