@@ -122,26 +122,36 @@ compute_design_smoke_gate() {
     return 0
   fi
 
-  local base_ref
-  for candidate in github/main upstream/main origin/main main; do
-    if git rev-parse --verify --quiet "$candidate" >/dev/null; then
-      base_ref="$candidate"
-      break
-    fi
-  done
-
-  if [[ -z "${base_ref:-}" ]]; then
-    printf 'ℹ design-smoke gate: no base ref resolvable; enabling\n'
-    diff_touch_design_smoke=1
-    return 0
+  local design_diff_paths=""
+  local base_label=""
+  if [[ -n "${FOP_LOCAL_CI_DIFF_PATHS:-}" ]]; then
+    design_diff_paths="${FOP_LOCAL_CI_DIFF_PATHS}"
+    base_label="override"
   fi
 
-  local merge_base
-  merge_base="$(git merge-base "$base_ref" HEAD 2>/dev/null || echo "$base_ref")"
-  diff_paths="$(git diff --name-only "${merge_base}..HEAD" 2>/dev/null || true)"
+  local base_ref
+  if [[ -z "$design_diff_paths" ]]; then
+    for candidate in github/main upstream/main origin/main main; do
+      if git rev-parse --verify --quiet "$candidate" >/dev/null; then
+        base_ref="$candidate"
+        break
+      fi
+    done
 
-  if [[ -z "$diff_paths" ]]; then
-    printf 'ℹ design-smoke gate: empty diff vs %s; enabling\n' "$base_ref"
+    if [[ -z "${base_ref:-}" ]]; then
+      printf 'ℹ design-smoke gate: no base ref resolvable; enabling\n'
+      diff_touch_design_smoke=1
+      return 0
+    fi
+
+    local merge_base
+    merge_base="$(git merge-base "$base_ref" HEAD 2>/dev/null || echo "$base_ref")"
+    design_diff_paths="$(git diff --name-only "${merge_base}..HEAD" 2>/dev/null || true)"
+    base_label="$base_ref"
+  fi
+
+  if [[ -z "$design_diff_paths" ]]; then
+    printf 'ℹ design-smoke gate: empty diff vs %s; enabling\n' "$base_label"
     diff_touch_design_smoke=1
     return 0
   fi
@@ -149,12 +159,12 @@ compute_design_smoke_gate() {
   # `git diff --name-only` emits FILE paths (e.g. parkhub-web/src/design-v5/screens/Policies.tsx),
   # so directory alternatives must allow a tail (`/.*`). Also include `hooks/` since v5 screens
   # import shared hooks like useDraftFromActive — edits there can break the gate.
-  if grep -qE '^(parkhub-web/(src/(design-v5|views|components|context|api|lib|styles|hooks)/.*|src/(App|main)\.tsx|package(-lock)?\.json|astro\.config\.mjs|playwright\.config\.ts)|resources/js/.*|e2e/.*|playwright\.config\.ts|package(-lock)?\.json)$' <<<"$diff_paths"; then
+  if grep -qE '^(parkhub-web/(src/(design-v5|views|components|context|api|lib|styles|hooks)/.*|src/(App|main)\.tsx|package(-lock)?\.json|astro\.config\.mjs|playwright\.config\.ts)|resources/js/.*|e2e/.*|playwright\.config\.ts|package(-lock)?\.json)$' <<<"$design_diff_paths"; then
     diff_touch_design_smoke=1
   fi
 
   printf 'ℹ design-smoke gate (vs %s): enabled=%d (%d files)\n' \
-    "$base_ref" "$diff_touch_design_smoke" "$(wc -l <<<"$diff_paths")"
+    "$base_label" "$diff_touch_design_smoke" "$(wc -l <<<"$design_diff_paths")"
 }
 
 diff_paths=""
@@ -353,16 +363,16 @@ run_fop_step() {
   local status=${PIPESTATUS[0]}
   set -e
 
-  if [[ "$status" -ne 0 ]]; then
-    rm -f "$log_file"
-    return "$status"
-  fi
-
   if ! grep -Fq "$marker" "$log_file"; then
     echo "ERROR: fop build reported success but the inner step completion marker was missing." >&2
     echo "This usually means the wrapped command exited before completion or fop masked its status." >&2
     rm -f "$log_file"
     return 1
+  fi
+
+  if [[ "$status" -ne 0 ]]; then
+    echo "WARN: fop build exited ${status} after the wrapped step completed; continuing because the completion marker was present." >&2
+    echo "This can happen when fop's compact summary classifier flags advisory-only output after the command already handled it." >&2
   fi
 
   rm -f "$log_file"

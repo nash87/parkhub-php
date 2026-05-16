@@ -5,6 +5,8 @@ on:
     branches: [main]
   push:
     branches: [main]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 concurrency:
@@ -38,6 +40,9 @@ jobs:
         run: |
           python3 -m pip install --user yamllint
           ~/.local/bin/yamllint -c .yamllint.yml .github/workflows docker-compose.yml render.yaml koyeb.yaml
+
+      - name: Validate CI workflow policy
+        run: bash scripts/check-ci-workflow-policy.sh
 
       - name: Validate Fly config
         run: python3 -c "import pathlib, tomllib; tomllib.loads(pathlib.Path('fly.toml').read_text())"

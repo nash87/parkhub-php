@@ -19,12 +19,12 @@
 # Mirrored node:22-slim — pinned to the registry digest, NOT Docker Hub.
 #
 # NODE_BASE / WOLFI_BASE are parameterized so cloud CI (GitHub Actions) can
-# pass --build-arg NODE_BASE=docker.io/library/node:22-slim@sha256:aa8ccf90...
+# pass --build-arg NODE_BASE=docker.io/library/node:22-slim@sha256:868499d5...
 # and --build-arg WOLFI_BASE=cgr.dev/chainguard/wolfi-base@sha256:4973aa3c2ccbe13fe2049aab539b0ab342ec584bd5b54a269d55d4891091c639 while
 # local + gitea-runner builds default to the LAN mirror. Same images either
 # way, just different ingress to them.
 # ---------------------------------------------------------------------------
-ARG NODE_BASE=192.168.178.250:5000/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+ARG NODE_BASE=192.168.178.250:5000/node:22-slim@sha256:868499d55378719bffa87b0ed1f099591823c029b543043c09c2483468e93201
 ARG WOLFI_BASE=192.168.178.250:5000/wolfi-base@sha256:4973aa3c2ccbe13fe2049aab539b0ab342ec584bd5b54a269d55d4891091c639
 
 FROM ${NODE_BASE} AS frontend

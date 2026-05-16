@@ -89,3 +89,65 @@ if ! grep -q -- '-f state=failure' "$gh_log"; then
 fi
 
 green "    OK"
+
+cat > "$tmp_dir/fop" <<'STUB'
+#!/usr/bin/env bash
+set -euo pipefail
+
+args=("$@")
+command_start=-1
+for i in "${!args[@]}"; do
+    if [[ "${args[$i]}" == "--" ]]; then
+        command_start=$((i + 1))
+        break
+    fi
+done
+
+if [[ "$command_start" -lt 0 || "$command_start" -ge "${#args[@]}" ]]; then
+    echo "stub fop did not receive a wrapped command" >&2
+    exit 2
+fi
+
+set +e
+"${args[@]:$command_start}"
+inner_status=$?
+set -e
+
+if [[ "$inner_status" -ne 0 ]]; then
+    exit "$inner_status"
+fi
+
+echo "[FAIL] compact classifier false positive after inner command success" >&2
+exit 1
+STUB
+chmod +x "$tmp_dir/fop"
+
+for tool in composer npm python3 actionlint yamllint gitleaks helm docker zizmor typos osv-scanner; do
+    cat > "$tmp_dir/$tool" <<'STUB'
+#!/usr/bin/env bash
+exit 0
+STUB
+    chmod +x "$tmp_dir/$tool"
+done
+
+echo "==> fop-local-ci accepts a nonzero fop wrapper exit when the inner step marker is present"
+set +e
+PATH="$tmp_dir:/usr/bin:/bin" \
+FOP_LOCAL_CI_DIFF_PATHS=$'.github/workflows/security.yml' \
+    .github/scripts/fop-local-ci.sh --profile pr >"$tmp_dir/fop-marker.out" 2>&1
+status=$?
+set -e
+
+if [[ "$status" -ne 0 ]]; then
+    red "    FAILED: fop-local-ci rejected a completed wrapped step because fop returned nonzero"
+    cat "$tmp_dir/fop-marker.out"
+    exit 1
+fi
+
+if ! grep -q 'completion marker was present' "$tmp_dir/fop-marker.out"; then
+    red "    FAILED: fop-local-ci did not explain the marker-backed fop false positive"
+    cat "$tmp_dir/fop-marker.out"
+    exit 1
+fi
+
+green "    OK"

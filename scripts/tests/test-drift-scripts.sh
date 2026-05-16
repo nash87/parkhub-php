@@ -51,16 +51,17 @@ else
     exit 1
 fi
 
-# Stub dump-openapi.sh — re-emit the committed snapshot byte-for-byte so the
-# diff is empty in the clean case. Preserve perms on the backup so the
-# original exec bit survives the restore.
+# Stub dump-openapi.sh — re-emit the saved snapshot byte-for-byte so the
+# diff is empty in the clean case. Do not use `git show HEAD:path` here:
+# workstation git shims may format blob output for display and add bytes.
+# Preserve perms on the backup so the original exec bit survives the restore.
 DUMP_BACKUP="$(mktemp)"
 cp -p "$DUMP" "$DUMP_BACKUP"
-cat > "$DUMP" <<'STUB'
+cat > "$DUMP" <<STUB
 #!/usr/bin/env bash
-# Test stub: re-emit the committed snapshot so drift gate sees no diff.
+# Test stub: re-emit the saved snapshot so drift gate sees no diff.
 set -euo pipefail
-git show HEAD:docs/openapi/php.json > docs/openapi/php.json
+cp -p "$SNAPSHOT_BACKUP" docs/openapi/php.json
 STUB
 chmod +x "$DUMP"
 

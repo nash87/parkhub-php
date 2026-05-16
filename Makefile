@@ -143,6 +143,7 @@ ci-security:
 	scripts/ci/local-security-audit.sh --profile cd --strict-tools --fail-advisory
 
 script-tests:
+	bash scripts/check-ci-workflow-policy.sh
 	bash scripts/tests/test-drift-scripts.sh
 	bash scripts/tests/test-ui-polish-contract.sh
 	bash scripts/tests/test-devcontainer-contract.sh

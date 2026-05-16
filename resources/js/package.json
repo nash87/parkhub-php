@@ -51,5 +51,8 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "jsdom": "^29.0.0",
     "vitest": "^4.1.0"
+  },
+  "overrides": {
+    "devalue": "^5.8.1"
   }
 }
