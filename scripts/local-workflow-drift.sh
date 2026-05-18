@@ -46,6 +46,7 @@ EXEMPT_GITEA_MISSING=(
   devcontainer-publish.yml        # publishes to ghcr.io
   auto-merge.yml                  # github-only auto-merge of dependabot PRs
   deploy.yml                      # github-only Render/Fly/Koyeb dispatch
+  codeql.yml                      # GitHub Advanced Security exclusive (no gitea equivalent)
 )
 
 # Files that are documented as gitea-only (no github mirror needed) — these
