@@ -1,0 +1,43 @@
+# Zizmor GHA SAST policy for nash87/parkhub-php.
+#
+# Zizmor is GitHub Actions-specific static analysis. As of 2026 the
+# workflow security.yml runs it in audit-mode (continue-on-error: true,
+# min-severity: high). This config file exists so the eventual
+# promotion from audit-mode → required-gate (see audit recommendations
+# 4 + 5 in /tmp/parkhub-php-cicd-audit.md) lands in a separate PR
+# without re-bikeshedding the rule set.
+#
+# Reference: SOTA 2026 CI/CD research synthesis at memory
+# `reference_sota_2026_cicd_parkhub_research_2026_05_18`.
+#
+# Schema: https://docs.zizmor.sh/configuration/
+
+# Suppress ref-version-mismatch on Dependabot-owned workflow paths.
+# Dependabot updates the action SHA but does not always update the
+# inline `# v4` style version comment. This is cosmetic noise, not a
+# security signal — the bot owns both sides of the version-comment +
+# SHA pair, and the comment is informational only.
+#
+# Long-term fix: pair Dependabot with `pinact` or `ratchet` to keep
+# the comments synced automatically. Until then, suppress here so the
+# audit baseline stays free of recurring informational hits that drown
+# out real findings.
+rules:
+  ref-version-mismatch:
+    ignore:
+      # Dependabot's own auto-merge workflow uses dependabot/fetch-metadata
+      # — the bot publishes both the action SHA and any matching comment.
+      - .github/workflows/dependabot-auto-merge.yml
+      # Label-gated human auto-merge — gh CLI only, no third-party action
+      # SHAs that Dependabot bumps.
+      - .github/workflows/auto-merge.yml
+
+# TODO follow-up (separate PR):
+# - Enable the `dependabot-cooldown` rule with the project's
+#   dependabot.yml cooldown profile (5d patch / 10d minor / 15d major)
+#   to actively enforce stabilityDays-style SOTA-2026 mitigation
+#   against newly-published-version supply-chain attacks. Schema +
+#   key names need verification against current zizmor docs first.
+# - Add `roave/security-advisories: dev-latest` to composer.json
+#   require-dev (composer-side install-time blocker, complements
+#   composer audit which is run-time).
