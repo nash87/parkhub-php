@@ -167,6 +167,45 @@ compute_design_smoke_gate() {
     "$base_label" "$diff_touch_design_smoke" "$(wc -l <<<"$design_diff_paths")"
 }
 
+# Allocate a Laravel dev-server port that is unlikely to collide with a
+# sibling fop-local-ci run for a different PR worktree on the same desktop.
+# Concurrent runs all spawn `php artisan serve` via `scripts/e2e-local.sh`
+# (design-smoke) or the playwright e2e step (cd/full); without a unique port
+# the second-and-later runners fail with `Failed to listen on 127.0.0.1:8082
+# (Address already in use)` and the whole gate posts a false `failure`.
+#
+# Order of preference:
+#   1. FOP_LOCAL_CI_LARAVEL_PORT (explicit operator override)
+#   2. SERVER_PORT (caller may already have one in env from outer wrapper)
+#   3. 8082 if free (preserves docs + screenshots + muscle memory)
+#   4. random free port in the ephemeral range (49152-65535) from `ss`
+#   5. fallback: 8082 + small random offset (best-effort if `ss` missing)
+allocate_laravel_port() {
+  if [[ -n "${FOP_LOCAL_CI_LARAVEL_PORT:-}" ]]; then
+    printf '%s' "${FOP_LOCAL_CI_LARAVEL_PORT}"
+    return 0
+  fi
+  if [[ -n "${SERVER_PORT:-}" ]]; then
+    printf '%s' "${SERVER_PORT}"
+    return 0
+  fi
+  if command -v ss >/dev/null 2>&1; then
+    local in_use
+    in_use="$(ss -tan 2>/dev/null | awk 'NR>1 {sub(/.*:/,"",$4); print $4}' | sort -un)"
+    if ! grep -qx '8082' <<<"$in_use"; then
+      printf '%s' '8082'
+      return 0
+    fi
+    local picked
+    picked="$(comm -23 <(seq 49152 65535) <(printf '%s\n' "$in_use") 2>/dev/null | shuf -n 1)"
+    if [[ -n "$picked" ]]; then
+      printf '%s' "$picked"
+      return 0
+    fi
+  fi
+  printf '%s' "$((8083 + RANDOM % 200))"
+}
+
 diff_paths=""
 diff_aware_enabled=0
 diff_touch_php=0
@@ -462,6 +501,14 @@ trap 'mark_failure "$LINENO"' ERR
 
 compute_diff_paths
 compute_design_smoke_gate
+
+# Allocate a unique Laravel dev-server port for this run before any step
+# spawns `php artisan serve`. Exported so child processes (scripts/e2e-local.sh,
+# the inline playwright block, schemathesis, wait-for-url) all see it.
+SERVER_PORT="$(allocate_laravel_port)"
+export SERVER_PORT
+printf 'ℹ Laravel dev-server port: %s (override with FOP_LOCAL_CI_LARAVEL_PORT)\n' "$SERVER_PORT"
+
 post_commit_status "pending" "fop local ${profile} running"
 
 run_direct "working tree whitespace" "git diff --check"
@@ -584,7 +631,7 @@ if [[ "$profile" == "full" || "$profile" == "cd" ]]; then
 
   run_step_heavy "playwright chromium browser install" "npx playwright install --with-deps chromium"
 
-  run_step_heavy "playwright chromium e2e" "e2e_db=\"\${FOP_LOCAL_CI_E2E_DB:-/tmp/parkhub-e2e-\$\$.sqlite}\"; rm -f \"\$e2e_db\"; export DB_CONNECTION=sqlite DB_DATABASE=\"\$e2e_db\" DEMO_MODE=true PARKHUB_ADMIN_PASSWORD=demo PARKHUB_DISABLE_RATE_LIMITS=true E2E_BASE_URL=http://127.0.0.1:8082; ./scripts/ci/bootstrap-laravel.sh && php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force --no-interaction && CI=true npm run build:php --prefix parkhub-web && pid=''; cleanup() { if [[ -n \"\${pid:-}\" ]]; then kill \"\$pid\" 2>/dev/null || true; fi; rm -f \"\$e2e_db\"; }; trap cleanup EXIT; { php artisan serve --host=127.0.0.1 --port=8082 >/tmp/parkhub-e2e.log 2>&1 & pid=\$!; }; ./scripts/ci/wait-for-url.sh http://127.0.0.1:8082/api/v1/health/live 60 && npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium"
+  run_step_heavy "playwright chromium e2e" "e2e_db=\"\${FOP_LOCAL_CI_E2E_DB:-/tmp/parkhub-e2e-\$\$.sqlite}\"; rm -f \"\$e2e_db\"; export DB_CONNECTION=sqlite DB_DATABASE=\"\$e2e_db\" DEMO_MODE=true PARKHUB_ADMIN_PASSWORD=demo PARKHUB_DISABLE_RATE_LIMITS=true E2E_BASE_URL=http://127.0.0.1:\${SERVER_PORT}; ./scripts/ci/bootstrap-laravel.sh && php artisan migrate:fresh --seed --seeder=ProductionSimulationSeeder --force --no-interaction && CI=true npm run build:php --prefix parkhub-web && pid=''; cleanup() { if [[ -n \"\${pid:-}\" ]]; then kill \"\$pid\" 2>/dev/null || true; fi; rm -f \"\$e2e_db\"; }; trap cleanup EXIT; { php artisan serve --host=127.0.0.1 --port=\${SERVER_PORT} >/tmp/parkhub-e2e-\${SERVER_PORT}.log 2>&1 & pid=\$!; }; ./scripts/ci/wait-for-url.sh http://127.0.0.1:\${SERVER_PORT}/api/v1/health/live 60 && npx playwright test e2e/api.spec.ts e2e/pages.spec.ts e2e/v5-a11y.spec.ts --project=chromium"
 fi
 
 if [[ "$profile" == "cd" ]]; then
