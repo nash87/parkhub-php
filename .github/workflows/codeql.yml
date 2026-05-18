@@ -1,0 +1,104 @@
+name: CodeQL
+
+# First-party SAST for the application sources (PHP backend + JS/TS
+# frontend). Complements security.yml zizmor (which scans GHA
+# workflows only) and dependency-review.yml (which checks
+# dependencies, not first-party code).
+#
+# Identified as the highest-impact gap in 2026-05-19 audit (gap #3
+# of /tmp/parkhub-php-cicd-audit.md): zizmor is Actions-only; CodeQL
+# is the obvious cross-language complement.
+#
+# IMPORTANT - operator action items before this workflow becomes a
+# required check:
+#   1. Pin every github/codeql-action/*@<SHA> reference below to a
+#      verified 40-char commit SHA (currently version tags). The repo's
+#      allowed-actions list (see PR #499's experience with
+#      dependency-review-action) rejects anything not explicitly
+#      listed.
+#   2. Add the chosen SHAs to the allow-list in repo Settings ->
+#      Actions -> 'Allow specified actions and reusable workflows'.
+#   3. Enable GitHub Advanced Security on the repo if private (parkhub
+#      visibility unclear from this lane; CodeQL is free on public
+#      repos and requires GHAS on private).
+#   4. Only after a first green run on main, add CodeQL / Analyze
+#      (javascript-typescript) and ... (php) to required status
+#      checks in branch protection.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Sunday 06:14 UTC - off-peak; mirrors scorecard.yml weekly cadence
+    # so security weekly artifacts converge on the same Monday review.
+    - cron: '14 6 * * 0'
+
+# Single-run cancellation per ref. PRs replace older runs; main pushes
+# replace older main runs. Saves runner minutes during rebase storms.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  # security-events: write is required for CodeQL to upload SARIF to
+  # the repo Security tab. Without it the job runs but findings are
+  # invisible to the operator review surface.
+  security-events: write
+  # actions: read needed for CodeQL to enumerate workflow files when
+  # language: javascript-typescript picks up GHA YAML as JS via its
+  # template engine. Without this the JS-TS analysis silently degrades.
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # javascript-typescript is the 2026 unified language ID
+          # (replaces separate javascript and typescript). Covers
+          # both Astro 5 + React 19 frontend + Vitest specs.
+          - language: javascript-typescript
+            build-mode: none
+          # PHP analysis covers the Laravel backend.
+          - language: php
+            build-mode: none
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4 (repo allow-listed SHA)
+
+      - name: Initialize CodeQL
+        # TODO operator: replace tag with verified 40-char SHA for v3
+        # latest release before adding to required checks. See header.
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          # security-extended adds query packs beyond security -
+          # widens injection / serialization / SSRF / XXE coverage at
+          # a small runtime cost. security-and-quality would add
+          # maintainability noise (complexity-high, etc.) - keep
+          # those for nightly only if ever enabled.
+          queries: security-extended
+
+      # build-mode: none implies CodeQL extracts directly without a
+      # build step. PHP and JS-TS both support this in 2026. If the
+      # PHP autoloader-reflection ever degrades extraction quality,
+      # switch this job's build-mode to manual and run
+      # composer install --no-dev --no-progress here.
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:${{ matrix.language }}
+          # Upload SARIF to Security tab. Off-by-default for forks
+          # (CodeQL refuses upload from forks for security reasons).
+          upload: always
