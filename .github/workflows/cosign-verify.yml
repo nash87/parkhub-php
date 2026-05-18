@@ -38,7 +38,7 @@ jobs:
       # Identity expected for keyless cosign signatures: the docker-publish
       # workflow on the main branch of this repository, signed via the
       # GitHub-hosted Sigstore Fulcio issuer.
-      EXPECTED_IDENTITY_REGEX: ^https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yml@refs/(heads|tags)/.+$
+      EXPECTED_IDENTITY_REGEX: ^https://github.com/${{ github.repository }}/.github/workflows/docker-publish.yml@refs/(heads/main|tags/v.+)$
       EXPECTED_OIDC_ISSUER: https://token.actions.githubusercontent.com
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6

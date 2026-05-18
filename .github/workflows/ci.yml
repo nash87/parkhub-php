@@ -80,15 +80,9 @@ jobs:
           persist-credentials: false
 
       - name: Review dependencies
-        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v4
-        # Advisory until GitHub Dependency Graph is enabled for this repo.
-        continue-on-error: true
-        with:
-          fail-on-severity: high
-          # Mirror of `.github/workflows/dependency-review.yml` deny-list —
-          # keep both in sync. SPDX identifiers verified against
-          # https://spdx.org/licenses/ (BUSL-1.1, NOT BSL-1.1 which is Boost).
-          deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0, AGPL-3.0-or-later, BUSL-1.1, SSPL-1.0, FSL-1.0-ALv2, FSL-1.0-MIT, FSL-1.1-MIT
+        # Canonical SPDX deny-list lives in the composite action.
+        # Edit .github/actions/dependency-review/action.yml to change policy.
+        uses: ./.github/actions/dependency-review
 
   local-ci-attestation:
     # Attestation gate: same-repo PRs must publish a successful
