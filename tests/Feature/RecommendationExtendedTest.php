@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\ParkingSlot;
+use App\Models\Setting;
 use App\Models\User;
+use App\Services\ModuleRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class RecommendationExtendedTest extends TestCase
@@ -30,8 +34,44 @@ class RecommendationExtendedTest extends TestCase
         $response->assertOk();
         $data = $response->json('data');
         $this->assertNotEmpty($data);
+        $this->assertArrayHasKey('recommendation_id', $data[0]);
         $this->assertArrayHasKey('reason_badges', $data[0]);
         $this->assertContains('available_now', $data[0]['reason_badges']);
+    }
+
+    public function test_recommendations_emit_served_audit_log(): void
+    {
+        $user = User::factory()->create();
+        $lot = ParkingLot::create([
+            'name' => 'Audit Lot',
+            'total_slots' => 1,
+            'available_slots' => 1,
+            'status' => 'open',
+            'hourly_rate' => 4.0,
+        ]);
+        $slot = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '1', 'status' => 'available']);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/bookings/recommendations');
+
+        $response->assertOk();
+        $recommendationId = $response->json('data.0.recommendation_id');
+        $this->assertNotEmpty($recommendationId);
+
+        $entry = AuditLog::query()->where('action', 'recommendation_served')->first();
+        $this->assertNotNull($entry);
+        $this->assertSame('RecommendationServed', $entry->event_type);
+        $this->assertSame('recommendation', $entry->target_type);
+        $this->assertSame($recommendationId, $entry->target_id);
+        $this->assertSame($recommendationId, $entry->details['recommendation_id']);
+        $this->assertSame('weighted_v1', $entry->details['algorithm']);
+        $this->assertSame('weighted_v1', $entry->details['adapter']['effective_algorithm']);
+        $this->assertFalse($entry->details['adapter']['attempted']);
+        $this->assertSame([$slot->id], $entry->details['candidate_ids']);
+        $this->assertTrue($entry->details['profile_safe_mode']);
+        $this->assertTrue($entry->details['explain']);
+        $this->assertFalse($entry->details['legal_boundary']['execution_allowed']);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $entry->details['config_hash']);
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $entry->details['weights_hash']);
     }
 
     public function test_recommendations_weighted_scoring(): void
@@ -71,6 +111,194 @@ class RecommendationExtendedTest extends TestCase
         $this->assertContains('your_usual_spot', $data[0]['reason_badges']);
     }
 
+    public function test_weighted_v1_fixture_matches_contract(): void
+    {
+        $fixture = json_decode(
+            (string) file_get_contents(base_path('docs/recommendation-engine-fixtures/weighted_v1.basic.json')),
+            true,
+            512,
+            JSON_THROW_ON_ERROR
+        );
+        $this->assertSame('weighted_v1', $fixture['algorithm']);
+
+        $user = User::factory()->create();
+        $lots = [];
+        $slots = [];
+        $slotLotKeys = [];
+
+        foreach ($fixture['candidate_lots'] as $fixtureLot) {
+            $lot = ParkingLot::create([
+                'name' => $fixtureLot['id'],
+                'total_slots' => count($fixtureLot['slots']),
+                'available_slots' => count($fixtureLot['slots']),
+                'status' => 'open',
+                'hourly_rate' => $fixtureLot['hourly_rate'],
+            ]);
+            $lots[$fixtureLot['id']] = $lot;
+
+            foreach ($fixtureLot['slots'] as $fixtureSlot) {
+                $slots[$fixtureSlot['id']] = ParkingSlot::create([
+                    'lot_id' => $lot->id,
+                    'slot_number' => (string) $fixtureSlot['slot_number'],
+                    'status' => $fixtureSlot['status'],
+                    'is_accessible' => $fixtureSlot['is_accessible'],
+                    'features' => $fixtureSlot['features'],
+                ]);
+                $slotLotKeys[$fixtureSlot['id']] = $fixtureLot['id'];
+            }
+        }
+
+        foreach ($fixture['history']['slot_usage'] as $slotKey => $usage) {
+            $slot = $slots[$slotKey];
+            $lot = $lots[$slotLotKeys[$slotKey]];
+            for ($i = 0; $i < $usage; $i++) {
+                Booking::create([
+                    'user_id' => $user->id,
+                    'lot_id' => $lot->id,
+                    'slot_id' => $slot->id,
+                    'lot_name' => $lot->name,
+                    'slot_number' => $slot->slot_number,
+                    'start_time' => now()->subDays($i + 1),
+                    'end_time' => now()->subDays($i + 1)->addHours(2),
+                    'status' => 'completed',
+                ]);
+            }
+        }
+
+        $slotKeysById = collect($slots)->mapWithKeys(fn ($slot, string $key) => [$slot->id => $key]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/bookings/recommendations');
+
+        $response->assertOk();
+        $actual = collect($response->json('data'))->map(fn (array $item) => [
+            'slot_id' => $slotKeysById[$item['slot_id']],
+            'score' => round((float) $item['score'], 2),
+            'badges' => $item['reason_badges'],
+            'reasons' => $item['reasons'],
+        ])->values()->all();
+        $expected = collect($fixture['expected_ranked_slots'])->map(fn (array $item) => [
+            'slot_id' => $item['slot_id'],
+            'score' => (float) $item['score'],
+            'badges' => $item['badges'],
+            'reasons' => $item['reasons'],
+        ])->all();
+
+        $this->assertSame($expected, $actual);
+    }
+
+    public function test_fop_pipeline_v1_success_reorders_known_candidates(): void
+    {
+        $user = User::factory()->create();
+        $lot = ParkingLot::create([
+            'name' => 'Pipeline Lot',
+            'total_slots' => 2,
+            'available_slots' => 2,
+            'status' => 'open',
+            'hourly_rate' => 2.0,
+        ]);
+        $slot1 = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '1', 'status' => 'available']);
+        $slot2 = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '2', 'status' => 'available']);
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'algorithm'), json_encode('fop_pipeline_v1'));
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'pipeline_endpoint'), json_encode('http://fop-pipeline.test:9310'));
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'pipeline_name'), json_encode('parkhub-recommendations'));
+
+        Http::fake([
+            'http://fop-pipeline.test:9310/*' => Http::response([
+                'ok' => true,
+                'data' => [
+                    'ranked' => [
+                        [
+                            'slot_id' => $slot2->id,
+                            'score' => 99.5,
+                            'reasons' => ['Pipeline selected'],
+                            'reason_badges' => ['available_now'],
+                        ],
+                        [
+                            'slot_id' => $slot1->id,
+                            'score' => 10,
+                            'reasons' => ['Pipeline fallback rank'],
+                            'reason_badges' => ['available_now'],
+                        ],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/bookings/recommendations');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.slot_id', $slot2->id)
+            ->assertJsonPath('data.0.score', 99.5)
+            ->assertJsonPath('data.0.reasons.0', 'Pipeline selected');
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/pipeline/parkhub-recommendations/run')
+            && data_get($request->data(), 'algorithm') === 'fop_pipeline_v1'
+            && data_get($request->data(), 'fallback_algorithm') === 'weighted_v1'
+            && data_get($request->data(), 'profile_safe_mode') === true);
+
+        $entry = AuditLog::query()->where('action', 'recommendation_served')->first();
+        $this->assertSame('fop_pipeline_v1', $entry->details['algorithm']);
+        $this->assertSame('fop_pipeline_v1', $entry->details['adapter']['effective_algorithm']);
+        $this->assertSame('succeeded', $entry->details['adapter']['status']);
+        $this->assertTrue($entry->details['adapter']['attempted']);
+    }
+
+    public function test_fop_pipeline_v1_falls_back_when_endpoint_missing(): void
+    {
+        $user = User::factory()->create();
+        $lot = ParkingLot::create([
+            'name' => 'Fallback Lot',
+            'total_slots' => 1,
+            'available_slots' => 1,
+            'status' => 'open',
+            'hourly_rate' => 2.0,
+        ]);
+        $slot = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '1', 'status' => 'available']);
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'algorithm'), json_encode('fop_pipeline_v1'));
+
+        Http::fake();
+
+        $response = $this->actingAs($user)->getJson('/api/v1/bookings/recommendations');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.slot_id', $slot->id);
+        Http::assertNothingSent();
+
+        $entry = AuditLog::query()->where('action', 'recommendation_served')->first();
+        $this->assertSame('fop_pipeline_v1', $entry->details['algorithm']);
+        $this->assertSame('weighted_v1', $entry->details['adapter']['effective_algorithm']);
+        $this->assertSame('fallback_not_configured', $entry->details['adapter']['status']);
+        $this->assertFalse($entry->details['adapter']['attempted']);
+    }
+
+    public function test_fop_pipeline_v1_rejects_external_endpoint_and_falls_back(): void
+    {
+        $user = User::factory()->create();
+        $lot = ParkingLot::create([
+            'name' => 'External Endpoint Lot',
+            'total_slots' => 1,
+            'available_slots' => 1,
+            'status' => 'open',
+            'hourly_rate' => 2.0,
+        ]);
+        $slot = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '1', 'status' => 'available']);
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'algorithm'), json_encode('fop_pipeline_v1'));
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'pipeline_endpoint'), json_encode('https://example.com/pipeline'));
+
+        Http::fake();
+
+        $response = $this->actingAs($user)->getJson('/api/v1/bookings/recommendations');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.slot_id', $slot->id);
+        Http::assertNothingSent();
+
+        $entry = AuditLog::query()->where('action', 'recommendation_served')->first();
+        $this->assertSame('fop_pipeline_v1', $entry->details['algorithm']);
+        $this->assertSame('weighted_v1', $entry->details['adapter']['effective_algorithm']);
+        $this->assertSame('fallback_not_configured', $entry->details['adapter']['status']);
+        $this->assertFalse($entry->details['adapter']['endpoint_configured']);
+    }
+
     public function test_recommendations_stats_endpoint(): void
     {
         $admin = User::factory()->admin()->create();
@@ -82,7 +310,45 @@ class RecommendationExtendedTest extends TestCase
             ->assertJsonPath('data.algorithm_weights.frequency', 40)
             ->assertJsonPath('data.algorithm_weights.availability', 30)
             ->assertJsonPath('data.algorithm_weights.price', 20)
-            ->assertJsonPath('data.algorithm_weights.distance', 10);
+            ->assertJsonPath('data.algorithm_weights.distance', 10)
+            ->assertJsonPath('data.algorithm_weights.feature_bonus', 2)
+            ->assertJsonPath('data.algorithm_adapter.effective_algorithm', 'weighted_v1')
+            ->assertJsonPath('data.algorithm_adapter.fallback_enabled', true)
+            ->assertJsonPath('data.legal_boundary.legal_review_required', true)
+            ->assertJsonPath('data.legal_boundary.attorney_review_status', 'required_before_customer_wording')
+            ->assertJsonPath('data.legal_boundary.execution_allowed', false);
+    }
+
+    public function test_recommendations_stats_requires_admin(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->getJson('/api/v1/recommendations/stats')->assertForbidden();
+    }
+
+    public function test_recommendations_stats_reflect_configured_engine_weights(): void
+    {
+        Setting::set(
+            ModuleRegistry::configSettingKey('recommendations', 'weight_frequency'),
+            json_encode(55.0),
+        );
+        Setting::set(
+            ModuleRegistry::configSettingKey('recommendations', 'weight_preferred_lot'),
+            json_encode(15.0),
+        );
+        Setting::set(
+            ModuleRegistry::configSettingKey('recommendations', 'profile_safe_mode'),
+            json_encode(true),
+        );
+
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($admin)
+            ->getJson('/api/v1/recommendations/stats')
+            ->assertOk()
+            ->assertJsonPath('data.algorithm', 'weighted_v1')
+            ->assertJsonPath('data.algorithm_weights.frequency', 55)
+            ->assertJsonPath('data.algorithm_weights.preferred_lot', 15);
     }
 
     public function test_recommendations_stats_with_bookings(): void
@@ -118,12 +384,17 @@ class RecommendationExtendedTest extends TestCase
             'status' => 'active',
         ]);
 
-        $response = $this->actingAs($user)->getJson('/api/v1/recommendations/stats');
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->getJson('/api/v1/recommendations/stats');
 
         $response->assertOk()
             ->assertJsonPath('data.total_recommendations', 2)
             ->assertJsonPath('data.accepted', 1)
-            ->assertJsonPath('data.acceptance_rate', 50);
+            ->assertJsonPath('data.acceptance_rate', 50)
+            ->assertJsonPath('data.total_recommendations_served', 6)
+            ->assertJsonPath('data.top_recommended_lots.0.lot_name', 'Stats Lot')
+            ->assertJsonPath('data.top_recommended_lots.0.count', 2);
     }
 
     public function test_recommendations_price_scoring(): void
@@ -203,6 +474,7 @@ class RecommendationExtendedTest extends TestCase
 
         $user = User::factory()->create();
 
+        $this->actingAs($user)->getJson('/api/v1/bookings/recommendations')->assertNotFound();
         $this->actingAs($user)->getJson('/api/v1/recommendations/stats')->assertNotFound();
     }
 }

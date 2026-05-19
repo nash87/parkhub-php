@@ -34281,43 +34281,149 @@
                           "minimum": 0,
                           "type": "integer"
                         },
+                        "algorithm": {
+                          "const": "weighted_v1",
+                          "type": "string"
+                        },
+                        "algorithm_adapter": {
+                          "properties": {
+                            "attempted": {
+                              "type": "boolean"
+                            },
+                            "effective_algorithm": {
+                              "const": "weighted_v1",
+                              "type": "string"
+                            },
+                            "endpoint_configured": {
+                              "type": "boolean"
+                            },
+                            "error": {
+                              "type": "null"
+                            },
+                            "fallback_enabled": {
+                              "type": "boolean"
+                            },
+                            "pipeline_name": {
+                              "type": "null"
+                            },
+                            "requested_algorithm": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "const": "weighted_v1",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "requested_algorithm",
+                            "effective_algorithm",
+                            "attempted",
+                            "status",
+                            "pipeline_name",
+                            "endpoint_configured",
+                            "fallback_enabled",
+                            "error"
+                          ],
+                          "type": "object"
+                        },
                         "algorithm_weights": {
                           "properties": {
+                            "accessibility_bonus": {
+                              "type": "number"
+                            },
                             "availability": {
-                              "const": 30,
-                              "type": "integer"
+                              "type": "number"
                             },
                             "distance": {
-                              "const": 10,
-                              "type": "integer"
+                              "type": "number"
+                            },
+                            "feature_bonus": {
+                              "type": "number"
                             },
                             "frequency": {
-                              "const": 40,
-                              "type": "integer"
+                              "type": "number"
+                            },
+                            "preferred_lot": {
+                              "type": "number"
                             },
                             "price": {
-                              "const": 20,
-                              "type": "integer"
+                              "type": "number"
                             }
                           },
                           "required": [
                             "frequency",
+                            "preferred_lot",
                             "availability",
                             "price",
-                            "distance"
+                            "distance",
+                            "accessibility_bonus",
+                            "feature_bonus"
                           ],
                           "type": "object"
                         },
+                        "avg_score": {
+                          "anyOf": [
+                            {
+                              "const": 72.5,
+                              "type": "number"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "legal_boundary": {
+                          "properties": {
+                            "attorney_review_status": {
+                              "const": "required_before_customer_wording",
+                              "type": "string"
+                            },
+                            "disclaimer": {
+                              "const": "fop legal output is reference-only drafting support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing profiling or legal wording ships.",
+                              "type": "string"
+                            },
+                            "execution_allowed": {
+                              "type": "boolean"
+                            },
+                            "legal_review_required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "legal_review_required",
+                            "attorney_review_status",
+                            "execution_allowed",
+                            "disclaimer"
+                          ],
+                          "type": "object"
+                        },
+                        "top_recommended_lots": {
+                          "type": "string"
+                        },
                         "total_recommendations": {
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "total_recommendations_served": {
+                          "type": "string"
+                        },
+                        "unique_users": {
                           "minimum": 0,
                           "type": "integer"
                         }
                       },
                       "required": [
                         "total_recommendations",
+                        "total_recommendations_served",
                         "accepted",
                         "acceptance_rate",
-                        "algorithm_weights"
+                        "unique_users",
+                        "avg_score",
+                        "algorithm",
+                        "algorithm_weights",
+                        "algorithm_adapter",
+                        "legal_boundary",
+                        "top_recommended_lots"
                       ],
                       "type": "object"
                     },

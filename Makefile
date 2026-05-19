@@ -146,6 +146,7 @@ script-tests:
 	bash scripts/check-ci-workflow-policy.sh
 	bash scripts/tests/test-drift-scripts.sh
 	bash scripts/tests/test-ui-polish-contract.sh
+	bash scripts/check-recommendation-contract.sh
 	bash scripts/tests/test-devcontainer-contract.sh
 	bash scripts/tests/test-fop-local-ci-ergonomics.sh
 	bash scripts/tests/test-fop-local-ci-failure-trap.sh

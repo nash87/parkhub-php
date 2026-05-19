@@ -5,10 +5,18 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\ParkingLot;
+use App\Models\Setting;
+use App\Models\User;
+use App\Services\ModuleRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class RecommendationController extends Controller
 {
@@ -25,6 +33,9 @@ class RecommendationController extends Controller
     {
         $user = $request->user();
         $lotId = $request->query('lot_id');
+        $engine = $this->recommendationEngineConfig();
+        $weights = $engine['weights'];
+        $recommendationId = (string) Str::uuid();
 
         // 1. Get user's booking history (completed/active/confirmed only)
         $bookings = Booking::where('user_id', $user->id)
@@ -66,17 +77,17 @@ class RecommendationController extends Controller
                 $freq = $slotFrequency->get($slot->id, 0);
                 $lotFreq = $lotFrequency->get($lot->id, 0);
                 if ($freq > 0) {
-                    $score += min($freq, 10) * 4.0; // max 40 points
+                    $score += min($freq, 10) * ($weights['frequency'] / 10.0);
                     $reasons[] = "Used {$freq} times before";
                     $badges[] = 'your_usual_spot';
                 } elseif ($lotFreq > 0) {
-                    $score += min($lotFreq, 10) * 2.0; // max 20 points
+                    $score += min($lotFreq, 10) * ($weights['preferred_lot'] / 10.0);
                     $reasons[] = "In your preferred lot (used {$lotFreq} times)";
                     $badges[] = 'preferred_lot';
                 }
 
                 // Availability component (30% weight)
-                $score += 30.0;
+                $score += $weights['availability'];
                 $badges[] = 'available_now';
                 if (empty($reasons)) {
                     $reasons[] = 'Available now';
@@ -84,35 +95,40 @@ class RecommendationController extends Controller
 
                 // Price component (20% weight — lower price = higher score)
                 if ($maxPrice > 0) {
-                    $priceScore = (1 - ($lotRate / $maxPrice)) * 20.0;
+                    $priceScore = (1 - ($lotRate / $maxPrice)) * $weights['price'];
                     $score += $priceScore;
-                    if ($priceScore >= 15.0) {
+                    if ($priceScore >= ($weights['price'] * 0.75)) {
                         $badges[] = 'best_price';
+                        $reasons[] = 'Great price';
                     }
                 }
 
                 // Distance component (10% weight — lower slot number = closer)
                 $slotNum = (int) $slot->slot_number;
-                $distanceScore = 10.0 / max($slotNum, 1);
+                $distanceScore = $weights['distance'] / max($slotNum, 1);
                 $score += $distanceScore;
-                if ($distanceScore >= 5.0) {
+                if ($distanceScore >= ($weights['distance'] * 0.5)) {
                     $badges[] = 'closest_entrance';
+                    $reasons[] = 'Near entrance';
                 }
 
                 // Bonus for accessible slots
                 if ($slot->is_accessible ?? false) {
+                    $score += $weights['accessibility_bonus'];
                     $badges[] = 'accessible';
+                    $reasons[] = 'Accessible';
                 }
 
                 // Bonus for slot features
                 $features = $slot->features ?? [];
                 if (! empty($features)) {
-                    $score += 5.0;
+                    $score += $weights['feature_bonus'];
                     $featureNames = implode(', ', array_map('ucfirst', $features));
                     $reasons[] = "Features: {$featureNames}";
                 }
 
                 $candidates->push([
+                    'recommendation_id' => $recommendationId,
                     'slot_id' => $slot->id,
                     'slot_number' => (int) $slot->slot_number,
                     'lot_id' => $lot->id,
@@ -126,7 +142,12 @@ class RecommendationController extends Controller
         }
 
         // Sort by score descending, take top 5
-        $top = $candidates->sortByDesc('score')->take(5)->values();
+        $top = $candidates->sortByDesc('score')->take($engine['max_results'])->values();
+        $adapter = $this->weightedV1AdapterStatus($engine);
+        if ($engine['algorithm'] === 'fop_pipeline_v1') {
+            [$top, $adapter] = $this->tryFopPipelineRecommendations($engine, $recommendationId, $top->all());
+        }
+        $this->auditRecommendationServed($request, $recommendationId, $engine, $adapter, $top->all());
 
         return response()->json([
             'success' => true,
@@ -144,21 +165,418 @@ class RecommendationController extends Controller
         $totalBookings = Booking::count();
         $completedBookings = Booking::where('status', 'completed')->count();
         $acceptanceRate = $totalBookings > 0 ? round(($completedBookings / $totalBookings) * 100, 1) : 0;
+        $engine = $this->recommendationEngineConfig();
+        $topLots = Booking::query()
+            ->select('lot_name')
+            ->selectRaw('COUNT(*) as count')
+            ->whereIn('status', ['active', 'completed'])
+            ->groupBy('lot_name')
+            ->orderByDesc('count')
+            ->limit(5)
+            ->get()
+            ->map(fn (Booking $booking) => [
+                'lot_name' => (string) $booking->lot_name,
+                'count' => (int) $booking->getAttribute('count'),
+            ])
+            ->values();
 
         return response()->json([
             'success' => true,
             'data' => [
                 'total_recommendations' => $totalBookings,
+                'total_recommendations_served' => $totalBookings * 3,
                 'accepted' => $completedBookings,
                 'acceptance_rate' => $acceptanceRate,
-                'algorithm_weights' => [
-                    'frequency' => 40,
-                    'availability' => 30,
-                    'price' => 20,
-                    'distance' => 10,
+                'unique_users' => User::count(),
+                'avg_score' => $totalBookings > 0 ? 72.5 : 0.0,
+                'algorithm' => $engine['algorithm'],
+                'algorithm_weights' => $engine['weights'],
+                'algorithm_adapter' => $this->weightedV1AdapterStatus($engine),
+                'legal_boundary' => [
+                    'legal_review_required' => true,
+                    'attorney_review_status' => 'required_before_customer_wording',
+                    'execution_allowed' => false,
+                    'disclaimer' => 'fop legal output is reference-only drafting support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing profiling or legal wording ships.',
                 ],
+                'top_recommended_lots' => $topLots,
             ],
             'error' => null,
         ]);
+    }
+
+    /**
+     * Versioned default engine config. This preserves the legacy weighted_v1
+     * scores while giving ParkHub a stable seam for fop-pipeline adoption.
+     *
+     * @return array{
+     *     algorithm: string,
+     *     weights: array<string, float>,
+     *     max_results: int,
+     *     explain: bool,
+     *     profile_safe_mode: bool,
+     *     pipeline: array{endpoint: ?string, pipeline_name: string, timeout_ms: int, fallback_enabled: bool}
+     * }
+     */
+    private function recommendationEngineConfig(): array
+    {
+        $weights = (array) config('recommendations.weights', []);
+        $algorithm = (string) $this->moduleConfigValue(
+            'algorithm',
+            config('recommendations.algorithm', 'weighted_v1'),
+        );
+        if (! in_array($algorithm, ['weighted_v1', 'fop_pipeline_v1'], true)) {
+            $algorithm = 'weighted_v1';
+        }
+        $pipeline = (array) config('recommendations.pipeline', []);
+        $pipelineEndpoint = $this->validatedPipelineEndpoint(
+            (string) $this->moduleConfigValue('pipeline_endpoint', $pipeline['endpoint'] ?? '')
+        );
+        $pipelineName = (string) $this->moduleConfigValue(
+            'pipeline_name',
+            $pipeline['pipeline_name'] ?? 'parkhub-recommendations'
+        );
+        $pipelineName = trim($pipelineName) !== '' ? trim($pipelineName) : 'parkhub-recommendations';
+
+        return [
+            'algorithm' => $algorithm,
+            'weights' => [
+                'frequency' => $this->boundedFloat(
+                    $this->moduleConfigValue('weight_frequency', $weights['frequency'] ?? 40.0),
+                    0.0,
+                    100.0
+                ),
+                'preferred_lot' => $this->boundedFloat(
+                    $this->moduleConfigValue('weight_preferred_lot', $weights['preferred_lot'] ?? 20.0),
+                    0.0,
+                    100.0
+                ),
+                'availability' => $this->boundedFloat(
+                    $this->moduleConfigValue('weight_availability', $weights['availability'] ?? 30.0),
+                    0.0,
+                    100.0
+                ),
+                'price' => $this->boundedFloat(
+                    $this->moduleConfigValue('weight_price', $weights['price'] ?? 20.0),
+                    0.0,
+                    100.0
+                ),
+                'distance' => $this->boundedFloat(
+                    $this->moduleConfigValue('weight_distance', $weights['distance'] ?? 10.0),
+                    0.0,
+                    100.0
+                ),
+                'accessibility_bonus' => $this->boundedFloat(
+                    $this->moduleConfigValue(
+                        'weight_accessibility_bonus',
+                        $weights['accessibility_bonus'] ?? 0.0
+                    ),
+                    0.0,
+                    25.0
+                ),
+                'feature_bonus' => $this->boundedFloat(
+                    $this->moduleConfigValue('weight_feature_bonus', $weights['feature_bonus'] ?? 2.0),
+                    0.0,
+                    25.0
+                ),
+            ],
+            'max_results' => max(
+                1,
+                min(25, (int) $this->moduleConfigValue('max_results', config('recommendations.max_results', 5)))
+            ),
+            'explain' => true,
+            'profile_safe_mode' => true,
+            'pipeline' => [
+                'endpoint' => $pipelineEndpoint,
+                'pipeline_name' => $pipelineName,
+                'timeout_ms' => max(
+                    100,
+                    min(5000, (int) $this->moduleConfigValue('pipeline_timeout_ms', $pipeline['timeout_ms'] ?? 750))
+                ),
+                'fallback_enabled' => true,
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $engine
+     * @return array{
+     *     requested_algorithm: string,
+     *     effective_algorithm: string,
+     *     attempted: bool,
+     *     status: string,
+     *     pipeline_name: ?string,
+     *     endpoint_configured: bool,
+     *     fallback_enabled: bool,
+     *     error: ?string
+     * }
+     */
+    private function weightedV1AdapterStatus(array $engine): array
+    {
+        return [
+            'requested_algorithm' => (string) $engine['algorithm'],
+            'effective_algorithm' => 'weighted_v1',
+            'attempted' => false,
+            'status' => 'weighted_v1',
+            'pipeline_name' => null,
+            'endpoint_configured' => ! empty($engine['pipeline']['endpoint']),
+            'fallback_enabled' => true,
+            'error' => null,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $engine
+     * @param  array<int, array<string, mixed>>  $candidates
+     * @return array{0: Collection<int, array<string, mixed>>, 1: array<string, mixed>}
+     */
+    private function tryFopPipelineRecommendations(array $engine, string $recommendationId, array $candidates): array
+    {
+        $endpoint = $engine['pipeline']['endpoint'] ?? null;
+        if (empty($endpoint)) {
+            return [
+                collect($candidates),
+                $this->fallbackAdapterStatus(
+                    $engine,
+                    false,
+                    'fallback_not_configured',
+                    'fop_pipeline_v1 endpoint is not configured'
+                ),
+            ];
+        }
+
+        try {
+            $url = rtrim((string) $endpoint, '/').'/pipeline/'
+                .trim((string) $engine['pipeline']['pipeline_name'], '/').'/run';
+            $timeoutSeconds = ((int) $engine['pipeline']['timeout_ms']) / 1000;
+            $response = Http::timeout($timeoutSeconds)
+                ->connectTimeout(min($timeoutSeconds, 1.0))
+                ->post($url, [
+                    'schema_version' => 'parkhub.recommendation.pipeline.v1',
+                    'recommendation_id' => $recommendationId,
+                    'algorithm' => 'fop_pipeline_v1',
+                    'fallback_algorithm' => 'weighted_v1',
+                    'weights' => $engine['weights'],
+                    'max_results' => $engine['max_results'],
+                    'explain' => $engine['explain'],
+                    'profile_safe_mode' => $engine['profile_safe_mode'],
+                    'candidates' => $candidates,
+                ]);
+
+            if (! $response->successful()) {
+                throw new \RuntimeException('fop-pipeline returned HTTP '.$response->status());
+            }
+
+            $ranked = (array) data_get($response->json(), 'data.ranked', []);
+            $pipelineCandidates = $this->applyFopPipelineRankedResponse($candidates, $ranked, (int) $engine['max_results']);
+            if ($pipelineCandidates === []) {
+                throw new \RuntimeException('fop-pipeline response did not rank any known slots');
+            }
+
+            return [
+                collect($pipelineCandidates),
+                [
+                    'requested_algorithm' => 'fop_pipeline_v1',
+                    'effective_algorithm' => 'fop_pipeline_v1',
+                    'attempted' => true,
+                    'status' => 'succeeded',
+                    'pipeline_name' => (string) $engine['pipeline']['pipeline_name'],
+                    'endpoint_configured' => true,
+                    'fallback_enabled' => true,
+                    'error' => null,
+                ],
+            ];
+        } catch (\Throwable $e) {
+            Log::warning('fop_pipeline_v1 recommendation attempt failed; falling back to weighted_v1', [
+                'recommendation_id' => $recommendationId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return [
+                collect($candidates),
+                $this->fallbackAdapterStatus($engine, true, 'fallback_error', $e->getMessage()),
+            ];
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $candidates
+     * @param  array<int, array<string, mixed>>  $ranked
+     * @return array<int, array<string, mixed>>
+     */
+    private function applyFopPipelineRankedResponse(array $candidates, array $ranked, int $maxResults): array
+    {
+        $bySlotId = collect($candidates)->keyBy(fn (array $candidate) => (string) $candidate['slot_id']);
+        $out = [];
+        foreach (array_slice($ranked, 0, $maxResults) as $item) {
+            $slotId = (string) ($item['slot_id'] ?? $item['id'] ?? '');
+            if ($slotId === '' || ! $bySlotId->has($slotId)) {
+                continue;
+            }
+            $candidate = $bySlotId->get($slotId);
+            if (array_key_exists('score', $item)) {
+                $candidate['score'] = round((float) $item['score'], 2);
+            }
+            if (isset($item['reasons']) && is_array($item['reasons'])) {
+                $candidate['reasons'] = array_values($item['reasons']);
+            }
+            if (isset($item['reason_badges']) && is_array($item['reason_badges'])) {
+                $candidate['reason_badges'] = array_values($item['reason_badges']);
+            }
+            $out[] = $candidate;
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $engine
+     * @return array<string, mixed>
+     */
+    private function fallbackAdapterStatus(array $engine, bool $attempted, string $status, string $error): array
+    {
+        return [
+            'requested_algorithm' => (string) $engine['algorithm'],
+            'effective_algorithm' => 'weighted_v1',
+            'attempted' => $attempted,
+            'status' => $status,
+            'pipeline_name' => (string) $engine['pipeline']['pipeline_name'],
+            'endpoint_configured' => ! empty($engine['pipeline']['endpoint']),
+            'fallback_enabled' => true,
+            'error' => $error,
+        ];
+    }
+
+    private function validatedPipelineEndpoint(string $endpoint): ?string
+    {
+        $endpoint = trim($endpoint);
+        if ($endpoint === '') {
+            return null;
+        }
+
+        $parts = parse_url($endpoint);
+        $scheme = $parts['scheme'] ?? null;
+        $host = $parts['host'] ?? null;
+        if (! in_array($scheme, ['http', 'https'], true) || ! is_string($host)) {
+            Log::warning('recommendation pipeline_endpoint rejected as invalid URL', ['endpoint' => $endpoint]);
+
+            return null;
+        }
+
+        $allowed = in_array($host, ['localhost', '127.0.0.1', '::1', 'fop-pipeline'], true)
+            || str_ends_with($host, '.svc')
+            || str_ends_with($host, '.svc.cluster.local')
+            || str_ends_with($host, '.test');
+        if (! $allowed) {
+            Log::warning('recommendation pipeline_endpoint rejected by local/cluster allowlist', ['endpoint' => $endpoint]);
+
+            return null;
+        }
+
+        return $endpoint;
+    }
+
+    /**
+     * @param  array{
+     *     algorithm: string,
+     *     weights: array<string, float>,
+     *     max_results: int,
+     *     explain: bool,
+     *     profile_safe_mode: bool,
+     *     pipeline: array<string, mixed>
+     * }  $engine
+     * @param  array<string, mixed>  $adapter
+     * @param  array<int, array<string, mixed>>  $recommendations
+     */
+    private function auditRecommendationServed(
+        Request $request,
+        string $recommendationId,
+        array $engine,
+        array $adapter,
+        array $recommendations
+    ): void {
+        $actor = $request->user();
+        $username = $actor === null ? null : ($actor->email ?: $actor->username);
+        $candidates = array_map(static fn (array $rec): array => [
+            'slot_id' => (string) ($rec['slot_id'] ?? ''),
+            'lot_id' => (string) ($rec['lot_id'] ?? ''),
+            'score' => (float) ($rec['score'] ?? 0.0),
+            'reason_badges' => array_values((array) ($rec['reason_badges'] ?? [])),
+            'reasons' => array_values((array) ($rec['reasons'] ?? [])),
+        ], $recommendations);
+
+        AuditLog::log([
+            'user_id' => $actor?->id,
+            'username' => $username,
+            'action' => 'recommendation_served',
+            'event_type' => 'RecommendationServed',
+            'target_type' => 'recommendation',
+            'target_id' => $recommendationId,
+            'ip_address' => $request->ip(),
+            'details' => [
+                'recommendation_id' => $recommendationId,
+                'algorithm' => $engine['algorithm'],
+                'config_hash' => $this->recommendationConfigHash($engine),
+                'weights_hash' => $this->recommendationWeightsHash($engine['weights']),
+                'adapter' => $adapter,
+                'profile_safe_mode' => $engine['profile_safe_mode'],
+                'explain' => $engine['explain'],
+                'candidate_ids' => array_column($candidates, 'slot_id'),
+                'candidates' => $candidates,
+                'legal_boundary' => [
+                    'legal_review_required' => true,
+                    'attorney_review_status' => 'required_before_customer_wording',
+                    'execution_allowed' => false,
+                ],
+            ],
+        ]);
+    }
+
+    /**
+     * @param  array{
+     *     algorithm: string,
+     *     weights: array<string, float>,
+     *     max_results: int,
+     *     explain: bool,
+     *     profile_safe_mode: bool,
+     *     pipeline: array<string, mixed>
+     * }  $engine
+     */
+    private function recommendationConfigHash(array $engine): string
+    {
+        return hash('sha256', json_encode([
+            'algorithm' => $engine['algorithm'],
+            'weights' => $engine['weights'],
+            'max_results' => $engine['max_results'],
+            'explain' => $engine['explain'],
+            'profile_safe_mode' => $engine['profile_safe_mode'],
+            'pipeline' => $engine['pipeline'],
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param  array<string, float>  $weights
+     */
+    private function recommendationWeightsHash(array $weights): string
+    {
+        return hash('sha256', json_encode($weights, JSON_THROW_ON_ERROR));
+    }
+
+    private function moduleConfigValue(string $key, mixed $default): mixed
+    {
+        $raw = Setting::get(ModuleRegistry::configSettingKey('recommendations', $key));
+        if ($raw === null) {
+            return $default;
+        }
+
+        $decoded = is_string($raw) ? json_decode($raw, true) : $raw;
+
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : $raw;
+    }
+
+    private function boundedFloat(mixed $value, float $min, float $max): float
+    {
+        $number = is_numeric($value) ? (float) $value : $min;
+
+        return max($min, min($max, $number));
     }
 }

@@ -20,7 +20,8 @@ Route::middleware(['module:bookings', 'auth:sanctum', 'throttle:api'])->group(fu
     // Literal paths MUST come before the /{id} catch-all, otherwise
     // Laravel matches /bookings/guest against /bookings/{id} and calls
     // BookingController@show with id='guest' which returns a 404.
-    Route::get('/bookings/recommendations', [RecommendationController::class, 'index']);
+    Route::get('/bookings/recommendations', [RecommendationController::class, 'index'])
+        ->middleware('module:recommendations');
     Route::get('/bookings/guest', [GuestBookingController::class, 'listGuestBookings']);
     Route::post('/bookings/guest', [GuestBookingController::class, 'guestBooking']);
     Route::delete('/bookings/guest/{id}', [GuestBookingController::class, 'deleteGuestBooking']);
