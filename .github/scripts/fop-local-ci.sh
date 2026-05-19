@@ -179,7 +179,10 @@ compute_design_smoke_gate() {
 #   2. SERVER_PORT (caller may already have one in env from outer wrapper)
 #   3. 8082 if free (preserves docs + screenshots + muscle memory)
 #   4. random free port in the ephemeral range (49152-65535) from `ss`
-#   5. fallback: 8082 + small random offset (best-effort if `ss` missing)
+#   5. fallback: 8083 + small random offset 0-199 (best-effort if `ss`
+#      or `shuf` is missing). Note: tiers 3+4 inspect *listening* sockets
+#      only; a TOCTOU race window remains between observation and bind,
+#      so tier 5 acts as the deterministic-fallback for parallel runs.
 allocate_laravel_port() {
   if [[ -n "${FOP_LOCAL_CI_LARAVEL_PORT:-}" ]]; then
     printf '%s' "${FOP_LOCAL_CI_LARAVEL_PORT}"
@@ -191,16 +194,20 @@ allocate_laravel_port() {
   fi
   if command -v ss >/dev/null 2>&1; then
     local in_use
-    in_use="$(ss -tan 2>/dev/null | awk 'NR>1 {sub(/.*:/,"",$4); print $4}' | sort -un)"
+    # -ltn = listening TCP, numeric; ignores non-listening sockets so we
+    # don't spuriously avoid ports that are only client-side in use.
+    in_use="$(ss -ltn 2>/dev/null | awk 'NR>1 {sub(/.*:/,"",$4); print $4}' | sort -un)"
     if ! grep -qx '8082' <<<"$in_use"; then
       printf '%s' '8082'
       return 0
     fi
-    local picked
-    picked="$(comm -23 <(seq 49152 65535) <(printf '%s\n' "$in_use") 2>/dev/null | shuf -n 1)"
-    if [[ -n "$picked" ]]; then
-      printf '%s' "$picked"
-      return 0
+    if command -v shuf >/dev/null 2>&1; then
+      local picked
+      picked="$(comm -23 <(seq 49152 65535) <(printf '%s\n' "$in_use") 2>/dev/null | shuf -n 1)"
+      if [[ -n "$picked" ]]; then
+        printf '%s' "$picked"
+        return 0
+      fi
     fi
   fi
   printf '%s' "$((8083 + RANDOM % 200))"
