@@ -38,6 +38,5 @@ rules:
 #   to actively enforce stabilityDays-style SOTA-2026 mitigation
 #   against newly-published-version supply-chain attacks. Schema +
 #   key names need verification against current zizmor docs first.
-# - Add `roave/security-advisories: dev-latest` to composer.json
-#   require-dev (composer-side install-time blocker, complements
-#   composer audit which is run-time).
+# (Done in this PR: roave/security-advisories@dev added to require-dev
+# via `dev-latest@dev` stability flag — see composer.json.)
