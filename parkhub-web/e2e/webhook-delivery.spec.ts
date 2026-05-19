@@ -167,9 +167,10 @@ test.describe('Webhook Delivery Contract (W2 audit gap)', () => {
     const logResp = await request.get(`/api/v1/admin/webhooks-v2/${webhookId}/deliveries`, { headers });
     const logBody = await logResp.json();
     const deliveries: Array<Record<string, unknown>> = logBody?.data ?? logBody ?? [];
-    const latest = deliveries[0];
+    const latest: Record<string, unknown> | undefined = deliveries[0];
 
     expect(latest).toBeDefined();
+    if (!latest) return;
     expect(typeof latest['event_type']).toBe('string');
     expect(latest['event_type']).toMatch(expectedEnvelopeShape(TEST_EVENT));
   });
@@ -185,13 +186,15 @@ test.describe('Webhook Delivery Contract (W2 audit gap)', () => {
     const logResp = await request.get(`/api/v1/admin/webhooks-v2/${webhookId}/deliveries`, { headers });
     const logBody = await logResp.json();
     const deliveries: Array<Record<string, unknown>> = logBody?.data ?? logBody ?? [];
-    const latest = deliveries[0];
+    const latest: Record<string, unknown> | undefined = deliveries[0];
 
     // status_code may be null if curl failed to connect (example.com timeout),
     // but the field must be present in the delivery object.
+    expect(latest).toBeDefined();
+    if (!latest) return;
     expect(Object.prototype.hasOwnProperty.call(latest, 'status_code')).toBe(true);
     // When a status_code is returned it must be a positive integer.
-    if (latest['status_code'] !== null) {
+    if (latest['status_code'] !== null && latest['status_code'] !== undefined) {
       expect(typeof latest['status_code']).toBe('number');
       expect(latest['status_code'] as number).toBeGreaterThan(0);
     }
@@ -208,8 +211,10 @@ test.describe('Webhook Delivery Contract (W2 audit gap)', () => {
     const logResp = await request.get(`/api/v1/admin/webhooks-v2/${webhookId}/deliveries`, { headers });
     const logBody = await logResp.json();
     const deliveries: Array<Record<string, unknown>> = logBody?.data ?? logBody ?? [];
-    const latest = deliveries[0];
+    const latest: Record<string, unknown> | undefined = deliveries[0];
 
+    expect(latest).toBeDefined();
+    if (!latest) return;
     expect(typeof latest['id']).toBe('string');
     expect((latest['id'] as string).startsWith('del-')).toBe(true);
   });
