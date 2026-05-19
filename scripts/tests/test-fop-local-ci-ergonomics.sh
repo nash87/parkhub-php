@@ -105,15 +105,81 @@ if [[ -z "$bg_log" ]]; then
     exit 1
 fi
 
+bg_ok=0
 for _ in $(seq 1 20); do
     if [[ -f "$bg_log" ]] && grep -q 'dry-run local CI completed; no success report or commit status was written' "$bg_log"; then
-        green "    OK"
-        exit 0
+        bg_ok=1
+        break
     fi
     sleep 0.1
 done
 
-red "    FAILED: background dry-run log did not finish"
-cat "$tmp_dir/background"
-[[ -f "$bg_log" ]] && cat "$bg_log"
-exit 1
+if [[ "$bg_ok" -eq 1 ]]; then
+    green "    OK"
+else
+    red "    FAILED: background dry-run log did not finish"
+    cat "$tmp_dir/background"
+    [[ -f "$bg_log" ]] && cat "$bg_log"
+    exit 1
+fi
+
+# ── Fix 1: free-port allocator ───────────────────────────────────────────────
+# Verify allocate_laravel_port() honours FOP_LOCAL_CI_LARAVEL_PORT and
+# SERVER_PORT env vars.  These tests source a stripped-down harness rather than
+# executing fop-local-ci.sh end-to-end, because the allocator is a shell
+# function defined early in the script.
+
+echo "==> allocate_laravel_port honours FOP_LOCAL_CI_LARAVEL_PORT"
+# Source just the allocator function by running the script in dry-run mode
+# with a pre-set diff path that skips all heavy gates, then check the output.
+FOP_LOCAL_CI_LARAVEL_PORT=59999 \
+FOP_LOCAL_CI_DIFF_PATHS=$'docs/parkhub-notes.md' \
+    .github/scripts/fop-local-ci.sh --profile pr --dry-run >"$tmp_dir/port-override" 2>&1
+if grep -q 'Laravel dev-server port: 59999' "$tmp_dir/port-override"; then
+    green "    OK (port: 59999 from FOP_LOCAL_CI_LARAVEL_PORT)"
+else
+    red "    FAILED: FOP_LOCAL_CI_LARAVEL_PORT=59999 not reflected in output"
+    grep 'Laravel' "$tmp_dir/port-override" || true
+    exit 1
+fi
+
+echo "==> allocate_laravel_port honours SERVER_PORT env var"
+SERVER_PORT=58888 \
+FOP_LOCAL_CI_DIFF_PATHS=$'docs/parkhub-notes.md' \
+    .github/scripts/fop-local-ci.sh --profile pr --dry-run >"$tmp_dir/server-port-override" 2>&1
+if grep -q 'Laravel dev-server port: 58888' "$tmp_dir/server-port-override"; then
+    green "    OK (port: 58888 from SERVER_PORT)"
+else
+    red "    FAILED: SERVER_PORT=58888 not reflected in output"
+    grep 'Laravel' "$tmp_dir/server-port-override" || true
+    exit 1
+fi
+
+# ── Fix 2: zizmor advisory semantics ─────────────────────────────────────────
+# Verify that fop-local-ci advertises run_advisory_step and that the zizmor
+# block uses run_advisory_step (not run_step) so fop build post-command gate
+# failures for advisory findings do not propagate as hard CI failures.
+
+echo "==> fop-local-ci.sh uses run_advisory_step for zizmor"
+if grep -q 'run_advisory_step "zizmor' .github/scripts/fop-local-ci.sh; then
+    green "    OK (zizmor routed through run_advisory_step)"
+else
+    red "    FAILED: zizmor still uses run_step — fop post-command gate will false-fail on advisory findings"
+    grep 'run.*zizmor' .github/scripts/fop-local-ci.sh || true
+    exit 1
+fi
+
+echo "==> fop-local-ci dry-run with workflow-touching diff succeeds even when zizmor would be advisory"
+# Simulate a workflow-touching diff; dry-run must complete without error even
+# though zizmor is advisory (the new run_advisory_step absorbs non-zero).
+FOP_LOCAL_CI_DIFF_PATHS=$'.github/workflows/ci.yml' \
+    .github/scripts/fop-local-ci.sh --profile pr --dry-run >"$tmp_dir/zizmor-dry-run" 2>&1
+if grep -q 'dry-run local CI completed' "$tmp_dir/zizmor-dry-run"; then
+    green "    OK (dry-run completed with workflow-touching diff)"
+else
+    red "    FAILED: dry-run with workflow diff did not complete"
+    cat "$tmp_dir/zizmor-dry-run"
+    exit 1
+fi
+
+green "All ergonomics + port-allocator + zizmor-advisory tests passed."

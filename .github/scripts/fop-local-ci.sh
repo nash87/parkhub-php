@@ -464,6 +464,21 @@ run_advisory_step_heavy() {
   fi
 }
 
+# `run_advisory_step` is the interactive-small equivalent of run_advisory_step_heavy.
+# Use it for advisory/informational gates (e.g. zizmor, composer audit) where the
+# GitHub Actions workflow has `continue-on-error: true`. Concretely: when fop build
+# runs its own post-command security gate after the inner step, that gate may exit
+# non-zero for zizmor findings even though zizmor is advisory. Wrapping the call in
+# run_advisory_step absorbs the non-zero and continues, matching the GHA workflow
+# semantics faithfully.
+run_advisory_step() {
+  local name="$1"
+  local command="$2"
+  if ! run_step "$name" "$command"; then
+    echo "$name returned non-zero (advisory; continuing)"
+  fi
+}
+
 # `run_direct` is for instantaneous shell checks (git diff, etc.) that
 # would be pure overhead inside the fop queue.
 run_direct() {
@@ -671,10 +686,18 @@ fi
 # findings as informational but does NOT fail the gate. Promote to a hard
 # failure (drop the `|| true`) once the open-finding inventory is at zero.
 # Suppressions live in zizmor.yml with per-rule justification.
+#
+# run_advisory_step (not run_step) is used here to match the GHA workflow's
+# `continue-on-error: true` semantics at the fop queue wrapper level. When
+# `fop build --preset custom` runs its own post-command security gate after the
+# inner step exits, that gate may exit non-zero on any zizmor finding even
+# though zizmor is advisory. run_advisory_step absorbs the non-zero so the
+# overall local-ci gate does not report a false failure for advisory findings.
+# See: feedback_fop_local_ci_wrapper_marker_race_post_security_audit_2026_05_19
 if (( ! diff_touch_workflows )); then
   skip_step "zizmor (GHA SAST)" "diff-aware: no workflow inputs touched"
 elif command -v zizmor >/dev/null 2>&1; then
-  run_step "zizmor (GHA SAST, advisory)" "zizmor --persona=auditor --min-severity=high --no-online-audits .github/workflows/ .gitea/workflows/ || echo 'zizmor returned non-zero (advisory — see findings above)'"
+  run_advisory_step "zizmor (GHA SAST, advisory)" "zizmor --persona=auditor --min-severity=high --no-online-audits .github/workflows/ .gitea/workflows/"
 else
   skip_step "zizmor (GHA SAST)" "zizmor not on PATH (install: cargo install zizmor or https://docs.zizmor.sh)"
 fi
