@@ -24,7 +24,7 @@
 # local + gitea-runner builds default to the LAN mirror. Same images either
 # way, just different ingress to them.
 # ---------------------------------------------------------------------------
-ARG NODE_BASE=192.168.178.250:5000/node:22-slim@sha256:aa8ccf90d87e2e60804816ddd256480a42f5cf3cafadf30618be606e4b894104
+ARG NODE_BASE=192.168.178.250:5000/node:22-slim@sha256:6ed70fbf60557fb3a2faea5657d4105bace34c93449c2571919a1589fae30153
 ARG WOLFI_BASE=192.168.178.250:5000/wolfi-base:latest
 
 FROM ${NODE_BASE} AS frontend
