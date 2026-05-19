@@ -490,7 +490,7 @@ class RecommendationController extends Controller
      *     total_recommendations_served: int,
      *     unique_users: int,
      *     avg_score: ?float,
-     *     top_recommended_lots: Collection<int, array{lot_id: string, lot_name: string|null, count: int}>
+     *     top_recommended_lots: list<array{lot_id: string, lot_name: string|null, count: int}>
      * }
      */
     private function servedRecommendationStats(Collection $servedEvents): array
@@ -532,10 +532,11 @@ class RecommendationController extends Controller
         $topLots = collect($topLotIds)
             ->map(fn (string $lotId): array => [
                 'lot_id' => $lotId,
-                'lot_name' => $lotNames[$lotId] ?? null,
+                'lot_name' => isset($lotNames[$lotId]) ? (string) $lotNames[$lotId] : null,
                 'count' => (int) $lotCounts[$lotId],
             ])
-            ->values();
+            ->values()
+            ->all();
 
         return [
             'total_recommendation_batches' => $servedEvents->count(),
