@@ -34398,7 +34398,12 @@
                               "lot_id": {
                                 "type": "string"
                               },
-                              "lot_name": {}
+                              "lot_name": {
+                                "type": [
+                                  "string",
+                                  "null"
+                                ]
+                              }
                             },
                             "required": [
                               "lot_id",
