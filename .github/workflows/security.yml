@@ -162,29 +162,45 @@ jobs:
     name: Zizmor (GHA SAST, audit-mode)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Audit-mode: surface findings as informational; do NOT fail the gate yet.
-    # Promote findings to errors once the workflow inventory has been triaged.
-    continue-on-error: true
+    # Audit-mode: findings are informational only, never block PRs.
+    # --no-exit-codes keeps findings advisory, while setup/tool failures still
+    # fail the job so missing SAST is visible. Promote findings to errors once
+    # the workflow inventory has been triaged and a .zizmor.yaml baseline is
+    # committed.
     permissions:
-      contents: read         # checkout source for the SAST scan
-      security-events: write # upload Zizmor SARIF results to GitHub Security tab
+      contents: read  # checkout source for the SAST scan
+    env:
+      ZIZMOR_VERSION: 1.24.1
+      ZIZMOR_LINUX_X64_SHA256: a8000f3c683319a523d3b20df0e75457ba591f049cfcbfa98966631b56733c03
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
+      - name: Install zizmor
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/zizmor.tar.gz \
+            "https://github.com/zizmorcore/zizmor/releases/download/v${ZIZMOR_VERSION}/zizmor-x86_64-unknown-linux-gnu.tar.gz"
+          echo "${ZIZMOR_LINUX_X64_SHA256}  /tmp/zizmor.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/zizmor.tar.gz -C /tmp zizmor
+          sudo install -m 0755 /tmp/zizmor /usr/local/bin/zizmor
+          zizmor --version
       - name: Run zizmor
-        continue-on-error: true
-        uses: zizmorcore/zizmor-action@b1d7e1fb5de872772f31590499237e7cce841e8e # v0.5.3
-        with:
-          # auditor persona surfaces low-severity findings useful for hardening
-          # without flooding the PR with regular-user noise. Keep this aligned
-          # with .github/scripts/fop-local-ci.sh: offline, high-severity-only,
-          # and scoped to workflow manifests so PR audits cannot hang on live
-          # GitHub API checks.
-          inputs: .github/workflows .gitea/workflows
-          persona: auditor
-          online-audits: false
-          min-severity: high
+        # auditor persona surfaces low-severity findings useful for hardening
+        # without flooding the PR with regular-user noise. Keep this aligned
+        # with .github/scripts/fop-local-ci.sh: offline, high-severity-only,
+        # and scoped to workflow manifests so PR audits cannot hang on live
+        # GitHub API checks. --no-exit-codes keeps findings advisory while
+        # still surfacing tool/setup failures as real workflow failures.
+        run: |
+          zizmor \
+            --no-progress \
+            --format=github \
+            --persona=auditor \
+            --min-severity=high \
+            --no-online-audits \
+            --no-exit-codes \
+            .github/workflows .gitea/workflows
 
   osv-scanner:
     # Multi-ecosystem SCA via Google's osv-scanner against the OSV.dev DB.
