@@ -9,7 +9,6 @@ use App\Models\AuditLog;
 use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\Setting;
-use App\Models\User;
 use App\Services\ModuleRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -141,12 +140,18 @@ class RecommendationController extends Controller
             }
         }
 
-        // Sort by score descending, take top 5
-        $top = $candidates->sortByDesc('score')->take($engine['max_results'])->values();
+        // Sort by local score first; fop_pipeline_v1 receives the full set and
+        // max_results is applied only after external ranking or fallback.
+        $rankedCandidates = $candidates->sortByDesc('score')->values();
         $adapter = $this->weightedV1AdapterStatus($engine);
         if ($engine['algorithm'] === 'fop_pipeline_v1') {
-            [$top, $adapter] = $this->tryFopPipelineRecommendations($engine, $recommendationId, $top->all());
+            [$rankedCandidates, $adapter] = $this->tryFopPipelineRecommendations(
+                $engine,
+                $recommendationId,
+                $rankedCandidates->all()
+            );
         }
+        $top = $rankedCandidates->take($engine['max_results'])->values();
         $this->auditRecommendationServed($request, $recommendationId, $engine, $adapter, $top->all());
 
         return response()->json([
@@ -162,33 +167,24 @@ class RecommendationController extends Controller
      */
     public function stats(): JsonResponse
     {
-        $totalBookings = Booking::count();
-        $completedBookings = Booking::where('status', 'completed')->count();
-        $acceptanceRate = $totalBookings > 0 ? round(($completedBookings / $totalBookings) * 100, 1) : 0;
         $engine = $this->recommendationEngineConfig();
-        $topLots = Booking::query()
-            ->select('lot_name')
-            ->selectRaw('COUNT(*) as count')
-            ->whereIn('status', ['active', 'completed'])
-            ->groupBy('lot_name')
-            ->orderByDesc('count')
-            ->limit(5)
-            ->get()
-            ->map(fn (Booking $booking) => [
-                'lot_name' => (string) $booking->lot_name,
-                'count' => (int) $booking->getAttribute('count'),
-            ])
-            ->values();
+        $servedEvents = AuditLog::query()
+            ->where('action', 'recommendation_served')
+            ->orWhere('event_type', 'RecommendationServed')
+            ->get();
+        $servedStats = $this->servedRecommendationStats($servedEvents);
 
         return response()->json([
             'success' => true,
             'data' => [
-                'total_recommendations' => $totalBookings,
-                'total_recommendations_served' => $totalBookings * 3,
-                'accepted' => $completedBookings,
-                'acceptance_rate' => $acceptanceRate,
-                'unique_users' => User::count(),
-                'avg_score' => $totalBookings > 0 ? 72.5 : 0.0,
+                'total_recommendations' => $servedStats['total_recommendation_batches'],
+                'total_recommendations_served' => $servedStats['total_recommendations_served'],
+                'accepted_recommendations' => null,
+                'acceptance_rate' => null,
+                'acceptance_metric_source' => 'not_tracked',
+                'unique_users' => $servedStats['unique_users'],
+                'avg_score' => $servedStats['avg_score'],
+                'metrics_source' => 'audit_log.recommendation_served',
                 'algorithm' => $engine['algorithm'],
                 'algorithm_weights' => $engine['weights'],
                 'algorithm_adapter' => $this->weightedV1AdapterStatus($engine),
@@ -198,7 +194,7 @@ class RecommendationController extends Controller
                     'execution_allowed' => false,
                     'disclaimer' => 'fop legal output is reference-only drafting support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing profiling or legal wording ships.',
                 ],
-                'top_recommended_lots' => $topLots,
+                'top_recommended_lots' => $servedStats['top_recommended_lots'],
             ],
             'error' => null,
         ]);
@@ -367,7 +363,7 @@ class RecommendationController extends Controller
             }
 
             $ranked = (array) data_get($response->json(), 'data.ranked', []);
-            $pipelineCandidates = $this->applyFopPipelineRankedResponse($candidates, $ranked, (int) $engine['max_results']);
+            $pipelineCandidates = $this->applyFopPipelineRankedResponse($candidates, $ranked);
             if ($pipelineCandidates === []) {
                 throw new \RuntimeException('fop-pipeline response did not rank any known slots');
             }
@@ -403,13 +399,17 @@ class RecommendationController extends Controller
      * @param  array<int, array<string, mixed>>  $ranked
      * @return array<int, array<string, mixed>>
      */
-    private function applyFopPipelineRankedResponse(array $candidates, array $ranked, int $maxResults): array
+    private function applyFopPipelineRankedResponse(array $candidates, array $ranked): array
     {
         $bySlotId = collect($candidates)->keyBy(fn (array $candidate) => (string) $candidate['slot_id']);
         $out = [];
-        foreach (array_slice($ranked, 0, $maxResults) as $item) {
+        $seen = [];
+        foreach ($ranked as $item) {
             $slotId = (string) ($item['slot_id'] ?? $item['id'] ?? '');
             if ($slotId === '' || ! $bySlotId->has($slotId)) {
+                throw new \RuntimeException("fop-pipeline ranked unknown slot_id '{$slotId}'");
+            }
+            if (isset($seen[$slotId])) {
                 continue;
             }
             $candidate = $bySlotId->get($slotId);
@@ -423,6 +423,14 @@ class RecommendationController extends Controller
                 $candidate['reason_badges'] = array_values($item['reason_badges']);
             }
             $out[] = $candidate;
+            $seen[$slotId] = true;
+        }
+
+        foreach ($candidates as $candidate) {
+            $slotId = (string) $candidate['slot_id'];
+            if (! isset($seen[$slotId])) {
+                $out[] = $candidate;
+            }
         }
 
         return $out;
@@ -473,6 +481,69 @@ class RecommendationController extends Controller
         }
 
         return $endpoint;
+    }
+
+    /**
+     * @param  Collection<int, AuditLog>  $servedEvents
+     * @return array{
+     *     total_recommendation_batches: int,
+     *     total_recommendations_served: int,
+     *     unique_users: int,
+     *     avg_score: ?float,
+     *     top_recommended_lots: Collection<int, array{lot_id: string, lot_name: string|null, count: int}>
+     * }
+     */
+    private function servedRecommendationStats(Collection $servedEvents): array
+    {
+        $scores = [];
+        $lotCounts = [];
+        $userIds = [];
+        $servedCandidates = 0;
+
+        foreach ($servedEvents as $event) {
+            if ($event->user_id !== null) {
+                $userIds[(string) $event->user_id] = true;
+            }
+
+            $candidates = (array) data_get($event->details, 'candidates', []);
+            $servedCandidates += count($candidates);
+            foreach ($candidates as $candidate) {
+                if (! is_array($candidate)) {
+                    continue;
+                }
+
+                if (isset($candidate['score']) && is_numeric($candidate['score'])) {
+                    $scores[] = (float) $candidate['score'];
+                }
+
+                $lotId = (string) ($candidate['lot_id'] ?? '');
+                if ($lotId !== '') {
+                    $lotCounts[$lotId] = ($lotCounts[$lotId] ?? 0) + 1;
+                }
+            }
+        }
+
+        arsort($lotCounts);
+        $topLotIds = array_slice(array_keys($lotCounts), 0, 5);
+        $lotNames = ParkingLot::query()
+            ->whereIn('id', $topLotIds)
+            ->pluck('name', 'id')
+            ->all();
+        $topLots = collect($topLotIds)
+            ->map(fn (string $lotId): array => [
+                'lot_id' => $lotId,
+                'lot_name' => $lotNames[$lotId] ?? null,
+                'count' => (int) $lotCounts[$lotId],
+            ])
+            ->values();
+
+        return [
+            'total_recommendation_batches' => $servedEvents->count(),
+            'total_recommendations_served' => $servedCandidates,
+            'unique_users' => count($userIds),
+            'avg_score' => $scores === [] ? null : round(array_sum($scores) / count($scores), 2),
+            'top_recommended_lots' => $topLots,
+        ];
     }
 
     /**

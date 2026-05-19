@@ -50,6 +50,26 @@ class ModuleConfigurationServiceTest extends TestCase
         return $schema;
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private function recommendationWeightedValues(): array
+    {
+        return [
+            'algorithm' => 'weighted_v1',
+            'weight_frequency' => 40,
+            'weight_preferred_lot' => 20,
+            'weight_availability' => 30,
+            'weight_price' => 20,
+            'weight_distance' => 10,
+            'weight_accessibility_bonus' => 0,
+            'weight_feature_bonus' => 2,
+            'max_results' => 5,
+            'explain' => true,
+            'profile_safe_mode' => true,
+        ];
+    }
+
     public function test_toggle_runtime_state_unknown_module_returns_not_found_without_writing(): void
     {
         $result = $this->service()->toggleRuntimeState('does-not-exist', true, $this->actor());
@@ -101,6 +121,45 @@ class ModuleConfigurationServiceTest extends TestCase
         $this->assertIsArray($result->details);
         $this->assertNotEmpty($result->details);
         $this->assertSame(0, AuditLog::query()->where('action', 'module_config_updated')->count());
+    }
+
+    public function test_recommendations_weighted_config_does_not_require_pipeline_settings(): void
+    {
+        $schema = ModuleRegistry::configSchema('recommendations');
+        $this->assertNotNull($schema, "'recommendations' module lost its config_schema — fixture drift.");
+
+        $result = $this->service()->updateConfig(
+            'recommendations',
+            $schema,
+            $this->recommendationWeightedValues(),
+            $this->actor(),
+        );
+
+        $this->assertTrue($result->isOk());
+        $this->assertSame(
+            '"weighted_v1"',
+            Setting::get(ModuleRegistry::configSettingKey('recommendations', 'algorithm')),
+        );
+    }
+
+    public function test_recommendations_fop_pipeline_config_requires_pipeline_settings(): void
+    {
+        $schema = ModuleRegistry::configSchema('recommendations');
+        $this->assertNotNull($schema, "'recommendations' module lost its config_schema — fixture drift.");
+
+        $values = $this->recommendationWeightedValues();
+        $values['algorithm'] = 'fop_pipeline_v1';
+
+        $result = $this->service()->updateConfig(
+            'recommendations',
+            $schema,
+            $values,
+            $this->actor(),
+        );
+
+        $this->assertSame(ModuleConfigurationStatus::ValidationFailed, $result->status);
+        $this->assertIsArray($result->details);
+        $this->assertNotEmpty($result->details);
     }
 
     public function test_update_config_persists_each_key_and_writes_audit_log(): void

@@ -34264,22 +34264,15 @@
                   "properties": {
                     "data": {
                       "properties": {
-                        "acceptance_rate": {
-                          "anyOf": [
-                            {
-                              "type": "number"
-                            },
-                            {
-                              "enum": [
-                                0
-                              ],
-                              "type": "integer"
-                            }
-                          ]
+                        "acceptance_metric_source": {
+                          "const": "not_tracked",
+                          "type": "string"
                         },
-                        "accepted": {
-                          "minimum": 0,
-                          "type": "integer"
+                        "acceptance_rate": {
+                          "type": "null"
+                        },
+                        "accepted_recommendations": {
+                          "type": "null"
                         },
                         "algorithm": {
                           "const": "weighted_v1",
@@ -34362,14 +34355,9 @@
                           "type": "object"
                         },
                         "avg_score": {
-                          "anyOf": [
-                            {
-                              "const": 72.5,
-                              "type": "number"
-                            },
-                            {
-                              "type": "number"
-                            }
+                          "type": [
+                            "number",
+                            "null"
                           ]
                         },
                         "legal_boundary": {
@@ -34397,28 +34385,50 @@
                           ],
                           "type": "object"
                         },
-                        "top_recommended_lots": {
+                        "metrics_source": {
+                          "const": "audit_log.recommendation_served",
                           "type": "string"
+                        },
+                        "top_recommended_lots": {
+                          "items": {
+                            "properties": {
+                              "count": {
+                                "type": "integer"
+                              },
+                              "lot_id": {
+                                "type": "string"
+                              },
+                              "lot_name": {}
+                            },
+                            "required": [
+                              "lot_id",
+                              "lot_name",
+                              "count"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
                         },
                         "total_recommendations": {
                           "minimum": 0,
                           "type": "integer"
                         },
                         "total_recommendations_served": {
-                          "type": "string"
+                          "type": "integer"
                         },
                         "unique_users": {
-                          "minimum": 0,
                           "type": "integer"
                         }
                       },
                       "required": [
                         "total_recommendations",
                         "total_recommendations_served",
-                        "accepted",
+                        "accepted_recommendations",
                         "acceptance_rate",
+                        "acceptance_metric_source",
                         "unique_users",
                         "avg_score",
+                        "metrics_source",
                         "algorithm",
                         "algorithm_weights",
                         "algorithm_adapter",

@@ -198,9 +198,11 @@ class RecommendationExtendedTest extends TestCase
         ]);
         $slot1 = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '1', 'status' => 'available']);
         $slot2 = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '2', 'status' => 'available']);
+        ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '3', 'status' => 'available']);
         Setting::set(ModuleRegistry::configSettingKey('recommendations', 'algorithm'), json_encode('fop_pipeline_v1'));
         Setting::set(ModuleRegistry::configSettingKey('recommendations', 'pipeline_endpoint'), json_encode('http://fop-pipeline.test:9310'));
         Setting::set(ModuleRegistry::configSettingKey('recommendations', 'pipeline_name'), json_encode('parkhub-recommendations'));
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'max_results'), json_encode(1));
 
         Http::fake([
             'http://fop-pipeline.test:9310/*' => Http::response([
@@ -229,17 +231,61 @@ class RecommendationExtendedTest extends TestCase
         $response->assertOk()
             ->assertJsonPath('data.0.slot_id', $slot2->id)
             ->assertJsonPath('data.0.score', 99.5)
-            ->assertJsonPath('data.0.reasons.0', 'Pipeline selected');
+            ->assertJsonPath('data.0.reasons.0', 'Pipeline selected')
+            ->assertJsonCount(1, 'data');
         Http::assertSent(fn ($request) => str_contains($request->url(), '/pipeline/parkhub-recommendations/run')
             && data_get($request->data(), 'algorithm') === 'fop_pipeline_v1'
             && data_get($request->data(), 'fallback_algorithm') === 'weighted_v1'
-            && data_get($request->data(), 'profile_safe_mode') === true);
+            && data_get($request->data(), 'profile_safe_mode') === true
+            && data_get($request->data(), 'max_results') === 1
+            && count((array) data_get($request->data(), 'candidates')) === 3);
 
         $entry = AuditLog::query()->where('action', 'recommendation_served')->first();
         $this->assertSame('fop_pipeline_v1', $entry->details['algorithm']);
         $this->assertSame('fop_pipeline_v1', $entry->details['adapter']['effective_algorithm']);
         $this->assertSame('succeeded', $entry->details['adapter']['status']);
         $this->assertTrue($entry->details['adapter']['attempted']);
+    }
+
+    public function test_fop_pipeline_v1_unknown_ranked_slot_falls_back_to_weighted_v1(): void
+    {
+        $user = User::factory()->create();
+        $lot = ParkingLot::create([
+            'name' => 'Unknown Slot Pipeline Lot',
+            'total_slots' => 2,
+            'available_slots' => 2,
+            'status' => 'open',
+            'hourly_rate' => 2.0,
+        ]);
+        $slot1 = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '1', 'status' => 'available']);
+        $slot2 = ParkingSlot::create(['lot_id' => $lot->id, 'slot_number' => '2', 'status' => 'available']);
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'algorithm'), json_encode('fop_pipeline_v1'));
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'pipeline_endpoint'), json_encode('http://fop-pipeline.test:9310'));
+        Setting::set(ModuleRegistry::configSettingKey('recommendations', 'pipeline_name'), json_encode('parkhub-recommendations'));
+
+        Http::fake([
+            'http://fop-pipeline.test:9310/*' => Http::response([
+                'ok' => true,
+                'data' => [
+                    'ranked' => [
+                        ['slot_id' => 'slot-from-another-candidate-set', 'score' => 100],
+                        ['slot_id' => $slot2->id, 'score' => 99],
+                    ],
+                ],
+            ], 200),
+        ]);
+
+        $response = $this->actingAs($user)->getJson('/api/v1/bookings/recommendations');
+
+        $response->assertOk()
+            ->assertJsonPath('data.0.slot_id', $slot1->id);
+
+        $entry = AuditLog::query()->where('action', 'recommendation_served')->first();
+        $this->assertSame('fop_pipeline_v1', $entry->details['algorithm']);
+        $this->assertSame('weighted_v1', $entry->details['adapter']['effective_algorithm']);
+        $this->assertSame('fallback_error', $entry->details['adapter']['status']);
+        $this->assertTrue($entry->details['adapter']['attempted']);
+        $this->assertStringContainsString('unknown slot_id', $entry->details['adapter']['error']);
     }
 
     public function test_fop_pipeline_v1_falls_back_when_endpoint_missing(): void
@@ -307,6 +353,14 @@ class RecommendationExtendedTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('success', true)
+            ->assertJsonPath('data.total_recommendations', 0)
+            ->assertJsonPath('data.total_recommendations_served', 0)
+            ->assertJsonPath('data.accepted_recommendations', null)
+            ->assertJsonPath('data.acceptance_rate', null)
+            ->assertJsonPath('data.acceptance_metric_source', 'not_tracked')
+            ->assertJsonPath('data.unique_users', 0)
+            ->assertJsonPath('data.avg_score', null)
+            ->assertJsonPath('data.metrics_source', 'audit_log.recommendation_served')
             ->assertJsonPath('data.algorithm_weights.frequency', 40)
             ->assertJsonPath('data.algorithm_weights.availability', 30)
             ->assertJsonPath('data.algorithm_weights.price', 20)
@@ -316,7 +370,8 @@ class RecommendationExtendedTest extends TestCase
             ->assertJsonPath('data.algorithm_adapter.fallback_enabled', true)
             ->assertJsonPath('data.legal_boundary.legal_review_required', true)
             ->assertJsonPath('data.legal_boundary.attorney_review_status', 'required_before_customer_wording')
-            ->assertJsonPath('data.legal_boundary.execution_allowed', false);
+            ->assertJsonPath('data.legal_boundary.execution_allowed', false)
+            ->assertJsonCount(0, 'data.top_recommended_lots');
     }
 
     public function test_recommendations_stats_requires_admin(): void
@@ -351,7 +406,7 @@ class RecommendationExtendedTest extends TestCase
             ->assertJsonPath('data.algorithm_weights.preferred_lot', 15);
     }
 
-    public function test_recommendations_stats_with_bookings(): void
+    public function test_recommendations_stats_uses_served_audit_logs_not_bookings(): void
     {
         $user = User::factory()->create();
         $lot = ParkingLot::create([
@@ -383,6 +438,33 @@ class RecommendationExtendedTest extends TestCase
             'end_time' => now()->addHours(2),
             'status' => 'active',
         ]);
+        AuditLog::log([
+            'user_id' => $user->id,
+            'username' => $user->email,
+            'action' => 'recommendation_served',
+            'event_type' => 'RecommendationServed',
+            'target_type' => 'recommendation',
+            'target_id' => 'rec-1',
+            'details' => [
+                'candidates' => [
+                    ['slot_id' => $slot->id, 'lot_id' => $lot->id, 'score' => 80.0],
+                    ['slot_id' => 'other-slot', 'lot_id' => 'missing-lot', 'score' => 70.0],
+                ],
+            ],
+        ]);
+        AuditLog::log([
+            'user_id' => $user->id,
+            'username' => $user->email,
+            'action' => 'recommendation_served',
+            'event_type' => 'RecommendationServed',
+            'target_type' => 'recommendation',
+            'target_id' => 'rec-2',
+            'details' => [
+                'candidates' => [
+                    ['slot_id' => $slot->id, 'lot_id' => $lot->id, 'score' => 90.0],
+                ],
+            ],
+        ]);
 
         $admin = User::factory()->admin()->create();
 
@@ -390,9 +472,12 @@ class RecommendationExtendedTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.total_recommendations', 2)
-            ->assertJsonPath('data.accepted', 1)
-            ->assertJsonPath('data.acceptance_rate', 50)
-            ->assertJsonPath('data.total_recommendations_served', 6)
+            ->assertJsonPath('data.total_recommendations_served', 3)
+            ->assertJsonPath('data.accepted_recommendations', null)
+            ->assertJsonPath('data.acceptance_rate', null)
+            ->assertJsonPath('data.unique_users', 1)
+            ->assertJsonPath('data.avg_score', 80)
+            ->assertJsonPath('data.top_recommended_lots.0.lot_id', $lot->id)
             ->assertJsonPath('data.top_recommended_lots.0.lot_name', 'Stats Lot')
             ->assertJsonPath('data.top_recommended_lots.0.count', 2);
     }

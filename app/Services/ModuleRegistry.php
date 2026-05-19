@@ -999,10 +999,6 @@ final class ModuleRegistry
                 ],
                 'required' => [
                     'algorithm',
-                    'pipeline_endpoint',
-                    'pipeline_name',
-                    'pipeline_timeout_ms',
-                    'pipeline_fallback_enabled',
                     'weight_frequency',
                     'weight_preferred_lot',
                     'weight_availability',
@@ -1013,6 +1009,24 @@ final class ModuleRegistry
                     'max_results',
                     'explain',
                     'profile_safe_mode',
+                ],
+                'allOf' => [
+                    [
+                        'if' => [
+                            'properties' => [
+                                'algorithm' => ['const' => 'fop_pipeline_v1'],
+                            ],
+                            'required' => ['algorithm'],
+                        ],
+                        'then' => [
+                            'required' => [
+                                'pipeline_endpoint',
+                                'pipeline_name',
+                                'pipeline_timeout_ms',
+                                'pipeline_fallback_enabled',
+                            ],
+                        ],
+                    ],
                 ],
                 'additionalProperties' => false,
             ],

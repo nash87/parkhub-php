@@ -34,8 +34,20 @@ require_grep_each() {
   done
 }
 
+sha256_file() {
+  local path="$1"
+  if command -v sha256sum >/dev/null 2>&1; then
+    sha256sum "$path" | awk '{print $1}'
+  elif command -v shasum >/dev/null 2>&1; then
+    shasum -a 256 "$path" | awk '{print $1}'
+  else
+    echo "ERROR: neither sha256sum nor shasum is available" >&2
+    exit 1
+  fi
+}
+
 require_file "$fixture"
-actual_fixture_sha="$(sha256sum "$fixture" | awk '{print $1}')"
+actual_fixture_sha="$(sha256_file "$fixture")"
 if [[ "$actual_fixture_sha" != "$expected_fixture_sha" ]]; then
   echo "ERROR: $fixture hash drifted: $actual_fixture_sha" >&2
   echo "       expected: $expected_fixture_sha" >&2
