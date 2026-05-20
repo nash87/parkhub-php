@@ -165,6 +165,8 @@ jobs:
     # Audit-mode: surface findings as informational; do NOT fail the gate yet.
     # Promote findings to errors once the workflow inventory has been triaged.
     continue-on-error: true
+    env:
+      ZIZMOR_VERSION: "1.24.1"
     permissions:
       contents: read         # checkout source for the SAST scan
       security-events: write # upload Zizmor SARIF results to GitHub Security tab
@@ -172,19 +174,50 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
+
+      - name: Install zizmor
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user --break-system-packages "zizmor==${ZIZMOR_VERSION}"
+          echo "${HOME}/.local/bin" >> "${GITHUB_PATH}"
+          "${HOME}/.local/bin/zizmor" --version
+
       - name: Run zizmor
         continue-on-error: true
-        uses: zizmorcore/zizmor-action@b1d7e1fb5de872772f31590499237e7cce841e8e # v0.5.3
+        run: |
+          set -euo pipefail
+          # Auditor persona surfaces useful hardening findings without making
+          # them release-gating while this job remains in audit mode.
+          zizmor \
+            --persona=auditor \
+            --min-severity=high \
+            --no-online-audits \
+            --no-progress \
+            --color=never \
+            --no-exit-codes \
+            .github/workflows .gitea/workflows
+
+      - name: Generate zizmor SARIF
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          zizmor \
+            --persona=auditor \
+            --min-severity=high \
+            --no-online-audits \
+            --no-progress \
+            --color=never \
+            --no-exit-codes \
+            --format=sarif \
+            .github/workflows .gitea/workflows > zizmor.sarif
+
+      - name: Upload Zizmor SARIF to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4
+        if: always() && hashFiles('zizmor.sarif') != ''
+        continue-on-error: true
         with:
-          # auditor persona surfaces low-severity findings useful for hardening
-          # without flooding the PR with regular-user noise. Keep this aligned
-          # with .github/scripts/fop-local-ci.sh: offline, high-severity-only,
-          # and scoped to workflow manifests so PR audits cannot hang on live
-          # GitHub API checks.
-          inputs: .github/workflows .gitea/workflows
-          persona: auditor
-          online-audits: false
-          min-severity: high
+          sarif_file: zizmor.sarif
+          category: zizmor
 
   osv-scanner:
     # Multi-ecosystem SCA via Google's osv-scanner against the OSV.dev DB.
