@@ -239,10 +239,13 @@ class RecommendationController extends Controller
                 $engine['allocation']['exact_cover_max_search_nodes']
             )
         );
+        $allocationTraceId = (string) Str::uuid();
+        $this->auditExactCoverAllocation($request, $allocationTraceId, $engine, $validated, $result);
 
         return response()->json([
             'success' => true,
             'data' => [
+                'allocation_trace_id' => $allocationTraceId,
                 'result' => $result,
                 'legal_boundary' => [
                     'legal_review_required' => true,
@@ -687,6 +690,70 @@ class RecommendationController extends Controller
     }
 
     /**
+     * @param  array<string, mixed>  $engine
+     * @param  array{required_constraints: array<int, string>, options: array<int, array<string, mixed>>, limits?: array<string, int>}  $validated
+     * @param  array{strategy: string, status: string, selected_option_ids: array<int, string>, covered_constraints: array<int, string>, search_nodes: int}  $result
+     */
+    private function auditExactCoverAllocation(
+        Request $request,
+        string $allocationTraceId,
+        array $engine,
+        array $validated,
+        array $result
+    ): void {
+        $actor = $request->user();
+        $selected = array_fill_keys($result['selected_option_ids'], true);
+        $candidateIds = array_values(array_filter(array_map(
+            static fn (array $option): string => trim((string) ($option['id'] ?? '')),
+            $validated['options']
+        )));
+        $rejectedCandidateIds = array_values(array_filter(
+            $candidateIds,
+            static fn (string $id): bool => ! isset($selected[$id])
+        ));
+
+        AuditLog::log([
+            'user_id' => $actor?->id,
+            'username' => $actor === null ? null : ($actor->email ?: $actor->username),
+            'action' => 'exact_cover_allocation_served',
+            'event_type' => 'ExactCoverAllocationServed',
+            'target_type' => 'recommendation_allocation',
+            'target_id' => $allocationTraceId,
+            'ip_address' => $request->ip(),
+            'details' => [
+                'request_id' => $allocationTraceId,
+                'solver_name' => 'exact_cover_v1',
+                'solver_version' => 1,
+                'config_hash' => $this->exactCoverConfigHash($engine['allocation']),
+                'constraint_set_hash' => $this->exactCoverConstraintHash($validated['required_constraints']),
+                'candidate_set_hash' => $this->exactCoverCandidateHash($validated['options']),
+                'selected_option_ids' => $result['selected_option_ids'],
+                'rejected_candidate_ids' => $rejectedCandidateIds,
+                'covered_constraints' => $result['covered_constraints'],
+                'search_nodes' => $result['search_nodes'],
+                'tie_break_inputs' => [
+                    'candidate_order' => 'weight_desc_then_option_id_asc',
+                    'constraint_order' => 'fewest_candidates_then_constraint_asc',
+                    'max_options' => $engine['allocation']['exact_cover_max_options'],
+                    'max_search_nodes' => $engine['allocation']['exact_cover_max_search_nodes'],
+                ],
+                'actor' => [
+                    'user_id' => $actor?->id,
+                    'api_key_id' => null,
+                ],
+                'tenant_id' => $actor?->tenant_id,
+                'fallback_status' => $result['status'],
+                'retention_deletion_class' => 'operational_evidence_personal_data_possible',
+                'legal_boundary' => [
+                    'legal_review_required' => true,
+                    'attorney_review_status' => 'required_before_customer_wording',
+                    'execution_allowed' => false,
+                ],
+            ],
+        ]);
+    }
+
+    /**
      * @param  array{
      *     algorithm: string,
      *     weights: array<string, float>,
@@ -715,6 +782,69 @@ class RecommendationController extends Controller
     private function recommendationWeightsHash(array $weights): string
     {
         return hash('sha256', json_encode($weights, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param  array{strategy: string, exact_cover_max_options: int, exact_cover_max_search_nodes: int}  $allocation
+     */
+    private function exactCoverConfigHash(array $allocation): string
+    {
+        return hash('sha256', json_encode([
+            'strategy' => 'exact_cover_v1',
+            'max_options' => $allocation['exact_cover_max_options'],
+            'max_search_nodes' => $allocation['exact_cover_max_search_nodes'],
+        ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param  array<int, string>  $constraints
+     */
+    private function exactCoverConstraintHash(array $constraints): string
+    {
+        return hash('sha256', json_encode($this->normalizedExactCoverConstraints($constraints), JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $options
+     */
+    private function exactCoverCandidateHash(array $options): string
+    {
+        $normalized = array_values(array_filter(array_map(function (array $option): ?array {
+            $id = trim((string) ($option['id'] ?? ''));
+            if ($id === '') {
+                return null;
+            }
+
+            return [
+                'id' => $id,
+                'covers' => $this->normalizedExactCoverConstraints((array) ($option['covers'] ?? [])),
+                'weight' => (int) ($option['weight'] ?? 0),
+            ];
+        }, $options)));
+
+        usort($normalized, static fn (array $left, array $right): int => strcmp($left['id'], $right['id']));
+
+        return hash('sha256', json_encode($normalized, JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param  array<int, mixed>  $constraints
+     * @return array<int, string>
+     */
+    private function normalizedExactCoverConstraints(array $constraints): array
+    {
+        $normalized = [];
+        foreach ($constraints as $constraint) {
+            $value = trim((string) $constraint);
+            if ($value !== '') {
+                $normalized[$value] = true;
+            }
+        }
+
+        $values = array_keys($normalized);
+        sort($values, SORT_STRING);
+
+        return $values;
     }
 
     private function moduleConfigValue(string $key, mixed $default): mixed

@@ -113,6 +113,11 @@ require_grep_each 'exact_cover_v1' \
   tests/Unit/Services/Recommendations/ExactCoverAllocatorTest.php \
   docs/recommendation-engine-contract.md
 require_grep 'allocation trace' docs/recommendation-engine-contract.md
+require_grep 'allocation_trace_id' docs/recommendation-engine-contract.md app/Http/Controllers/Api/RecommendationController.php tests/Feature/RecommendationExtendedTest.php
+require_grep 'ExactCoverAllocationServed' app/Http/Controllers/Api/RecommendationController.php tests/Feature/RecommendationExtendedTest.php
+require_grep 'constraint_set_hash' app/Http/Controllers/Api/RecommendationController.php
+require_grep 'candidate_set_hash' app/Http/Controllers/Api/RecommendationController.php
+require_grep 'retention_deletion_class' app/Http/Controllers/Api/RecommendationController.php tests/Feature/RecommendationExtendedTest.php
 require_grep 'pseudonymous IDs only' docs/recommendation-engine-contract.md
 require_grep 'eligibility constraints' docs/recommendation-engine-contract.md
 require_grep 'legal-review flag' docs/recommendation-engine-contract.md

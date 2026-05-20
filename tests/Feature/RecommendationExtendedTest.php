@@ -400,6 +400,22 @@ class RecommendationExtendedTest extends TestCase
             ->assertJsonPath('data.result.status', 'solved')
             ->assertJsonPath('data.result.selected_option_ids', ['slot-a', 'slot-b'])
             ->assertJsonPath('data.legal_boundary.execution_allowed', false);
+
+        $this->assertNotEmpty($response->json('data.allocation_trace_id'));
+
+        $trace = AuditLog::query()
+            ->where('event_type', 'ExactCoverAllocationServed')
+            ->latest()
+            ->first();
+
+        $this->assertNotNull($trace);
+        $this->assertSame($response->json('data.allocation_trace_id'), $trace->target_id);
+        $this->assertSame('recommendation_allocation', $trace->target_type);
+        $this->assertSame('exact_cover_v1', $trace->details['solver_name']);
+        $this->assertSame(['slot-a', 'slot-b'], $trace->details['selected_option_ids']);
+        $this->assertSame(['slot-c'], $trace->details['rejected_candidate_ids']);
+        $this->assertSame('solved', $trace->details['fallback_status']);
+        $this->assertSame('operational_evidence_personal_data_possible', $trace->details['retention_deletion_class']);
     }
 
     public function test_recommendations_stats_requires_admin(): void
