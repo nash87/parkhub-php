@@ -251,7 +251,8 @@ php artisan test                      # Run PHPUnit (1,320 feature + 434 unit)
 - **German law** -- DDG SS5 Impressum, TTDSG SS25 cookie policy, SS147 AO retention
 - **7 legal templates** -- Impressum, Datenschutz, AGB, Widerrufsbelehrung, AVV, VVT, Cookie Policy
 - **International** -- UK GDPR, CCPA, nDSG (Switzerland), and LGPD mapping notes for operator review
-- See [GDPR Guide](docs/GDPR.md) | [Compliance Matrix](docs/COMPLIANCE.md)
+- **Operator audit hub** -- [Legal Readiness Hub](docs/legal-readiness.md) ties templates, release checks, and deployment obligations together for review
+- See [Legal Readiness Hub](docs/legal-readiness.md) | [GDPR Guide](docs/GDPR.md) | [Compliance Matrix](docs/COMPLIANCE.md)
 
 ---
 
@@ -374,7 +375,7 @@ The complete OpenAPI 3.0 spec is snapshotted at [`docs/openapi/php.json`](docs/o
 
 ## Legal Readiness
 
-ParkHub PHP ships legal-readiness features and operator-customizable templates for deployments across multiple jurisdictions. Whether a live deployment is compliant depends on the operator's configuration, hosting model, enabled modules, processors, jurisdiction, and legal review. The docs map the product surface against **9 regulatory frameworks**:
+ParkHub PHP ships legal-readiness features and operator-customizable templates for deployments across multiple jurisdictions. Start with the [Operator Legal Readiness Hub](docs/legal-readiness.md) for the audit flow, evidence map, and release review boundary. A live deployment's legal posture depends on the operator's configuration, hosting model, enabled modules, processors, jurisdiction, and legal review. The docs map the product surface against **9 regulatory frameworks**:
 
 **GDPR** (EU) | **DSGVO** (DE) | **TTDSG** (DE) | **DDG** (DE) | **BDSG** (DE) | **NIS2** (EU) | **CCPA** (US) | **UK GDPR** | **nDSG** (CH)
 
@@ -393,6 +394,7 @@ All legal documents are provided as **operator-customizable templates** -- not b
 
 | Document | Purpose | Location |
 |----------|---------|----------|
+| **Operator Legal Readiness Hub** | Audit index for legal-readiness evidence, review boundaries, and release checks | [docs/legal-readiness.md](docs/legal-readiness.md) |
 | **GDPR / DSGVO Guide** | Full DSGVO compliance documentation | [docs/GDPR.md](docs/GDPR.md) |
 | **Compliance Matrix** | German, EU, and international law mapping | [docs/COMPLIANCE.md](docs/COMPLIANCE.md) |
 | **Security Model** | Architecture, OWASP, encryption, disclosure | [docs/SECURITY.md](docs/SECURITY.md) |

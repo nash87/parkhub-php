@@ -2,8 +2,8 @@
 #
 # Static guard for legal-readiness wording.
 #
-# ParkHub ships controls and templates that support compliant deployments, but
-# live compliance depends on operator configuration, contracts, jurisdiction,
+# ParkHub ships controls and templates that support legal-readiness work, but
+# live legal posture depends on operator configuration, contracts, jurisdiction,
 # and attorney review. Keep public docs from drifting back to absolute legal
 # conclusions.
 #
@@ -20,7 +20,7 @@ scan_paths=(
     legal
 )
 
-pattern="100% GDPR|GDPR compliant|DSGVO-konform|Compliance-Audited|Compliance Audited|complies with all GDPR|No DPA needed|no GDPR processor agreement needed|no mandatory data processor agreements|DPIA is NOT required|not required for typical deployments"
+pattern="100% GDPR|GDPR compliant|DSGVO-konform|Compliance-Audited|Compliance Audited|complies with all GDPR|No DPA needed|no GDPR processor agreement needed|no mandatory data processor agreements|DPIA is NOT required|not required for typical deployments|legally compliant|certified|guaranteed|guarantees compliance|legal compliance is guaranteed|certifies compliance"
 
 if rg --pcre2 -n "$pattern" "${scan_paths[@]}"; then
     echo "ERROR: legal-readiness docs contain absolute compliance wording." >&2
@@ -40,10 +40,27 @@ require_text() {
 
 require_text docs/release-checklist.md "scripts/tests/test-legal-readiness-wording.sh"
 require_text docs/release-checklist.md "scripts/tests/test-legal-openapi-contract.sh"
+require_text docs/release-checklist.md "docs/legal-readiness.md"
+require_text docs/release-checklist.md "legal-readiness evidence"
 require_text docs/release-checklist.md "fop legal catalog"
+require_text docs/release-checklist.md "reference-only"
 require_text docs/release-checklist.md "attorney review"
 require_text docs/release-checklist.md "citation"
+require_text docs/release-checklist.md "human signoff"
+require_text docs/release-checklist.md "deployment-specific configuration review"
 require_text docs/release-checklist.md 'GitHub `nash87/parkhub-php` remains the CI/review source of truth'
+require_text README.md "docs/legal-readiness.md"
+require_text docs/legal-readiness.md "Operator Legal Readiness Hub"
+require_text docs/legal-readiness.md "It is not legal advice"
+require_text docs/legal-readiness.md "not a legal conclusion"
+require_text docs/legal-readiness.md "qualified counsel"
+require_text docs/legal-readiness.md "attorney review"
+require_text docs/legal-readiness.md "citation verification"
+require_text docs/legal-readiness.md "human signoff"
+require_text docs/legal-readiness.md "deployment-specific configuration review"
+require_text docs/legal-readiness.md "fop legal catalog"
+require_text docs/legal-readiness.md "reference-only"
+require_text docs/legal-readiness.md "scripts/tests/test-legal-openapi-contract.sh"
 require_text docs/GDPR.md "Legal Readiness Checklist"
 require_text docs/COMPLIANCE.md "Legal Readiness Checklist"
 
