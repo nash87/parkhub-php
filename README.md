@@ -253,7 +253,8 @@ php artisan test                      # Run PHPUnit (1,320 feature + 434 unit)
 - **International** -- UK GDPR, CCPA, nDSG (Switzerland), and LGPD mapping notes for operator review
 - **Operator audit hub** -- [Legal Readiness Hub](docs/legal-readiness.md) ties templates, release checks, and deployment obligations together for review
 - **Deployment signoff** -- [Deployment Readiness Record](docs/deployment-readiness-record.md) captures jurisdiction, module, processor, CI/CD evidence, and human go-live signoff per deployment
-- See [Legal Readiness Hub](docs/legal-readiness.md) | [Deployment Readiness Record](docs/deployment-readiness-record.md) | [GDPR Guide](docs/GDPR.md) | [Compliance Matrix](docs/COMPLIANCE.md)
+- **Cross-runtime parity** -- [Legal Readiness Parity](docs/legal-readiness-parity.md) keeps Rust/PHP legal-readiness gates, module/plugin review, and operator boundaries aligned
+- See [Legal Readiness Hub](docs/legal-readiness.md) | [Deployment Readiness Record](docs/deployment-readiness-record.md) | [Legal Readiness Parity](docs/legal-readiness-parity.md) | [GDPR Guide](docs/GDPR.md) | [Compliance Matrix](docs/COMPLIANCE.md)
 
 ---
 

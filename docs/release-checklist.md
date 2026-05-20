@@ -24,6 +24,8 @@ Use this before tagging a ParkHub release from this repo.
   legal-readiness evidence, review boundaries, and release checks.
 - Complete or update `docs/deployment-readiness-record.md` for the target
   deployment before production use, business use, or customer-facing evaluation.
+- Review `docs/legal-readiness-parity.md` for Rust/PHP legal-readiness parity
+  when a change affects shared legal, privacy, module, plugin, or release policy.
 - Run `scripts/tests/test-legal-readiness-wording.sh`; public docs must describe
   deployment-dependent readiness and obligations, not absolute legal compliance.
 - Confirm the operator checklist in `docs/GDPR.md` and `docs/COMPLIANCE.md`

@@ -35,6 +35,7 @@ deployment-specific configuration review, or final legal judgment.
 | What release checks protect the legal posture? | [Release checklist](release-checklist.md), `scripts/tests/test-legal-readiness-wording.sh`, `scripts/tests/test-legal-openapi-contract.sh` |
 | What security controls should be reviewed with privacy obligations? | [Security model](SECURITY.md), audit log export, module review, processor list |
 | What per-deployment record captures launch signoff? | [Deployment readiness record](deployment-readiness-record.md) for jurisdiction, business context, enabled modules, processors, CI/CD evidence, legal review, and final human go-live decision |
+| How do Rust and PHP stay aligned? | [Legal readiness parity](legal-readiness-parity.md) compares hubs, release gates, module/plugin review policy, and operator boundaries across both runtimes |
 
 ## German Readiness Review
 
@@ -101,8 +102,10 @@ plugin, export, erasure, or audit surfaces:
 3. Run `scripts/tests/test-legal-openapi-contract.sh`.
 4. Complete or update [deployment-readiness-record.md](deployment-readiness-record.md)
    before production use, business use, or customer-facing evaluation.
-5. Review the legal-readiness section in [release-checklist.md](release-checklist.md).
-6. Record unresolved deployment decisions in the release notes or operator
+5. Review [legal-readiness-parity.md](legal-readiness-parity.md) when a change
+   should stay aligned across Rust and PHP.
+6. Review the legal-readiness section in [release-checklist.md](release-checklist.md).
+7. Record unresolved deployment decisions in the release notes or operator
    handoff.
 
 ## Wording Guardrails
