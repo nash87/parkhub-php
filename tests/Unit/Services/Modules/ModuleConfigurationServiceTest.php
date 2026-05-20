@@ -57,6 +57,9 @@ class ModuleConfigurationServiceTest extends TestCase
     {
         return [
             'algorithm' => 'weighted_v1',
+            'allocation_strategy' => 'weighted_v1',
+            'exact_cover_max_options' => 256,
+            'exact_cover_max_search_nodes' => 10000,
             'weight_frequency' => 40,
             'weight_preferred_lot' => 20,
             'weight_availability' => 30,

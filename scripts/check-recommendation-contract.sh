@@ -6,6 +6,12 @@ cd "$ROOT"
 
 fixture="docs/recommendation-engine-fixtures/weighted_v1.basic.json"
 expected_fixture_sha="fe8ffc6a8cdb645f48ded1bebcaf3f48eb4d8576c95520a75378e2f4394b4bfa"
+exact_cover_fixtures=(
+  "030e4381665b2409e6fb82cef2c37a574b787a8bdb4cee1ecc21726d34b80da6 docs/recommendation-engine-fixtures/exact_cover_v1.batch_basic.json"
+  "16f438ec0825dbf76502b3af438cf1010a96fc0ec3f744c60c2564576d4aaa71 docs/recommendation-engine-fixtures/exact_cover_v1.empty.json"
+  "0d396cdb0c725b93eaf0418784d3fb1091cb5533b2f0ea3ce96264319d223eb4 docs/recommendation-engine-fixtures/exact_cover_v1.fairness_tiebreak.json"
+  "6f450243b60cab68ecd3f2186ba32697a15efd032420f924ec97b3d8a9b83ecf docs/recommendation-engine-fixtures/exact_cover_v1.no_solution.json"
+)
 
 require_file() {
   local path="$1"
@@ -65,6 +71,7 @@ require_grep_each 'fop_pipeline_v1' \
   tests/Feature/RecommendationExtendedTest.php \
   docs/recommendation-engine-contract.md
 require_grep "'algorithm' => env('RECOMMENDATION_ALGORITHM', 'weighted_v1')" config/recommendations.php
+require_grep "'strategy' => env('RECOMMENDATION_ALLOCATION_STRATEGY', 'weighted_v1')" config/recommendations.php
 require_grep 'fallback_algorithm=weighted_v1' docs/recommendation-engine-contract.md
 require_grep "'fallback_algorithm' => 'weighted_v1'" app/Http/Controllers/Api/RecommendationController.php
 require_grep "data_get(\$request->data(), 'fallback_algorithm') === 'weighted_v1'" tests/Feature/RecommendationExtendedTest.php
@@ -83,5 +90,38 @@ require_grep "'enum' => ['weighted_v1', 'fop_pipeline_v1']" app/Services/ModuleR
 require_grep "'execution_allowed' => false" app/Http/Controllers/Api/RecommendationController.php
 require_grep "['legal_boundary']['execution_allowed']" tests/Feature/RecommendationExtendedTest.php
 require_grep 'execution_allowed=false' docs/recommendation-engine-contract.md
+
+for entry in "${exact_cover_fixtures[@]}"; do
+  expected_exact_cover_fixture_sha="${entry%% *}"
+  exact_cover_fixture="${entry#* }"
+  require_file "$exact_cover_fixture"
+  actual_exact_cover_fixture_sha="$(sha256_file "$exact_cover_fixture")"
+  if [[ "$actual_exact_cover_fixture_sha" != "$expected_exact_cover_fixture_sha" ]]; then
+    echo "ERROR: $exact_cover_fixture hash drifted: $actual_exact_cover_fixture_sha" >&2
+    echo "       expected: $expected_exact_cover_fixture_sha" >&2
+    echo "       Update both PHP/Rust exact-cover fixtures, tests, and this gate together." >&2
+    exit 1
+  fi
+  require_grep '"algorithm": "exact_cover_v1"' "$exact_cover_fixture"
+done
+
+require_grep '"selected_option_ids": ["slot-a", "slot-b"]' docs/recommendation-engine-fixtures/exact_cover_v1.batch_basic.json
+require_grep '"status": "fallback_no_solution"' docs/recommendation-engine-fixtures/exact_cover_v1.no_solution.json
+require_grep 'deterministic fairness tie-break' docs/recommendation-engine-fixtures/exact_cover_v1.fairness_tiebreak.json
+require_grep_each 'exact_cover_v1' \
+  app/Services/Recommendations/ExactCoverAllocator.php \
+  tests/Unit/Services/Recommendations/ExactCoverAllocatorTest.php \
+  docs/recommendation-engine-contract.md
+require_grep 'allocation trace' docs/recommendation-engine-contract.md
+require_grep 'pseudonymous IDs only' docs/recommendation-engine-contract.md
+require_grep 'eligibility constraints' docs/recommendation-engine-contract.md
+require_grep 'legal-review flag' docs/recommendation-engine-contract.md
+require_grep 'fallback_no_solution' app/Services/Recommendations/ExactCoverAllocator.php
+require_grep 'test_exact_cover_v1_solves_batch_constraints' tests/Unit/Services/Recommendations/ExactCoverAllocatorTest.php
+require_grep 'test_exact_cover_v1_shared_fixtures_match_contract' tests/Unit/Services/Recommendations/ExactCoverAllocatorTest.php
+require_grep 'exactCoverAllocation' app/Http/Controllers/Api/RecommendationController.php routes/modules/recommendations.php
+require_grep '/recommendations/allocation/exact-cover' app/Http/Controllers/Api/RecommendationController.php routes/modules/recommendations.php docs/recommendation-engine-contract.md
+require_grep 'test_admin_exact_cover_allocation_endpoint_solves_batch_constraints' tests/Feature/RecommendationExtendedTest.php
+require_grep "'allocation_strategy'" app/Services/ModuleRegistry.php tests/Unit/Services/Modules/ModuleConfigurationServiceTest.php
 
 echo "ParkHub PHP recommendation contract gate OK."

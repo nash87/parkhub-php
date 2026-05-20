@@ -10,6 +10,7 @@ use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\Setting;
 use App\Services\ModuleRegistry;
+use App\Services\Recommendations\ExactCoverAllocator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -187,6 +188,7 @@ class RecommendationController extends Controller
                 'metrics_source' => 'audit_log.recommendation_served',
                 'algorithm' => $engine['algorithm'],
                 'algorithm_weights' => $engine['weights'],
+                'allocation' => $engine['allocation'],
                 'algorithm_adapter' => $this->weightedV1AdapterStatus($engine),
                 'legal_boundary' => [
                     'legal_review_required' => true,
@@ -195,6 +197,59 @@ class RecommendationController extends Controller
                     'disclaimer' => 'fop legal output is reference-only drafting support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing profiling or legal wording ships.',
                 ],
                 'top_recommended_lots' => $servedStats['top_recommended_lots'],
+            ],
+            'error' => null,
+        ]);
+    }
+
+    /**
+     * POST /api/v1/recommendations/allocation/exact-cover
+     *
+     * Admin-only exact-cover utility for batch/recurring operational
+     * scheduling. The quick-booking endpoint keeps weighted_v1 as its default.
+     */
+    public function exactCoverAllocation(Request $request, ExactCoverAllocator $allocator): JsonResponse
+    {
+        $validated = $request->validate([
+            'required_constraints' => ['present', 'array', 'max:256'],
+            'required_constraints.*' => ['string', 'max:128'],
+            'options' => ['present', 'array', 'max:256'],
+            'options.*.id' => ['required', 'string', 'max:128'],
+            'options.*.covers' => ['required', 'array', 'max:256'],
+            'options.*.covers.*' => ['string', 'max:128'],
+            'options.*.weight' => ['sometimes', 'integer', 'min:-1000000', 'max:1000000'],
+            'limits' => ['sometimes', 'array'],
+            'limits.max_options' => ['sometimes', 'integer', 'min:1', 'max:256'],
+            'limits.max_search_nodes' => ['sometimes', 'integer', 'min:1', 'max:10000'],
+        ]);
+        $engine = $this->recommendationEngineConfig();
+        $limits = (array) ($validated['limits'] ?? []);
+
+        $result = $allocator->solve(
+            array_values((array) $validated['required_constraints']),
+            array_values((array) $validated['options']),
+            $this->boundedInt(
+                $limits['max_options'] ?? $engine['allocation']['exact_cover_max_options'],
+                1,
+                $engine['allocation']['exact_cover_max_options']
+            ),
+            $this->boundedInt(
+                $limits['max_search_nodes'] ?? $engine['allocation']['exact_cover_max_search_nodes'],
+                1,
+                $engine['allocation']['exact_cover_max_search_nodes']
+            )
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'result' => $result,
+                'legal_boundary' => [
+                    'legal_review_required' => true,
+                    'attorney_review_status' => 'required_before_customer_wording',
+                    'execution_allowed' => false,
+                    'disclaimer' => 'exact_cover_v1 is operational scheduling support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing legal or profiling claims ship.',
+                ],
             ],
             'error' => null,
         ]);
@@ -210,7 +265,8 @@ class RecommendationController extends Controller
      *     max_results: int,
      *     explain: bool,
      *     profile_safe_mode: bool,
-     *     pipeline: array{endpoint: ?string, pipeline_name: string, timeout_ms: int, fallback_enabled: bool}
+     *     pipeline: array{endpoint: ?string, pipeline_name: string, timeout_ms: int, fallback_enabled: bool},
+     *     allocation: array{strategy: string, exact_cover_max_options: int, exact_cover_max_search_nodes: int}
      * }
      */
     private function recommendationEngineConfig(): array
@@ -232,6 +288,14 @@ class RecommendationController extends Controller
             $pipeline['pipeline_name'] ?? 'parkhub-recommendations'
         );
         $pipelineName = trim($pipelineName) !== '' ? trim($pipelineName) : 'parkhub-recommendations';
+        $allocation = (array) config('recommendations.allocation', []);
+        $allocationStrategy = (string) $this->moduleConfigValue(
+            'allocation_strategy',
+            $allocation['strategy'] ?? 'weighted_v1'
+        );
+        if (! in_array($allocationStrategy, ['weighted_v1', 'exact_cover_v1'], true)) {
+            $allocationStrategy = 'weighted_v1';
+        }
 
         return [
             'algorithm' => $algorithm,
@@ -289,6 +353,25 @@ class RecommendationController extends Controller
                     min(5000, (int) $this->moduleConfigValue('pipeline_timeout_ms', $pipeline['timeout_ms'] ?? 750))
                 ),
                 'fallback_enabled' => true,
+            ],
+            'allocation' => [
+                'strategy' => $allocationStrategy,
+                'exact_cover_max_options' => $this->boundedInt(
+                    $this->moduleConfigValue(
+                        'exact_cover_max_options',
+                        $allocation['exact_cover_max_options'] ?? 256
+                    ),
+                    1,
+                    256
+                ),
+                'exact_cover_max_search_nodes' => $this->boundedInt(
+                    $this->moduleConfigValue(
+                        'exact_cover_max_search_nodes',
+                        $allocation['exact_cover_max_search_nodes'] ?? 10000
+                    ),
+                    1,
+                    10000
+                ),
             ],
         ];
     }
@@ -622,6 +705,7 @@ class RecommendationController extends Controller
             'explain' => $engine['explain'],
             'profile_safe_mode' => $engine['profile_safe_mode'],
             'pipeline' => $engine['pipeline'],
+            'allocation' => $engine['allocation'],
         ], JSON_THROW_ON_ERROR));
     }
 
@@ -648,6 +732,13 @@ class RecommendationController extends Controller
     private function boundedFloat(mixed $value, float $min, float $max): float
     {
         $number = is_numeric($value) ? (float) $value : $min;
+
+        return max($min, min($max, $number));
+    }
+
+    private function boundedInt(mixed $value, int $min, int $max): int
+    {
+        $number = is_numeric($value) ? (int) $value : $min;
 
         return max($min, min($max, $number));
     }

@@ -366,12 +366,40 @@ class RecommendationExtendedTest extends TestCase
             ->assertJsonPath('data.algorithm_weights.price', 20)
             ->assertJsonPath('data.algorithm_weights.distance', 10)
             ->assertJsonPath('data.algorithm_weights.feature_bonus', 2)
+            ->assertJsonPath('data.allocation.strategy', 'weighted_v1')
+            ->assertJsonPath('data.allocation.exact_cover_max_options', 256)
+            ->assertJsonPath('data.allocation.exact_cover_max_search_nodes', 10000)
             ->assertJsonPath('data.algorithm_adapter.effective_algorithm', 'weighted_v1')
             ->assertJsonPath('data.algorithm_adapter.fallback_enabled', true)
             ->assertJsonPath('data.legal_boundary.legal_review_required', true)
             ->assertJsonPath('data.legal_boundary.attorney_review_status', 'required_before_customer_wording')
             ->assertJsonPath('data.legal_boundary.execution_allowed', false)
             ->assertJsonCount(0, 'data.top_recommended_lots');
+    }
+
+    public function test_admin_exact_cover_allocation_endpoint_solves_batch_constraints(): void
+    {
+        $admin = User::factory()->admin()->create();
+        Setting::set(
+            ModuleRegistry::configSettingKey('recommendations', 'allocation_strategy'),
+            json_encode('exact_cover_v1')
+        );
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/recommendations/allocation/exact-cover', [
+            'required_constraints' => ['tenant:alpha', 'tenant:beta', 'ev', 'accessible'],
+            'options' => [
+                ['id' => 'slot-a', 'covers' => ['tenant:alpha', 'ev'], 'weight' => 90],
+                ['id' => 'slot-b', 'covers' => ['tenant:beta', 'accessible'], 'weight' => 80],
+                ['id' => 'slot-c', 'covers' => ['tenant:beta'], 'weight' => 70],
+            ],
+        ]);
+
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.result.strategy', 'exact_cover_v1')
+            ->assertJsonPath('data.result.status', 'solved')
+            ->assertJsonPath('data.result.selected_option_ids', ['slot-a', 'slot-b'])
+            ->assertJsonPath('data.legal_boundary.execution_allowed', false);
     }
 
     public function test_recommendations_stats_requires_admin(): void

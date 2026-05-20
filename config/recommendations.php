@@ -36,4 +36,10 @@ return [
         'timeout_ms' => (int) env('RECOMMENDATION_PIPELINE_TIMEOUT_MS', 750),
         'fallback_enabled' => true,
     ],
+
+    'allocation' => [
+        'strategy' => env('RECOMMENDATION_ALLOCATION_STRATEGY', 'weighted_v1'),
+        'exact_cover_max_options' => (int) env('RECOMMENDATION_EXACT_COVER_MAX_OPTIONS', 256),
+        'exact_cover_max_search_nodes' => (int) env('RECOMMENDATION_EXACT_COVER_MAX_SEARCH_NODES', 10000),
+    ],
 ];

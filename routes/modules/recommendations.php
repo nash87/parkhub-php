@@ -10,4 +10,5 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware(['module:recommendations', 'auth:sanctum', 'throttle:api', 'admin'])->group(function () {
     Route::get('/recommendations/stats', [RecommendationController::class, 'stats']);
+    Route::post('/recommendations/allocation/exact-cover', [RecommendationController::class, 'exactCoverAllocation']);
 });
