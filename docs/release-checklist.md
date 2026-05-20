@@ -22,6 +22,8 @@ Use this before tagging a ParkHub release from this repo.
 
 - Start from `docs/legal-readiness.md`; it is the operator-facing hub for
   legal-readiness evidence, review boundaries, and release checks.
+- Complete or update `docs/deployment-readiness-record.md` for the target
+  deployment before production use, business use, or customer-facing evaluation.
 - Run `scripts/tests/test-legal-readiness-wording.sh`; public docs must describe
   deployment-dependent readiness and obligations, not absolute legal compliance.
 - Confirm the operator checklist in `docs/GDPR.md` and `docs/COMPLIANCE.md`

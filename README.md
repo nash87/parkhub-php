@@ -252,7 +252,8 @@ php artisan test                      # Run PHPUnit (1,320 feature + 434 unit)
 - **7 legal templates** -- Impressum, Datenschutz, AGB, Widerrufsbelehrung, AVV, VVT, Cookie Policy
 - **International** -- UK GDPR, CCPA, nDSG (Switzerland), and LGPD mapping notes for operator review
 - **Operator audit hub** -- [Legal Readiness Hub](docs/legal-readiness.md) ties templates, release checks, and deployment obligations together for review
-- See [Legal Readiness Hub](docs/legal-readiness.md) | [GDPR Guide](docs/GDPR.md) | [Compliance Matrix](docs/COMPLIANCE.md)
+- **Deployment signoff** -- [Deployment Readiness Record](docs/deployment-readiness-record.md) captures jurisdiction, module, processor, CI/CD evidence, and human go-live signoff per deployment
+- See [Legal Readiness Hub](docs/legal-readiness.md) | [Deployment Readiness Record](docs/deployment-readiness-record.md) | [GDPR Guide](docs/GDPR.md) | [Compliance Matrix](docs/COMPLIANCE.md)
 
 ---
 
@@ -383,6 +384,7 @@ All legal documents are provided as **operator-customizable templates** -- not b
 
 ### Operator Go-Live Checklist
 
+- [ ] Complete or update the [Deployment Readiness Record](docs/deployment-readiness-record.md) for the exact deployment, enabled modules, processors, jurisdictions, CI/CD evidence, and final human signoff.
 - [ ] Publish and verify Impressum, Datenschutzerklärung/privacy notice, AGB/terms if applicable, and withdrawal notice for B2C deployments.
 - [ ] Complete AVV/DPA and sub-processor review for hosting, SMTP, payment, backups, support, analytics, AI, and any other external provider.
 - [ ] Maintain a VVT/Record of Processing Activities and document legal bases, retention periods, recipients, and international transfers.

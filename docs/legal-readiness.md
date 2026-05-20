@@ -34,6 +34,7 @@ deployment-specific configuration review, or final legal judgment.
 | What admin compliance APIs can be audited? | [API docs](API.md), `GET /v1/admin/compliance/report`, `GET /v1/admin/compliance/data-map`, `GET /v1/admin/compliance/audit-export` |
 | What release checks protect the legal posture? | [Release checklist](release-checklist.md), `scripts/tests/test-legal-readiness-wording.sh`, `scripts/tests/test-legal-openapi-contract.sh` |
 | What security controls should be reviewed with privacy obligations? | [Security model](SECURITY.md), audit log export, module review, processor list |
+| What per-deployment record captures launch signoff? | [Deployment readiness record](deployment-readiness-record.md) for jurisdiction, business context, enabled modules, processors, CI/CD evidence, legal review, and final human go-live decision |
 
 ## German Readiness Review
 
@@ -98,8 +99,10 @@ plugin, export, erasure, or audit surfaces:
    docs.
 2. Run `scripts/tests/test-legal-readiness-wording.sh`.
 3. Run `scripts/tests/test-legal-openapi-contract.sh`.
-4. Review the legal-readiness section in [release-checklist.md](release-checklist.md).
-5. Record unresolved deployment decisions in the release notes or operator
+4. Complete or update [deployment-readiness-record.md](deployment-readiness-record.md)
+   before production use, business use, or customer-facing evaluation.
+5. Review the legal-readiness section in [release-checklist.md](release-checklist.md).
+6. Record unresolved deployment decisions in the release notes or operator
    handoff.
 
 ## Wording Guardrails
