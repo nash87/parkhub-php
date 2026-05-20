@@ -414,6 +414,7 @@ class RecommendationExtendedTest extends TestCase
         $this->assertSame('exact_cover_v1', $trace->details['solver_name']);
         $this->assertSame(['slot-a', 'slot-b'], $trace->details['selected_option_ids']);
         $this->assertSame(['slot-c'], $trace->details['rejected_candidate_ids']);
+        $this->assertArrayHasKey('tenant_id', $trace->details);
         $this->assertSame('solved', $trace->details['fallback_status']);
         $this->assertSame('operational_evidence_personal_data_possible', $trace->details['retention_deletion_class']);
     }

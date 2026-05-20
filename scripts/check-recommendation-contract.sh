@@ -117,6 +117,8 @@ require_grep 'allocation_trace_id' docs/recommendation-engine-contract.md app/Ht
 require_grep 'ExactCoverAllocationServed' app/Http/Controllers/Api/RecommendationController.php tests/Feature/RecommendationExtendedTest.php
 require_grep 'constraint_set_hash' app/Http/Controllers/Api/RecommendationController.php
 require_grep 'candidate_set_hash' app/Http/Controllers/Api/RecommendationController.php
+require_grep 'tenant_id' app/Http/Controllers/Api/RecommendationController.php tests/Feature/RecommendationExtendedTest.php
+require_grep 'tenant ID' docs/recommendation-engine-contract.md
 require_grep 'retention_deletion_class' app/Http/Controllers/Api/RecommendationController.php tests/Feature/RecommendationExtendedTest.php
 require_grep 'pseudonymous IDs only' docs/recommendation-engine-contract.md
 require_grep 'eligibility constraints' docs/recommendation-engine-contract.md
