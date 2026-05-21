@@ -20,7 +20,8 @@ Before production use, the operator should have qualified counsel review:
 - accessibility, consumer, and sector-specific obligations for the actual
   business model and jurisdiction.
 
-`fop legal catalog` can be used as a reference-only catalog of obligations and
+The Nido/fop legal catalog (`nido legal catalog --json`, equivalent to
+`fop legal catalog`) can be used as a reference-only catalog of obligations and
 internal evidence pointers. It is not legal advice, does not verify citations,
 and does not replace attorney review, citation verification, human signoff,
 deployment-specific configuration review, or final legal judgment.

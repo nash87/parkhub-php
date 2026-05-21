@@ -18,6 +18,8 @@ scan_paths=(
     README.md
     docs
     legal
+    parkhub-web/src
+    resources/js/src
 )
 
 if ! command -v rg >/dev/null 2>&1; then
@@ -55,6 +57,7 @@ require_text docs/release-checklist.md "docs/legal-readiness.md"
 require_text docs/release-checklist.md "docs/deployment-readiness-record.md"
 require_text docs/release-checklist.md "docs/legal-readiness-parity.md"
 require_text docs/release-checklist.md "legal-readiness evidence"
+require_text docs/release-checklist.md "Nido/fop legal catalog"
 require_text docs/release-checklist.md "fop legal catalog"
 require_text docs/release-checklist.md "reference-only"
 require_text docs/release-checklist.md "attorney review"
@@ -73,6 +76,7 @@ require_text docs/legal-readiness.md "attorney review"
 require_text docs/legal-readiness.md "citation verification"
 require_text docs/legal-readiness.md "human signoff"
 require_text docs/legal-readiness.md "deployment-specific configuration review"
+require_text docs/legal-readiness.md "Nido/fop legal catalog"
 require_text docs/legal-readiness.md "fop legal catalog"
 require_text docs/legal-readiness.md "reference-only"
 require_text docs/legal-readiness.md "scripts/tests/test-legal-openapi-contract.sh"
@@ -88,6 +92,7 @@ require_text docs/deployment-readiness-record.md "Final human go-live signoff"
 require_text docs/legal-readiness-parity.md "# Legal Readiness Parity"
 require_text docs/legal-readiness-parity.md "Rust and PHP"
 require_text docs/legal-readiness-parity.md "Module/plugin review"
+require_text docs/legal-readiness-parity.md "Nido/fop legal catalog"
 require_text docs/legal-readiness-parity.md "fop legal catalog"
 require_text docs/legal-readiness-parity.md "qualified counsel"
 require_text docs/GDPR.md "Legal Readiness Checklist"
