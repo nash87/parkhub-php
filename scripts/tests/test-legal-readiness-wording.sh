@@ -20,9 +20,15 @@ scan_paths=(
     legal
 )
 
-pattern="100% GDPR|GDPR compliant|DSGVO-konform|Compliance-Audited|Compliance Audited|complies with all GDPR|No DPA needed|no GDPR processor agreement needed|no mandatory data processor agreements|DPIA is NOT required|not required for typical deployments|legally compliant|certified|guaranteed|guarantees compliance|legal compliance is guaranteed|certifies compliance"
+if ! command -v rg >/dev/null 2>&1; then
+    echo "ERROR: ripgrep (rg) is required for the legal-readiness wording guard." >&2
+    echo "Install ripgrep or run this check in the project CI image." >&2
+    exit 1
+fi
 
-if rg --pcre2 -n "$pattern" "${scan_paths[@]}"; then
+pattern="100%[[:space:]-]+GDPR|GDPR[[:space:]-]+compliant|DSGVO[[:space:]-]+konform|Compliance[[:space:]-]+Audited|complies with all GDPR|No DPA needed|no GDPR processor agreement needed|no mandatory data processor agreements|DPIA is NOT required|not required for typical deployments|legally compliant|guarantees compliance|legal compliance is guaranteed|certifies compliance|(GDPR|DSGVO|compliance|legal)[^.\n]{0,40}(certified|guaranteed)|(certified|guaranteed)[^.\n]{0,40}(GDPR|DSGVO|compliance|legal)"
+
+if rg --pcre2 --ignore-case -n "$pattern" "${scan_paths[@]}"; then
     echo "ERROR: legal-readiness docs contain absolute compliance wording." >&2
     echo "Use deployment-dependent wording and require operator/legal review." >&2
     exit 1
@@ -31,6 +37,11 @@ fi
 require_text() {
     local file="$1"
     local text="$2"
+
+    if [ ! -r "$file" ]; then
+        echo "ERROR: required file not found or unreadable: $file" >&2
+        exit 1
+    fi
 
     if ! grep -Fq "$text" "$file"; then
         echo "ERROR: $file is missing required legal-readiness text: $text" >&2
