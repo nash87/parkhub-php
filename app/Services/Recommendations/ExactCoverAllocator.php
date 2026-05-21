@@ -91,9 +91,9 @@ final class ExactCoverAllocator
         $normalized = [];
 
         foreach ($options as $option) {
-            $id = trim((string) ($option['id'] ?? ''));
+            $id = trim((string) $option['id']);
             $covers = [];
-            foreach ($this->normalizeConstraints((array) ($option['covers'] ?? [])) as $constraint) {
+            foreach ($this->normalizeConstraints((array) $option['covers']) as $constraint) {
                 if (isset($requiredLookup[$constraint])) {
                     $covers[$constraint] = true;
                 }
