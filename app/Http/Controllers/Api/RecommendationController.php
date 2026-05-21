@@ -224,23 +224,39 @@ class RecommendationController extends Controller
         ]);
         $engine = $this->recommendationEngineConfig();
         $limits = (array) ($validated['limits'] ?? []);
-
-        $result = $allocator->solve(
-            array_values((array) $validated['required_constraints']),
-            array_values((array) $validated['options']),
-            $this->boundedInt(
+        $options = array_values((array) $validated['options']);
+        $duplicateOptionIds = $this->duplicateExactCoverOptionIds($options);
+        if ($duplicateOptionIds !== []) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'DUPLICATE_EXACT_COVER_OPTION_ID',
+                    'message' => 'Exact-cover option IDs must be unique: '.implode(', ', $duplicateOptionIds),
+                ],
+            ], 422);
+        }
+        $effectiveLimits = [
+            'exact_cover_max_options' => $this->boundedInt(
                 $limits['max_options'] ?? $engine['allocation']['exact_cover_max_options'],
                 1,
                 $engine['allocation']['exact_cover_max_options']
             ),
-            $this->boundedInt(
+            'exact_cover_max_search_nodes' => $this->boundedInt(
                 $limits['max_search_nodes'] ?? $engine['allocation']['exact_cover_max_search_nodes'],
                 1,
                 $engine['allocation']['exact_cover_max_search_nodes']
-            )
+            ),
+        ];
+
+        $result = $allocator->solve(
+            array_values((array) $validated['required_constraints']),
+            $options,
+            $effectiveLimits['exact_cover_max_options'],
+            $effectiveLimits['exact_cover_max_search_nodes']
         );
         $allocationTraceId = (string) Str::uuid();
-        $this->auditExactCoverAllocation($request, $allocationTraceId, $engine, $validated, $result);
+        $this->auditExactCoverAllocation($request, $allocationTraceId, $effectiveLimits, $validated, $result);
 
         return response()->json([
             'success' => true,
@@ -691,14 +707,14 @@ class RecommendationController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $engine
+     * @param  array{exact_cover_max_options: int, exact_cover_max_search_nodes: int}  $effectiveLimits
      * @param  array{required_constraints: array<int, string>, options: array<int, array<string, mixed>>, limits?: array<string, int>}  $validated
      * @param  array{strategy: string, status: string, selected_option_ids: array<int, string>, covered_constraints: array<int, string>, search_nodes: int}  $result
      */
     private function auditExactCoverAllocation(
         Request $request,
         string $allocationTraceId,
-        array $engine,
+        array $effectiveLimits,
         array $validated,
         array $result
     ): void {
@@ -725,7 +741,7 @@ class RecommendationController extends Controller
                 'request_id' => $allocationTraceId,
                 'solver_name' => 'exact_cover_v1',
                 'solver_version' => 1,
-                'config_hash' => $this->exactCoverConfigHash($engine['allocation']),
+                'config_hash' => $this->exactCoverConfigHash($effectiveLimits),
                 'constraint_set_hash' => $this->exactCoverConstraintHash($validated['required_constraints']),
                 'candidate_set_hash' => $this->exactCoverCandidateHash($validated['options']),
                 'selected_option_ids' => $result['selected_option_ids'],
@@ -735,8 +751,8 @@ class RecommendationController extends Controller
                 'tie_break_inputs' => [
                     'candidate_order' => 'weight_desc_then_option_id_asc',
                     'constraint_order' => 'fewest_candidates_then_constraint_asc',
-                    'max_options' => $engine['allocation']['exact_cover_max_options'],
-                    'max_search_nodes' => $engine['allocation']['exact_cover_max_search_nodes'],
+                    'max_options' => $effectiveLimits['exact_cover_max_options'],
+                    'max_search_nodes' => $effectiveLimits['exact_cover_max_search_nodes'],
                 ],
                 'actor' => [
                     'user_id' => $actor?->id,
@@ -787,7 +803,7 @@ class RecommendationController extends Controller
     }
 
     /**
-     * @param  array{strategy: string, exact_cover_max_options: int, exact_cover_max_search_nodes: int}  $allocation
+     * @param  array{exact_cover_max_options: int, exact_cover_max_search_nodes: int}  $allocation
      */
     private function exactCoverConfigHash(array $allocation): string
     {
@@ -796,6 +812,33 @@ class RecommendationController extends Controller
             'max_options' => $allocation['exact_cover_max_options'],
             'max_search_nodes' => $allocation['exact_cover_max_search_nodes'],
         ], JSON_THROW_ON_ERROR));
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $options
+     * @return array<int, string>
+     */
+    private function duplicateExactCoverOptionIds(array $options): array
+    {
+        $seen = [];
+        $duplicates = [];
+        foreach ($options as $option) {
+            $id = trim((string) ($option['id'] ?? ''));
+            if ($id === '') {
+                continue;
+            }
+            if (isset($seen[$id])) {
+                $duplicates[$id] = true;
+
+                continue;
+            }
+            $seen[$id] = true;
+        }
+
+        $values = array_keys($duplicates);
+        sort($values, SORT_STRING);
+
+        return $values;
     }
 
     /**

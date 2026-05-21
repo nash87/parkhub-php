@@ -384,6 +384,14 @@ class RecommendationExtendedTest extends TestCase
             ModuleRegistry::configSettingKey('recommendations', 'allocation_strategy'),
             json_encode('exact_cover_v1')
         );
+        Setting::set(
+            ModuleRegistry::configSettingKey('recommendations', 'exact_cover_max_options'),
+            json_encode(10)
+        );
+        Setting::set(
+            ModuleRegistry::configSettingKey('recommendations', 'exact_cover_max_search_nodes'),
+            json_encode(500)
+        );
 
         $response = $this->actingAs($admin)->postJson('/api/v1/recommendations/allocation/exact-cover', [
             'required_constraints' => ['tenant:alpha', 'tenant:beta', 'ev', 'accessible'],
@@ -391,6 +399,10 @@ class RecommendationExtendedTest extends TestCase
                 ['id' => 'slot-a', 'covers' => ['tenant:alpha', 'ev'], 'weight' => 90],
                 ['id' => 'slot-b', 'covers' => ['tenant:beta', 'accessible'], 'weight' => 80],
                 ['id' => 'slot-c', 'covers' => ['tenant:beta'], 'weight' => 70],
+            ],
+            'limits' => [
+                'max_options' => 3,
+                'max_search_nodes' => 50,
             ],
         ]);
 
@@ -414,9 +426,30 @@ class RecommendationExtendedTest extends TestCase
         $this->assertSame('exact_cover_v1', $trace->details['solver_name']);
         $this->assertSame(['slot-a', 'slot-b'], $trace->details['selected_option_ids']);
         $this->assertSame(['slot-c'], $trace->details['rejected_candidate_ids']);
+        $this->assertSame(3, $trace->details['tie_break_inputs']['max_options']);
+        $this->assertSame(50, $trace->details['tie_break_inputs']['max_search_nodes']);
         $this->assertArrayHasKey('tenant_id', $trace->details);
         $this->assertSame('solved', $trace->details['fallback_status']);
         $this->assertSame('operational_evidence_personal_data_possible', $trace->details['retention_deletion_class']);
+    }
+
+    public function test_admin_exact_cover_allocation_rejects_duplicate_option_ids(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/recommendations/allocation/exact-cover', [
+            'required_constraints' => ['tenant:alpha', 'tenant:beta'],
+            'options' => [
+                ['id' => 'slot-a', 'covers' => ['tenant:alpha'], 'weight' => 90],
+                ['id' => 'slot-a', 'covers' => ['tenant:beta'], 'weight' => 80],
+            ],
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('data', null)
+            ->assertJsonPath('error.code', 'DUPLICATE_EXACT_COVER_OPTION_ID')
+            ->assertJsonPath('error.message', 'Exact-cover option IDs must be unique: slot-a');
     }
 
     public function test_recommendations_stats_requires_admin(): void
