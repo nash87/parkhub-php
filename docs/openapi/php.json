@@ -34253,6 +34253,316 @@
         ]
       }
     },
+    "/v1/recommendations/allocation/exact-cover": {
+      "post": {
+        "description": "Admin-only exact-cover utility for batch/recurring operational\nscheduling. The quick-booking endpoint keeps weighted_v1 as its default.",
+        "operationId": "recommendation.exactCoverAllocation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "limits": {
+                    "properties": {
+                      "max_options": {
+                        "maximum": 256,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "max_search_nodes": {
+                        "maximum": 10000,
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "options": {
+                    "items": {
+                      "properties": {
+                        "covers": {
+                          "items": {
+                            "maxLength": 128,
+                            "type": "string"
+                          },
+                          "maxItems": 256,
+                          "minItems": 1,
+                          "type": "array"
+                        },
+                        "id": {
+                          "maxLength": 128,
+                          "type": "string"
+                        },
+                        "weight": {
+                          "maximum": 1000000,
+                          "minimum": -1000000,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "covers"
+                      ],
+                      "type": "object"
+                    },
+                    "maxItems": 256,
+                    "type": "array"
+                  },
+                  "required_constraints": {
+                    "items": {
+                      "maxLength": 128,
+                      "type": "string"
+                    },
+                    "maxItems": 256,
+                    "type": "array"
+                  }
+                },
+                "required": [
+                  "required_constraints",
+                  "options"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "allocation_trace_id": {
+                          "type": "string"
+                        },
+                        "legal_boundary": {
+                          "properties": {
+                            "attorney_review_status": {
+                              "const": "required_before_customer_wording",
+                              "type": "string"
+                            },
+                            "disclaimer": {
+                              "const": "exact_cover_v1 is operational scheduling support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing legal or profiling claims ship.",
+                              "type": "string"
+                            },
+                            "execution_allowed": {
+                              "type": "boolean"
+                            },
+                            "legal_review_required": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "legal_review_required",
+                            "attorney_review_status",
+                            "execution_allowed",
+                            "disclaimer"
+                          ],
+                          "type": "object"
+                        },
+                        "result": {
+                          "anyOf": [
+                            {
+                              "properties": {
+                                "covered_constraints": {
+                                  "additionalItems": false,
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "maxItems": 0,
+                                  "minItems": 0,
+                                  "type": "array"
+                                },
+                                "search_nodes": {
+                                  "type": "integer"
+                                },
+                                "selected_option_ids": {
+                                  "additionalItems": false,
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "maxItems": 0,
+                                  "minItems": 0,
+                                  "type": "array"
+                                },
+                                "status": {
+                                  "enum": [
+                                    "fallback_search_limited",
+                                    "fallback_no_solution"
+                                  ],
+                                  "type": "string"
+                                },
+                                "strategy": {
+                                  "const": "exact_cover_v1",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "strategy",
+                                "status",
+                                "selected_option_ids",
+                                "covered_constraints",
+                                "search_nodes"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "properties": {
+                                "covered_constraints": {
+                                  "items": {},
+                                  "type": "array"
+                                },
+                                "search_nodes": {
+                                  "type": "integer"
+                                },
+                                "selected_option_ids": {
+                                  "items": {},
+                                  "type": "array"
+                                },
+                                "status": {
+                                  "const": "solved",
+                                  "type": "string"
+                                },
+                                "strategy": {
+                                  "const": "exact_cover_v1",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "strategy",
+                                "status",
+                                "selected_option_ids",
+                                "covered_constraints",
+                                "search_nodes"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "properties": {
+                                "covered_constraints": {
+                                  "additionalItems": false,
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "maxItems": 0,
+                                  "minItems": 0,
+                                  "type": "array"
+                                },
+                                "search_nodes": {
+                                  "type": "integer"
+                                },
+                                "selected_option_ids": {
+                                  "additionalItems": false,
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "maxItems": 0,
+                                  "minItems": 0,
+                                  "type": "array"
+                                },
+                                "status": {
+                                  "const": "fallback_input_limited",
+                                  "type": "string"
+                                },
+                                "strategy": {
+                                  "const": "exact_cover_v1",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "strategy",
+                                "status",
+                                "selected_option_ids",
+                                "covered_constraints",
+                                "search_nodes"
+                              ],
+                              "type": "object"
+                            },
+                            {
+                              "properties": {
+                                "covered_constraints": {
+                                  "additionalItems": false,
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "maxItems": 0,
+                                  "minItems": 0,
+                                  "type": "array"
+                                },
+                                "search_nodes": {
+                                  "type": "integer"
+                                },
+                                "selected_option_ids": {
+                                  "additionalItems": false,
+                                  "items": {
+                                    "type": "string"
+                                  },
+                                  "maxItems": 0,
+                                  "minItems": 0,
+                                  "type": "array"
+                                },
+                                "status": {
+                                  "const": "solved",
+                                  "type": "string"
+                                },
+                                "strategy": {
+                                  "const": "exact_cover_v1",
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "strategy",
+                                "status",
+                                "selected_option_ids",
+                                "covered_constraints",
+                                "search_nodes"
+                              ],
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "allocation_trace_id",
+                        "result",
+                        "legal_boundary"
+                      ],
+                      "type": "object"
+                    },
+                    "error": {
+                      "type": "null"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        },
+        "summary": "POST /api/v1/recommendations/allocation/exact-cover",
+        "tags": [
+          "Recommendation"
+        ]
+      }
+    },
     "/v1/recommendations/stats": {
       "get": {
         "operationId": "recommendation.stats",
@@ -34354,6 +34664,26 @@
                           ],
                           "type": "object"
                         },
+                        "allocation": {
+                          "properties": {
+                            "exact_cover_max_options": {
+                              "type": "integer"
+                            },
+                            "exact_cover_max_search_nodes": {
+                              "type": "integer"
+                            },
+                            "strategy": {
+                              "const": "weighted_v1",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "strategy",
+                            "exact_cover_max_options",
+                            "exact_cover_max_search_nodes"
+                          ],
+                          "type": "object"
+                        },
                         "avg_score": {
                           "type": [
                             "number",
@@ -34436,6 +34766,7 @@
                         "metrics_source",
                         "algorithm",
                         "algorithm_weights",
+                        "allocation",
                         "algorithm_adapter",
                         "legal_boundary",
                         "top_recommended_lots"
