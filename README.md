@@ -381,6 +381,8 @@ ParkHub PHP ships legal-readiness features and operator-customizable templates f
 
 **GDPR** (EU) | **DSGVO** (DE) | **TTDSG** (DE) | **DDG** (DE) | **BDSG** (DE) | **NIS2** (EU) | **CCPA** (US) | **UK GDPR** | **nDSG** (CH)
 
+The Nido/fop legal catalog service (current CLI entrypoint: `fop legal catalog --json`; `nido legal` is not exposed by the installed Nido CLI yet) is reference-only and does not replace attorney review, citation verification, deployment-specific configuration review, human signoff, or final legal judgment.
+
 All legal documents are provided as **operator-customizable templates** -- not binding legal texts and not legal advice.
 
 ### Operator Go-Live Checklist
