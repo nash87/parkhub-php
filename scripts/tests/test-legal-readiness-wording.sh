@@ -97,5 +97,8 @@ require_text docs/legal-readiness-parity.md "fop legal catalog"
 require_text docs/legal-readiness-parity.md "qualified counsel"
 require_text docs/GDPR.md "Legal Readiness Checklist"
 require_text docs/COMPLIANCE.md "Legal Readiness Checklist"
+require_text .github/scripts/fop-local-ci.sh "FOP_LOCAL_CI_QUEUE_BIN"
+require_text .github/scripts/fop-local-ci.sh "supports_queue_build nido"
+require_text .github/scripts/fop-local-ci.sh "\"\$queue_bin\" build"
 
 echo "ParkHub legal-readiness wording contract OK."

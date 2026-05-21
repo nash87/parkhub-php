@@ -34,8 +34,8 @@ Environment overrides:
   FOP_LOCAL_CI_DIFF_PATHS      newline-delimited diff path override for
                                contract tests and explicit local reruns.
   FOP_LOCAL_CI_BG_LOG_DIR      background log directory override.
-  FOP_LOCAL_CI_QUEUE_BIN       queue wrapper binary. Defaults to `nido` when
-                               available, otherwise `fop`.
+  FOP_LOCAL_CI_QUEUE_BIN       queue wrapper binary. Defaults to `nido build`
+                               when available, otherwise `fop`.
   FOP_LOCAL_CI_DIRECT          1 = bypass the queue wrapper and
                                run each step directly in the current shell.
                                Use only for the bootstrap chicken-and-egg
@@ -112,7 +112,11 @@ cd "$repo_root"
 
 queue_bin="${FOP_LOCAL_CI_QUEUE_BIN:-}"
 if [[ -z "$queue_bin" ]]; then
-  if command -v nido >/dev/null 2>&1; then
+  supports_queue_build() {
+    command -v "$1" >/dev/null 2>&1 && "$1" build --help >/dev/null 2>&1
+  }
+
+  if supports_queue_build nido; then
     queue_bin="nido"
   else
     queue_bin="fop"
