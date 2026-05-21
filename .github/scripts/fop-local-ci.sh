@@ -5,7 +5,7 @@ usage() {
   cat <<'EOF'
 Usage: .github/scripts/fop-local-ci.sh [--profile pr|full|cd] [--dry-run] [--post-status] [--background]
 
-Runs ParkHub-PHP's local-first CI through fop's build queue. The optional
+Runs ParkHub-PHP's local-first CI through the Nido/fop build queue. The optional
 --background flag runs the gate in a detached subshell, logs to
 .fop/reports/local-ci-<profile>-<sha>-bg.log, and returns immediately.
 Combine with --post-status for fire-and-forget full runs that publish their
@@ -34,7 +34,9 @@ Environment overrides:
   FOP_LOCAL_CI_DIFF_PATHS      newline-delimited diff path override for
                                contract tests and explicit local reruns.
   FOP_LOCAL_CI_BG_LOG_DIR      background log directory override.
-  FOP_LOCAL_CI_DIRECT          1 = bypass the `fop build` queue wrapper and
+  FOP_LOCAL_CI_QUEUE_BIN       queue wrapper binary. Defaults to `nido` when it
+                               supports `build`, otherwise `fop`.
+  FOP_LOCAL_CI_DIRECT          1 = bypass the queue wrapper and
                                run each step directly in the current shell.
                                Use only for the bootstrap chicken-and-egg
                                run that introduces this script, or when
@@ -107,6 +109,19 @@ fi
 
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
+
+queue_bin="${FOP_LOCAL_CI_QUEUE_BIN:-}"
+if [[ -z "$queue_bin" ]]; then
+  supports_queue_build() {
+    command -v "$1" >/dev/null 2>&1 && "$1" build --help >/dev/null 2>&1
+  }
+
+  if supports_queue_build nido; then
+    queue_bin="nido"
+  else
+    queue_bin="fop"
+  fi
+fi
 
 sha="$(git rev-parse HEAD)"
 context="fop/local-ci/${profile}"
@@ -382,8 +397,9 @@ write_report() {
 EOF
 }
 
-# All non-trivial work goes through `fop build --backend local` so the
-# fop queue can serialize concurrent runs and apply the OOM cap.
+# All non-trivial work goes through the local queue wrapper (`nido build`
+# on current workstations, `fop build` on older hosts) so concurrent runs
+# are serialized and the OOM cap is applied.
 #
 # `interactive-small` shrinks the per-step memory request to ~1-2 GiB
 # instead of the 6 GiB default. PHP/Composer/Pint/PHPStan/Vitest steps
@@ -404,32 +420,32 @@ run_fop_step() {
 
   set +e
   PARKHUB_FOP_STEP_MARKER="$marker" \
-    fop build --backend local --resource-profile "$resource_profile" . --preset custom -- \
+    "$queue_bin" build --backend local --resource-profile "$resource_profile" . --preset custom -- \
       bash -euo pipefail -c "$wrapped_command" 2>&1 | tee "$log_file"
   local status=${PIPESTATUS[0]}
   set -e
 
   if ! grep -Fq "$marker" "$log_file"; then
-    echo "ERROR: fop build reported success but the inner step completion marker was missing." >&2
-    echo "This usually means the wrapped command exited before completion or fop masked its status." >&2
+    echo "ERROR: ${queue_bin} build reported success but the inner step completion marker was missing." >&2
+    echo "This usually means the wrapped command exited before completion or ${queue_bin} masked its status." >&2
     rm -f "$log_file"
     return 1
   fi
 
   if [[ "$status" -ne 0 ]]; then
-    echo "WARN: fop build exited ${status} after the wrapped step completed; continuing because the completion marker was present." >&2
-    echo "This can happen when fop's compact summary classifier flags advisory-only output after the command already handled it." >&2
+    echo "WARN: ${queue_bin} build exited ${status} after the wrapped step completed; continuing because the completion marker was present." >&2
+    echo "This can happen when the active queue wrapper flags advisory-only output after the command already handled it." >&2
   fi
 
   rm -f "$log_file"
 }
 
-# Setting FOP_LOCAL_CI_DIRECT=1 bypasses the fop queue wrapper and
+# Setting FOP_LOCAL_CI_DIRECT=1 bypasses the queue wrapper and
 # runs each step directly in the current shell. Use this for the
 # bootstrap chicken-and-egg run that introduces this script (the queue
 # would refuse capacity if a sibling tab already holds the parallelism
-# slot), or when running outside fop entirely. Operators must still
-# guarantee local memory headroom themselves in that mode.
+# slot), or when running without the active queue wrapper. Operators
+# must still guarantee local memory headroom themselves in that mode.
 run_step() {
   local name="$1"
   local command="$2"
@@ -438,10 +454,11 @@ run_step() {
     printf 'DRY-RUN: %s\n' "$command"
     return 0
   fi
-  if [[ "${FOP_LOCAL_CI_DIRECT:-0}" == "1" ]] || ! command -v fop >/dev/null 2>&1; then
-    # Direct mode (no fop queue): explicit opt-in OR fop binary not on
+  if [[ "${FOP_LOCAL_CI_DIRECT:-0}" == "1" ]] || ! command -v "$queue_bin" >/dev/null 2>&1; then
+    # Direct mode (no queue wrapper): explicit opt-in OR queue binary not on
     # PATH (GitHub Actions runners, fresh contributor boxes). The kernel
-    # + earlyoom handle resource pressure when fop isn't available.
+    # + earlyoom handle resource pressure when the active wrapper is not
+    # available.
     bash -euo pipefail -c "$command"
     return 0
   fi
@@ -456,7 +473,7 @@ run_step_heavy() {
     printf 'DRY-RUN: %s\n' "$command"
     return 0
   fi
-  if [[ "${FOP_LOCAL_CI_DIRECT:-0}" == "1" ]] || ! command -v fop >/dev/null 2>&1; then
+  if [[ "${FOP_LOCAL_CI_DIRECT:-0}" == "1" ]] || ! command -v "$queue_bin" >/dev/null 2>&1; then
     bash -euo pipefail -c "$command"
     return 0
   fi

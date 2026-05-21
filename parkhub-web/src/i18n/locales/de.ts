@@ -3,7 +3,7 @@ export default {
     app: { name: 'ParkHub', tagline: 'Intelligentes Parkplatzmanagement' },
     welcome: {
       greeting: 'Willkommen bei ParkHub',
-      subtitle: 'Parkplatze buchen, Stellplatze verwalten, Credits tracken. Self-hosted, Open Source, DSGVO-konform.',
+      subtitle: 'Parkplatze buchen, Stellplatze verwalten, Credits tracken. Self-hosted, Open Source, mit Datenschutz-Funktionen.',
       selectLanguage: 'Sprache wahlen',
       getStarted: 'Loslegen',
       selfHosted: 'Selbst gehostet',

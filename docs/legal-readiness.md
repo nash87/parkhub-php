@@ -20,10 +20,19 @@ Before production use, the operator should have qualified counsel review:
 - accessibility, consumer, and sector-specific obligations for the actual
   business model and jurisdiction.
 
-`fop legal catalog` can be used as a reference-only catalog of obligations and
-internal evidence pointers. It is not legal advice, does not verify citations,
-and does not replace attorney review, citation verification, human signoff,
-deployment-specific configuration review, or final legal judgment.
+- Treat the Nido/fop legal catalog service (current CLI entrypoint:
+  `fop legal catalog --json`; `nido legal` is not exposed by the installed Nido
+  CLI yet) as a reference-only catalog of obligations and internal evidence
+  pointers. It is not legal advice, does not verify citations, and does not
+  replace attorney review, citation verification, human signoff,
+  deployment-specific configuration review, or final legal judgment.
+- For release evidence, capture the current legal catalog output in
+  [deployment-readiness-record.md](deployment-readiness-record.md): `id`,
+  `source`, `source_revision`, `generated_at`, `requires_attorney_review`,
+  `requires_human_signoff`, `execution_allowed`, and `safety_boundary`. A
+  release remains review-gated when the catalog says
+  `requires_attorney_review=true`, `requires_human_signoff=true`, and
+  `execution_allowed=false`.
 
 ## Evidence Map
 
@@ -104,8 +113,10 @@ plugin, export, erasure, or audit surfaces:
    before production use, business use, or customer-facing evaluation.
 5. Review [legal-readiness-parity.md](legal-readiness-parity.md) when a change
    should stay aligned across Rust and PHP.
-6. Review the legal-readiness section in [release-checklist.md](release-checklist.md).
-7. Record unresolved deployment decisions in the release notes or operator
+6. Capture the current `fop legal catalog --json` evidence fields and safety
+   flags in the deployment record.
+7. Review the legal-readiness section in [release-checklist.md](release-checklist.md).
+8. Record unresolved deployment decisions in the release notes or operator
    handoff.
 
 ## Wording Guardrails
