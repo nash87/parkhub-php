@@ -122,7 +122,7 @@ exit 1
 STUB
 chmod +x "$tmp_dir/fop"
 
-for tool in composer npm python3 actionlint yamllint gitleaks helm docker zizmor typos osv-scanner; do
+for tool in composer npm python3 node actionlint yamllint gitleaks helm docker zizmor typos osv-scanner; do
     cat > "$tmp_dir/$tool" <<'STUB'
 #!/usr/bin/env bash
 exit 0
@@ -130,9 +130,18 @@ STUB
     chmod +x "$tmp_dir/$tool"
 done
 
+cat > "$tmp_dir/rg" <<'STUB'
+#!/usr/bin/env bash
+# Static wording/polish guards treat matches as failures, so this isolated
+# wrapper test only needs "no matches" behavior before it reaches the fop stub.
+exit 1
+STUB
+chmod +x "$tmp_dir/rg"
+
 echo "==> fop-local-ci accepts a nonzero fop wrapper exit when the inner step marker is present"
 set +e
 PATH="$tmp_dir:/usr/bin:/bin" \
+FOP_LOCAL_CI_QUEUE_BIN=fop \
 FOP_LOCAL_CI_DIFF_PATHS=$'.github/workflows/security.yml' \
     .github/scripts/fop-local-ci.sh --profile pr >"$tmp_dir/fop-marker.out" 2>&1
 status=$?

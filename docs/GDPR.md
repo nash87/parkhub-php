@@ -25,7 +25,7 @@ qualified data protection attorney (Datenschutzbeauftragter) for binding guidanc
 10. [TTDSG §25 — Cookie / localStorage Policy](#cookie-policy-ttdsg-25)
 11. [DDG §5 — Impressum Requirement](#ddg-5--impressum-requirement)
 12. [Breach Notification (Art. 33/34)](#breach-notification-art-3334)
-13. [DSGVO Compliance Checklist](#dsgvo-compliance-checklist)
+13. [Legal Readiness Checklist](#legal-readiness-checklist)
 14. [Responding to DSARs](#responding-to-data-subject-access-requests-dsar)
 15. [Data Protection Impact Assessment (DPIA)](#data-protection-impact-assessment-dpia)
 16. [Accessibility (BFSG / EU Accessibility Act)](#accessibility-bfsg--eu-accessibility-act)
@@ -39,7 +39,7 @@ ParkHub PHP is designed for on-premise, self-hosted deployment. All data remains
 
 | Aspect | Benefit |
 |--------|---------|
-| No cloud upload | No Auftragsverarbeitungsvertrag (AVV / Art. 28 DPA) needed for the core system |
+| No cloud upload by the core app | AVV/DPA scope is usually narrower, but still depends on hosting, support, SMTP, backups, payments, AI, and other providers |
 | No third-party SaaS | No dependency on external privacy policies |
 | Full control | You control storage location, encryption, access, and retention |
 | No analytics | No tracking pixels, no CDN, no external JavaScript |
@@ -210,7 +210,7 @@ Administrators can update any user field via `PUT /api/v1/admin/users/:id`.
 
 ParkHub implements two distinct deletion modes:
 
-#### 1. Account anonymization — DSGVO-compliant approach (recommended)
+#### 1. Account anonymization — DSGVO-oriented approach (recommended)
 
 **API endpoint**: `POST /api/v1/users/me/anonymize`
 
@@ -349,7 +349,7 @@ phone. For GmbH/AG: register court, register number, VAT ID, managing directors.
 
 ### Datenschutzerklärung (Privacy Policy)
 
-A DSGVO-compliant privacy policy is required.
+A privacy notice tailored to the deployment is required for GDPR/DSGVO-covered services.
 
 **Templates**: [`legal/datenschutz-template.md`](/legal/datenschutz-template.md) | [`docs/PRIVACY-TEMPLATE.md`](PRIVACY-TEMPLATE.md)
 
@@ -508,28 +508,37 @@ Datum der Kenntnisnahme: [Datum]
 
 ---
 
-## DSGVO Compliance Checklist
+## Legal Readiness Checklist
 
-Before going live:
+ParkHub ships technical controls and templates that can support a GDPR/DSGVO deployment, but the operator remains responsible for the live service, legal texts, processor contracts, configuration, citations, and jurisdiction-specific review. Before going live:
 
-**Legal setup**
-- [ ] Impressum fully filled in (Admin → Impressum). Verify `/impressum` is publicly accessible
-- [ ] Datenschutzerklärung written and published (Admin → Privacy → Policy Text)
-- [ ] AGB created and published (if commercial service)
-- [ ] AVV signed with SMTP provider (e.g. Mailgun, SendGrid, Postmark) — `legal/avv-template.md`
-- [ ] AVV signed with hosting provider if they can physically access your server
-- [ ] Verzeichnis der Verarbeitungstätigkeiten (VVT) updated (Art. 30 DSGVO)
-- [ ] DPA/DSB appointment evaluated (Art. 37 DSGVO)
-- [ ] Widerrufsbelehrung published (if B2C commercial service)
+**Shipped templates and features**
+- [ ] Impressum template adapted, filled in, and verified at `/impressum`
+- [ ] Datenschutzerklärung/privacy notice adapted and published
+- [ ] AGB/terms and Widerrufsbelehrung adapted if the deployment is commercial or B2C
+- [ ] AVV/DPA template reviewed before use with processors
+- [ ] VVT/Record of Processing Activities template completed for the actual deployment
+- [ ] Export, anonymization, hard-deletion, audit-export, and compliance-report features tested with production-like data
+
+**Operator legal obligations**
+- [ ] Controller identity, legal bases, categories, recipients, retention periods, international transfers, and data-subject rights documented
+- [ ] AVV/DPA signed with hosting, SMTP, backup, support, payment, analytics, AI, or other processors where applicable
+- [ ] DPO/DSB appointment evaluated under Art. 37 DSGVO and §38 BDSG
+- [ ] Cookie/localStorage/TTDSG analysis verified after enabling optional modules; consent implemented if non-essential storage or tracking is introduced
+- [ ] BFSG/EAA accessibility assessment completed if the service is consumer-facing and in scope
+- [ ] AI Act transparency notice, human-review process, and Datenschutz text updated if AI/ML features are enabled
+- [ ] Final legal texts, citations, configuration, and operational processes reviewed by qualified counsel
 
 **Technical controls**
 - [ ] HTTPS enabled (TLS 1.2+ at reverse proxy)
 - [ ] `APP_DEBUG=false` and `APP_ENV=production` in `.env`
 - [ ] Disk encryption at the OS level for the data volume
 - [ ] GDPR enabled: `gdpr_enabled=true` in admin settings
-- [ ] Data retention policy for audit logs implemented
+- [ ] Retention settings configured for audit logs, bookings, payments, backups, sessions, and uploaded files
 - [ ] Backup encryption configured
 - [ ] Access logging at reverse proxy level
+- [ ] Admin roles, 2FA, API tokens, and module enablement reviewed before launch
+- [ ] Security-sensitive or legally sensitive modules enabled only after operator review, audit-log coverage, privacy-text updates, and rollback planning
 
 **Testing**
 - [ ] Export endpoint tested: `GET /api/v1/user/export` → verify JSON completeness
@@ -567,7 +576,7 @@ When a user submits a DSAR:
 A DPIA (Art. 35 DSGVO) is required when data processing is "likely to result in a high
 risk to the rights and freedoms of natural persons."
 
-**For most ParkHub deployments, a DPIA is NOT required** because:
+**Many routine ParkHub deployments may not require a DPIA**, but the operator must assess this for the concrete deployment because:
 
 - No systematic monitoring of publicly accessible areas (unless combined with CCTV)
 - No large-scale processing of special category data (Art. 9)
