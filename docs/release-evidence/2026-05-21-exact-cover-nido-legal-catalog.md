@@ -9,8 +9,9 @@ This release-candidate evidence was captured for the ParkHub PHP
 | --- | --- |
 | Repository | `nash87/parkhub-php` |
 | Pull request | `#519` |
-| Head SHA | `6b88efdc5c421a455ab9e58ab994d98799f2b456` |
-| Local Nido PR gate report | `.fop/reports/local-ci-pr-6b88efdc5c421a455ab9e58ab994d98799f2b456.json` |
+| Head SHA | Verify against the current PR head before release. |
+| Local Nido PR gate report | `.fop/reports/local-ci-pr-<current-pr-head-sha>.json` must exist and pass for the current PR head. |
+| Candidate feature SHA | `6b88efdc5c421a455ab9e58ab994d98799f2b456` |
 
 ## Capture
 
