@@ -14,8 +14,8 @@
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19-61DAFB.svg?style=flat-square&logo=react&logoColor=black" alt="React 19"></a>
   <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-4-06B6D4.svg?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS 4"></a>
   <img src="https://img.shields.io/badge/Tests-1754%2B-success.svg?style=flat-square" alt="1754+ tests">
-  <a href="docs/GDPR.md"><img src="https://img.shields.io/badge/DSGVO-konform-green.svg?style=flat-square" alt="GDPR Compliant"></a>
-  <a href="docs/COMPLIANCE.md"><img src="https://img.shields.io/badge/Compliance-Audited-brightgreen.svg?style=flat-square" alt="Compliance Audited"></a>
+  <a href="docs/GDPR.md"><img src="https://img.shields.io/badge/DSGVO-ready-informational-green.svg?style=flat-square" alt="GDPR readiness guide"></a>
+  <a href="docs/COMPLIANCE.md"><img src="https://img.shields.io/badge/Compliance-operator%20checklist-brightgreen.svg?style=flat-square" alt="Compliance operator checklist"></a>
   <a href="docker-compose.yml"><img src="https://img.shields.io/badge/Docker-ready-2496ED.svg?style=flat-square&logo=docker&logoColor=white" alt="Docker Ready"></a>
   <a href="helm/README.md"><img src="https://img.shields.io/badge/Helm-chart-0F1689.svg?style=flat-square&logo=helm&logoColor=white" alt="Helm Chart"></a>
 </p>
@@ -23,7 +23,7 @@
 <p align="center">
   <strong>Ihre Daten. Ihr Server. Ihre Kontrolle.</strong><br>
   The on-premise parking management runtime for the canonical ParkHub product -- optimized for shared hosting, VPS, Docker, and Kubernetes.<br>
-  Built with Laravel 13, Astro 6, React 19, and Tailwind CSS 4. Zero cloud. Zero tracking. 100% GDPR compliant by design.
+  Built with Laravel 13, Astro 6, React 19, and Tailwind CSS 4. Zero cloud. Zero tracking. GDPR/DSGVO-ready architecture with deployment-dependent obligations.
 </p>
 
 <p align="center">
@@ -103,7 +103,7 @@ Cross-runtime ownership and release discipline live in [docs/parity-governance.m
 
 Most parking management SaaS costs 200--2,000 EUR/month, stores your data on US cloud infrastructure, and requires a data processing agreement just to get started.
 
-ParkHub is different. It runs on your server -- a shared hosting plan, a VPS, or your company network. Your data never leaves your premises, which means **no GDPR processor agreement needed**, no CLOUD Act exposure, and no monthly fees. The entire source code is MIT-licensed and auditable.
+ParkHub is different. It runs on your server -- a shared hosting plan, a VPS, or your company network. For a purely self-hosted core deployment, data does not leave infrastructure you control; processor agreements, international-transfer analysis, and provider terms still depend on your hosting, SMTP, payment, analytics, AI, and backup choices. The entire source code is MIT-licensed and auditable.
 
 ---
 
@@ -245,13 +245,16 @@ php artisan test                      # Run PHPUnit (1,320 feature + 434 unit)
 - **Advanced pass flow** -- digital passes, QR generation, visitor pre-registration, and check-in surfaces
 - **Runtime-sensitive surfaces** -- QR/check-in/public verification flows should be treated as advanced and runtime-sensitive, not as unconditional baseline behavior
 
-### Legal Compliance
+### Legal Readiness
 
 - **GDPR / DSGVO** -- Art. 15 data export, Art. 17 erasure, Art. 20 portability
 - **German law** -- DDG SS5 Impressum, TTDSG SS25 cookie policy, SS147 AO retention
 - **7 legal templates** -- Impressum, Datenschutz, AGB, Widerrufsbelehrung, AVV, VVT, Cookie Policy
-- **International** -- UK GDPR, CCPA, nDSG (Switzerland), LGPD (Brazil) compatible
-- See [GDPR Guide](docs/GDPR.md) | [Compliance Matrix](docs/COMPLIANCE.md)
+- **International** -- UK GDPR, CCPA, nDSG (Switzerland), and LGPD mapping notes for operator review
+- **Operator audit hub** -- [Legal Readiness Hub](docs/legal-readiness.md) ties templates, release checks, and deployment obligations together for review
+- **Deployment signoff** -- [Deployment Readiness Record](docs/deployment-readiness-record.md) captures jurisdiction, module, processor, CI/CD evidence, and human go-live signoff per deployment
+- **Cross-runtime parity** -- [Legal Readiness Parity](docs/legal-readiness-parity.md) keeps Rust/PHP legal-readiness gates, module/plugin review, and operator boundaries aligned
+- See [Legal Readiness Hub](docs/legal-readiness.md) | [Deployment Readiness Record](docs/deployment-readiness-record.md) | [Legal Readiness Parity](docs/legal-readiness-parity.md) | [GDPR Guide](docs/GDPR.md) | [Compliance Matrix](docs/COMPLIANCE.md)
 
 ---
 
@@ -261,7 +264,7 @@ ParkHub organizes functionality into **70 modules** across **11 categories** —
 
 Every module is exposed in the admin dashboard at `/admin/modules` with status pills, category grouping, search, dependency chain, and config-keys count. Shipped in **v4.13.0** (v1 + v2 + v3):
 
-- **Runtime enable/disable** — 13 safe modules flip via `PATCH /api/v1/admin/modules/{name}` without a redeploy (widgets, themes, favorites, lobby-display, accessible, calendar-drag, ev-charging, maintenance, geofence, map, graphql, api-docs, setup-wizard). Security-sensitive modules (`auth`, `payments`, `rbac`, `webhooks`, `audit-export`, `multi-tenant`, `notifications`) stay env-flagged.
+- **Runtime enable/disable** — 13 low-risk UI/operations modules flip via `PATCH /api/v1/admin/modules/{name}` without a redeploy (widgets, themes, favorites, lobby-display, accessible, calendar-drag, ev-charging, maintenance, geofence, map, graphql, api-docs, setup-wizard). Security-sensitive or legally sensitive modules (`auth`, `payments`, `rbac`, `webhooks`, `audit-export`, `multi-tenant`, `notifications`, and any AI/third-party integration) stay env-flagged or require operator review, audit logging, processor checks, and privacy-text updates before enablement.
 - **JSON Schema config editor** — 5 modules ship a `config_schema` (JSON Schema 2020-12) and surface a per-module config modal: `themes`, `announcements`, `notifications`, `email-templates`, `widgets`. Writes validate server-side via `opis/json-schema`; failures return `422 CONFIG_VALIDATION_FAILED` with a structured `details` array.
 - **Command Palette** — `Cmd+K` / `Ctrl+K` / `/` auto-seeds "Go to…" entries from every active module with a `ui_route`.
 - **Module Gate middleware** — `App\Http\Middleware\ModuleGate` returns `404 MODULE_DISABLED` for runtime-disabled routes (indistinguishable from an uninstalled feature).
@@ -372,16 +375,29 @@ The complete OpenAPI 3.0 spec is snapshotted at [`docs/openapi/php.json`](docs/o
 
 ---
 
-## Legal Compliance
+## Legal Readiness
 
-ParkHub PHP is designed for legal compliance across multiple jurisdictions. Audited against **9 regulatory frameworks**:
+ParkHub PHP ships legal-readiness features and operator-customizable templates for deployments across multiple jurisdictions. Start with the [Operator Legal Readiness Hub](docs/legal-readiness.md) for the audit flow, evidence map, and release review boundary. A live deployment's legal posture depends on the operator's configuration, hosting model, enabled modules, processors, jurisdiction, and legal review. The docs map the product surface against **9 regulatory frameworks**:
 
 **GDPR** (EU) | **DSGVO** (DE) | **TTDSG** (DE) | **DDG** (DE) | **BDSG** (DE) | **NIS2** (EU) | **CCPA** (US) | **UK GDPR** | **nDSG** (CH)
 
-All legal documents are provided as **operator-customizable templates** -- not binding legal texts.
+All legal documents are provided as **operator-customizable templates** -- not binding legal texts and not legal advice.
+
+### Operator Go-Live Checklist
+
+- [ ] Complete or update the [Deployment Readiness Record](docs/deployment-readiness-record.md) for the exact deployment, enabled modules, processors, jurisdictions, CI/CD evidence, and final human signoff.
+- [ ] Publish and verify Impressum, Datenschutzerklärung/privacy notice, AGB/terms if applicable, and withdrawal notice for B2C deployments.
+- [ ] Complete AVV/DPA and sub-processor review for hosting, SMTP, payment, backups, support, analytics, AI, and any other external provider.
+- [ ] Maintain a VVT/Record of Processing Activities and document legal bases, retention periods, recipients, and international transfers.
+- [ ] Verify TTDSG/cookie/localStorage analysis after enabling optional modules; add consent flows if non-essential storage or tracking is introduced.
+- [ ] Run BFSG/EAA accessibility review for consumer-facing deployments and keep the accessibility statement current.
+- [ ] Add AI Act transparency notices and human-review procedures if AI/ML features are enabled.
+- [ ] Configure retention, audit logging, backups, encryption, DSAR handling, breach response, and admin access controls for the actual deployment.
+- [ ] Have the final deployment, legal texts, citations, and configuration reviewed by qualified counsel before production use.
 
 | Document | Purpose | Location |
 |----------|---------|----------|
+| **Operator Legal Readiness Hub** | Audit index for legal-readiness evidence, review boundaries, and release checks | [docs/legal-readiness.md](docs/legal-readiness.md) |
 | **GDPR / DSGVO Guide** | Full DSGVO compliance documentation | [docs/GDPR.md](docs/GDPR.md) |
 | **Compliance Matrix** | German, EU, and international law mapping | [docs/COMPLIANCE.md](docs/COMPLIANCE.md) |
 | **Security Model** | Architecture, OWASP, encryption, disclosure | [docs/SECURITY.md](docs/SECURITY.md) |

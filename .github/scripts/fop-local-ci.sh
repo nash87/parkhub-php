@@ -521,6 +521,8 @@ post_commit_status "pending" "fop local ${profile} running"
 run_direct "working tree whitespace" "git diff --check"
 run_direct "ui polish contract" "scripts/tests/test-ui-polish-contract.sh"
 run_direct "recommendation contract gate" "bash scripts/check-recommendation-contract.sh"
+run_direct "legal-readiness wording contract" "scripts/tests/test-legal-readiness-wording.sh"
+run_direct "legal/module OpenAPI contract" "scripts/tests/test-legal-openapi-contract.sh"
 
 # ---------------- Backend (PHP) ---------------------------------------------
 if (( diff_touch_php )); then

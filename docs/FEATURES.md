@@ -1,7 +1,7 @@
 # ParkHub PHP Feature Notes
 
 > **Self-hosted parking management for enterprises, universities, and residential complexes.**
-> Laravel 13 · Apache / shared hosting / Render · Zero cloud · Zero tracking · 100% GDPR compliant.
+> Laravel 13 · Apache / shared hosting / Render · Zero cloud · Zero tracking · GDPR/DSGVO-ready architecture with deployment-dependent obligations.
 
 [Live Demo](https://parkhub-php-demo.onrender.com) · [API Docs](API.md) · [Installation](INSTALLATION.md) · [GDPR Guide](GDPR.md)
 
@@ -48,11 +48,13 @@ The frontend is byte-identical with the parkhub-rust copy (verified via `diff -q
 
 ### Runtime Toggle
 
-Thirteen safe modules can be flipped at runtime without redeploying:
+Thirteen low-risk UI/operations modules can be flipped at runtime without redeploying:
 
 `widgets` · `themes` · `favorites` · `lobby-display` · `accessible` · `calendar-drag` · `ev-charging` · `maintenance` · `geofence` · `map` · `graphql` · `api-docs` · `setup-wizard`
 
-Security-sensitive modules (`auth`, `payments`, `rbac`, `webhooks`, `audit-export`, `multi-tenant`, `notifications`) keep `runtime_toggleable = false` and are invariant at runtime.
+Security-sensitive or legally sensitive modules keep `runtime_toggleable = false` and are invariant at runtime unless an operator deliberately enables them through configuration and release process. This group includes `auth`, `payments`, `rbac`, `webhooks`, `audit-export`, `multi-tenant`, `notifications`, AI/ML features, third-party integrations, and any module that changes personal-data recipients, retention, automated decisions, public exposure, or billing.
+
+Before enabling those modules in production, operators should document the purpose, legal basis, processor/DPA impact, privacy-notice changes, audit-log coverage, retention settings, rollback plan, and attorney review status.
 
 ### JSON Schema Config Editor
 

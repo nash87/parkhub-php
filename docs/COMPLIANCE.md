@@ -2,9 +2,10 @@
 
 > **Version:** 3.3.0 | **Last updated:** 2026-04-12
 
-This document maps ParkHub PHP features to legal requirements across German, EU, and
-international data protection regulations. It is intended for operators evaluating ParkHub
-for deployment in regulated environments.
+This document maps ParkHub PHP features and templates to legal requirements across German,
+EU, and international data protection regulations. It is intended for operators evaluating
+ParkHub for deployment in regulated environments; it is not a conclusion that any specific
+deployment is compliant.
 
 **This document is informational and does not constitute legal advice.**
 
@@ -18,7 +19,7 @@ for deployment in regulated environments.
 4. [Data Processing Categories](#data-processing-categories)
 5. [Data Retention Policies](#data-retention-policies)
 6. [Sub-Processor List](#sub-processor-list)
-7. [Compliance Checklist](#compliance-checklist)
+7. [Legal Readiness Checklist](#legal-readiness-checklist)
 
 ---
 
@@ -26,11 +27,12 @@ for deployment in regulated environments.
 
 ### DSGVO (Datenschutz-Grundverordnung)
 
-The German implementation of the EU GDPR. ParkHub's self-hosted architecture means the
-operator is the sole data controller with no mandatory data processor agreements for
-core functionality.
+The German implementation of the EU GDPR. ParkHub's self-hosted architecture can let the
+operator act as the controller for the core system, but processor agreements and transfer
+analysis depend on the chosen hosting, SMTP, payment, backup, support, AI, and integration
+providers.
 
-| Requirement | How ParkHub Complies | Module / Feature |
+| Requirement | ParkHub Support | Module / Feature |
 |-------------|---------------------|------------------|
 | Art. 5 — Data processing principles | Data minimization (only required fields), purpose limitation (parking management), storage limitation (configurable retention) | Core |
 | Art. 6 — Legal basis | Documented per processing activity in [GDPR.md](GDPR.md) | Core |
@@ -43,17 +45,17 @@ core functionality.
 | Art. 18 — Right to restriction | Admin can deactivate accounts | Admin module |
 | Art. 20 — Data portability | JSON export via `/api/v1/user/export`, CSV via admin reports | GDPR + Data Export modules |
 | Art. 21 — Right to object | Notification preferences toggle, contact form for objections | Notifications module |
-| Art. 25 — Privacy by design | Self-hosted = no third-party processors; only required fields collected | Architecture |
-| Art. 28 — Processor agreements | No DPA needed for core (on-premise); AVV template for SMTP | `legal/avv-template.md` |
+| Art. 25 — Privacy by design | Self-hosted core architecture, data minimization, and no external analytics by default | Architecture |
+| Art. 28 — Processor agreements | Core on-premise processing can avoid external processors; AVV/DPA review is required for configured providers | `legal/avv-template.md` |
 | Art. 30 — Records of processing | VVT template with all processing activities | `legal/vvt-template.md` |
 | Art. 32 — Security of processing | See [SECURITY.md](SECURITY.md) — encryption, access control, audit logging | Core |
 | Art. 33/34 — Breach notification | Breach notification template in [GDPR.md](GDPR.md); audit log for forensics | Core |
-| Art. 35 — DPIA | Guidance in GDPR.md; not required for typical deployments | Documentation |
+| Art. 35 — DPIA | Guidance in GDPR.md; operator assesses whether the concrete deployment requires a DPIA | Documentation |
 | Art. 37 — DPO appointment | Guidance provided; operator responsibility | Documentation |
 
 ### TTDSG (Telekommunikation-Telemedien-Datenschutz-Gesetz)
 
-| Requirement | How ParkHub Complies | Module / Feature |
+| Requirement | ParkHub Support | Module / Feature |
 |-------------|---------------------|------------------|
 | §25 Abs. 1 — Consent for non-essential storage | Not applicable — ParkHub uses no cookies and no non-essential localStorage | Core |
 | §25 Abs. 2 Nr. 2 — Technically necessary exemption | All localStorage entries (token, theme, features, language, hints) qualify as technically necessary | Core |
@@ -63,7 +65,7 @@ core functionality.
 
 Replaced the TMG (Telemediengesetz) as of 2024.
 
-| Requirement | How ParkHub Complies | Module / Feature |
+| Requirement | ParkHub Support | Module / Feature |
 |-------------|---------------------|------------------|
 | §5 — Impressum (provider identification) | Admin panel for Impressum, public display at `/impressum`, API endpoint | Admin Settings |
 | §6 — Special Impressum requirements | Template covers all GmbH/AG fields, VAT ID, register court | `legal/impressum-template.md` |
@@ -74,7 +76,7 @@ Superseded by DDG. ParkHub references DDG §5 (not TMG §5) in all templates.
 
 ### BDSG (Bundesdatenschutzgesetz)
 
-| Requirement | How ParkHub Complies | Module / Feature |
+| Requirement | ParkHub Support | Module / Feature |
 |-------------|---------------------|------------------|
 | §38 — DPO appointment threshold | Guidance in GDPR.md (20+ employees processing personal data) | Documentation |
 | §26 — Employee data processing | Applicable if ParkHub is used for employee parking; legal basis: Art. 6 lit. b (employment contract) | Core |
@@ -83,7 +85,7 @@ Superseded by DDG. ParkHub references DDG §5 (not TMG §5) in all templates.
 
 Relevant for operators using ParkHub for commercial parking with revenue tracking.
 
-| Requirement | How ParkHub Complies | Module / Feature |
+| Requirement | ParkHub Support | Module / Feature |
 |-------------|---------------------|------------------|
 | Traceability | Audit log records all booking/payment operations with timestamps | Audit Log |
 | Immutability | Audit log has no delete endpoint; deletion requires direct DB access | Audit Log |
@@ -98,12 +100,13 @@ Relevant for operators using ParkHub for commercial parking with revenue trackin
 
 ### GDPR (General Data Protection Regulation)
 
-Identical to DSGVO coverage above. ParkHub complies with all GDPR requirements through
-its self-hosted architecture and built-in privacy features.
+Identical to DSGVO coverage above. ParkHub provides self-hosting, privacy features, and
+operator templates that can support GDPR implementation; production compliance depends on
+the live deployment, configuration, processors, jurisdiction, and legal review.
 
 ### ePrivacy Directive (2002/58/EC)
 
-| Requirement | How ParkHub Complies | Module / Feature |
+| Requirement | ParkHub Support | Module / Feature |
 |-------------|---------------------|------------------|
 | Art. 5(3) — Cookie consent | No cookies used; localStorage is technically necessary | Core |
 | Art. 13 — Unsolicited communications | Push notifications require explicit opt-in; email only for transactional messages | Web Push module |
@@ -137,7 +140,7 @@ and ParkHub's accessibility features.
 
 The UK retained the GDPR post-Brexit as the UK GDPR, alongside the Data Protection Act 2018.
 
-| Requirement | How ParkHub Complies | Notes |
+| Requirement | ParkHub Support | Notes |
 |-------------|---------------------|-------|
 | UK GDPR — all articles | Substantively identical to EU GDPR | Same features apply |
 | UK DPA 2018 | No special category data processed | No additional requirements |
@@ -152,7 +155,7 @@ websites must identify the operator under the Companies Act 2006 and the Electro
 
 The California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CPRA).
 
-| Requirement | How ParkHub Complies | Notes |
+| Requirement | ParkHub Support | Notes |
 |-------------|---------------------|-------|
 | Right to know | `GET /api/v1/user/export` provides full data disclosure | Automated |
 | Right to delete | `POST /api/v1/users/me/anonymize` or `DELETE /api/v1/users/me/delete` | Automated |
@@ -163,14 +166,14 @@ The California Consumer Privacy Act (CCPA) and California Privacy Rights Act (CP
 
 **Note**: For CCPA compliance, US operators should adapt the privacy notice template to
 include CCPA-specific language (categories of PI collected, business purpose, "Do Not Sell"
-disclosure). ParkHub's self-hosted model means operators are sole data controllers with no
-"sale" of personal information.
+disclosure). ParkHub's self-hosted model can avoid a sale of personal information, but the
+operator must verify all enabled integrations and business processes.
 
 ### nDSG (Switzerland — New Data Protection Act)
 
 The Swiss nDSG (in force since September 1, 2023) aligns closely with the GDPR.
 
-| Requirement | How ParkHub Complies | Notes |
+| Requirement | ParkHub Support | Notes |
 |-------------|---------------------|-------|
 | Art. 6 — Privacy by design | Self-hosted architecture, data minimization | Architecture |
 | Art. 7 — Privacy by default | Only essential fields required; modules opt-in | Module system |
@@ -186,7 +189,7 @@ The Swiss nDSG (in force since September 1, 2023) aligns closely with the GDPR.
 
 The Brazilian LGPD closely mirrors the GDPR.
 
-| Requirement | How ParkHub Complies | Notes |
+| Requirement | ParkHub Support | Notes |
 |-------------|---------------------|-------|
 | Art. 7 — Legal basis | Mapped from GDPR Art. 6 — contract performance and legitimate interest | Core |
 | Art. 9 — Sensitive data | ParkHub does not process sensitive data (biometric, health, etc.) | Architecture |
@@ -238,8 +241,10 @@ All retention periods are configurable by the operator. The following are recomm
 
 ### Self-Hosted Deployment (Default)
 
-**No sub-processors.** All data is processed exclusively on the operator's infrastructure.
-No Auftragsverarbeitungsvertrag (AVV / DPA) is required for the core system.
+For a default self-hosted core deployment, data is processed on the operator's infrastructure.
+An Auftragsverarbeitungsvertrag (AVV / DPA) may still be required for hosting, maintenance,
+SMTP, payment, backup, support, AI, analytics, or other external providers used by the
+operator.
 
 ### Optional Sub-Processors (if enabled by operator)
 
@@ -263,12 +268,12 @@ a sub-processor:
 
 ---
 
-## Compliance Checklist
+## Legal Readiness Checklist
 
 ### Pre-Launch (All Deployments)
 
-- [ ] Privacy notice published (adapted from template)
-- [ ] Impressum published (German operators)
+- [ ] Privacy notice published after adapting the template to actual data, recipients, retention, transfers, and contact details
+- [ ] Impressum/provider identification published and publicly reachable where required
 - [ ] HTTPS configured with TLS 1.2+
 - [ ] `APP_DEBUG=false` in production
 - [ ] `APP_ENV=production` in production
@@ -277,6 +282,8 @@ a sub-processor:
 - [ ] Data export endpoint tested
 - [ ] Account deletion/anonymization tested
 - [ ] Backup strategy documented
+- [ ] Processor list and AVV/DPA status documented for hosting, SMTP, payments, backups, support, analytics, AI, and integrations
+- [ ] Final legal texts, citations, configuration, and launch process reviewed by qualified counsel
 
 ### German Law Specific
 
@@ -286,6 +293,7 @@ a sub-processor:
 - [ ] Widerrufsbelehrung published (if B2C with consumers)
 - [ ] VVT (Art. 30 records) created and maintained
 - [ ] AVV signed with SMTP provider (if email enabled)
+- [ ] AVV/DPA reviewed for hosting and any provider with system or data access
 - [ ] DSB appointment evaluated (§38 BDSG)
 - [ ] §147 AO retention configured for booking/payment records
 
@@ -293,11 +301,13 @@ a sub-processor:
 
 - [ ] Data subject rights accessible (export, deletion, rectification)
 - [ ] Breach notification process documented
-- [ ] Cookie/localStorage policy documented (even if no banner needed)
+- [ ] Cookie/localStorage/TTDSG policy documented; consent added if optional modules introduce non-essential storage or tracking
 - [ ] Third-party sub-processors listed in privacy notice
 - [ ] International transfer safeguards (SCCs) for non-EU sub-processors
 - [ ] NIS2 self-assessment completed (if in scope)
 - [ ] BFSG/EAA accessibility assessment (if B2C with >10 employees)
+- [ ] AI Act transparency notice and human-review process documented if AI/ML features are enabled
+- [ ] Security-sensitive or legally sensitive modules enabled only after operator review, audit-log coverage, privacy-text updates, retention review, and rollback planning
 
 ### CCPA Specific (California)
 
