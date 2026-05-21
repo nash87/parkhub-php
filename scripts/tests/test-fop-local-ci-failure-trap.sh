@@ -141,6 +141,7 @@ chmod +x "$tmp_dir/rg"
 echo "==> fop-local-ci accepts a nonzero fop wrapper exit when the inner step marker is present"
 set +e
 PATH="$tmp_dir:/usr/bin:/bin" \
+FOP_LOCAL_CI_QUEUE_BIN=fop \
 FOP_LOCAL_CI_DIFF_PATHS=$'.github/workflows/security.yml' \
     .github/scripts/fop-local-ci.sh --profile pr >"$tmp_dir/fop-marker.out" 2>&1
 status=$?

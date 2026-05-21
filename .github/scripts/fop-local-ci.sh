@@ -5,7 +5,7 @@ usage() {
   cat <<'EOF'
 Usage: .github/scripts/fop-local-ci.sh [--profile pr|full|cd] [--dry-run] [--post-status] [--background]
 
-Runs ParkHub-PHP's local-first CI through fop's build queue. The optional
+Runs ParkHub-PHP's local-first CI through the Nido/fop build queue. The optional
 --background flag runs the gate in a detached subshell, logs to
 .fop/reports/local-ci-<profile>-<sha>-bg.log, and returns immediately.
 Combine with --post-status for fire-and-forget full runs that publish their
@@ -34,8 +34,8 @@ Environment overrides:
   FOP_LOCAL_CI_DIFF_PATHS      newline-delimited diff path override for
                                contract tests and explicit local reruns.
   FOP_LOCAL_CI_BG_LOG_DIR      background log directory override.
-  FOP_LOCAL_CI_QUEUE_BIN       queue wrapper binary. Defaults to `nido build`
-                               when available, otherwise `fop`.
+  FOP_LOCAL_CI_QUEUE_BIN       queue wrapper binary. Defaults to `nido` when it
+                               supports `build`, otherwise `fop`.
   FOP_LOCAL_CI_DIRECT          1 = bypass the queue wrapper and
                                run each step directly in the current shell.
                                Use only for the bootstrap chicken-and-egg
@@ -434,7 +434,7 @@ run_fop_step() {
 
   if [[ "$status" -ne 0 ]]; then
     echo "WARN: ${queue_bin} build exited ${status} after the wrapped step completed; continuing because the completion marker was present." >&2
-    echo "This can happen when fop's compact summary classifier flags advisory-only output after the command already handled it." >&2
+    echo "This can happen when the active queue wrapper flags advisory-only output after the command already handled it." >&2
   fi
 
   rm -f "$log_file"
