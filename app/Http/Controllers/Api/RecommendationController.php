@@ -640,7 +640,8 @@ class RecommendationController extends Controller
      *     max_results: int,
      *     explain: bool,
      *     profile_safe_mode: bool,
-     *     pipeline: array<string, mixed>
+     *     pipeline: array<string, mixed>,
+     *     allocation: array{strategy: string, exact_cover_max_options: int, exact_cover_max_search_nodes: int}
      * }  $engine
      * @param  array<string, mixed>  $adapter
      * @param  array<int, array<string, mixed>>  $recommendations
