@@ -444,8 +444,8 @@ run_fop_step() {
 # runs each step directly in the current shell. Use this for the
 # bootstrap chicken-and-egg run that introduces this script (the queue
 # would refuse capacity if a sibling tab already holds the parallelism
-# slot), or when running outside fop entirely. Operators must still
-# guarantee local memory headroom themselves in that mode.
+# slot), or when running without the active queue wrapper. Operators
+# must still guarantee local memory headroom themselves in that mode.
 run_step() {
   local name="$1"
   local command="$2"
@@ -457,7 +457,8 @@ run_step() {
   if [[ "${FOP_LOCAL_CI_DIRECT:-0}" == "1" ]] || ! command -v "$queue_bin" >/dev/null 2>&1; then
     # Direct mode (no queue wrapper): explicit opt-in OR queue binary not on
     # PATH (GitHub Actions runners, fresh contributor boxes). The kernel
-    # + earlyoom handle resource pressure when fop isn't available.
+    # + earlyoom handle resource pressure when the active wrapper is not
+    # available.
     bash -euo pipefail -c "$command"
     return 0
   fi
