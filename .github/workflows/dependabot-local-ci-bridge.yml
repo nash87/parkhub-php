@@ -59,7 +59,7 @@ jobs:
 
       # --- Composer audit (mirrors security.yml: composer-audit) ---
       - name: Set up PHP
-        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           coverage: none
@@ -127,7 +127,7 @@ jobs:
       # --- Typos (mirrors security.yml: typos, advisory) ---
       - name: Run typos
         continue-on-error: true
-        uses: crate-ci/typos@cf5f1c29a8ac336af8568821ec41919923b05a83 # v1.45.1
+        uses: crate-ci/typos@7b04f660f4ee4f048d18fd341887cf28dfbedfe2 # v1.46.3
 
       # --- Post fop/local-ci/pr commit status ---
       # Uses gh api (same tooling as local-ci-attestation in ci.yml) to avoid

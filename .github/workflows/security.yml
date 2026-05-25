@@ -31,7 +31,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up PHP
-        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        uses: shivammathur/setup-php@7c071dfe9dc99bdf297fa79cb49ea005b9fcadbc # v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           coverage: none
@@ -94,7 +94,7 @@ jobs:
           skip-dirs: helm/
 
       - name: Upload Trivy results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4
+        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: trivy-results.sarif
@@ -156,7 +156,7 @@ jobs:
           persist-credentials: false
       - name: Run typos
         continue-on-error: true
-        uses: crate-ci/typos@5374cbf686e897b15713110e233094e2874de7ef # v1.46.1
+        uses: crate-ci/typos@7b04f660f4ee4f048d18fd341887cf28dfbedfe2 # v1.46.3
 
   zizmor:
     name: Zizmor (GHA SAST, audit-mode)
@@ -212,7 +212,7 @@ jobs:
             .github/workflows .gitea/workflows > zizmor.sarif
 
       - name: Upload Zizmor SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4
+        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4
         if: always() && hashFiles('zizmor.sarif') != ''
         continue-on-error: true
         with:
@@ -271,7 +271,7 @@ jobs:
             --output=osv-scanner.sarif
 
       - name: Upload OSV-Scanner SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4
+        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4
         if: always() && hashFiles('osv-scanner.sarif') != ''
         continue-on-error: true
         with:
@@ -298,7 +298,7 @@ jobs:
           persist-credentials: false
 
       - name: Log in to GHCR (read-only)
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -317,7 +317,7 @@ jobs:
           trivyignores: .trivyignore
 
       - name: Upload Trivy image SARIF to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4
+        uses: github/codeql-action/upload-sarif@7211b7c8077ea37d8641b6271f6a365a22a5fbfa # v4
         if: always() && hashFiles('trivy-image.sarif') != ''
         with:
           sarif_file: trivy-image.sarif
