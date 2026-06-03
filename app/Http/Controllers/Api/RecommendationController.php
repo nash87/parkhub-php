@@ -215,8 +215,8 @@ class RecommendationController extends Controller
             'required_constraints.*' => ['string', 'max:128'],
             'options' => ['present', 'array', 'max:256'],
             'options.*.id' => ['required', 'string', 'max:128'],
-            'options.*.covers' => ['required', 'array', 'max:256'],
-            'options.*.covers.*' => ['string', 'max:128'],
+            'options.*.covers' => ['present', 'array', 'max:256'],
+            'options.*.covers.*' => ['nullable', 'string', 'max:128'],
             'options.*.weight' => ['sometimes', 'integer', 'min:-1000000', 'max:1000000'],
             'limits' => ['sometimes', 'array'],
             'limits.max_options' => ['sometimes', 'integer', 'min:1', 'max:256'],
@@ -233,6 +233,17 @@ class RecommendationController extends Controller
                 'error' => [
                     'code' => 'DUPLICATE_EXACT_COVER_OPTION_ID',
                     'message' => 'Exact-cover option IDs must be unique: '.implode(', ', $duplicateOptionIds),
+                ],
+            ], 422);
+        }
+        $emptyCoverOptionIds = $this->emptyCoverExactCoverOptionIds($options);
+        if ($emptyCoverOptionIds !== []) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'EXACT_COVER_OPTION_COVERS_REQUIRED',
+                    'message' => 'Exact-cover options must cover at least one constraint: '.implode(', ', $emptyCoverOptionIds),
                 ],
             ], 422);
         }
@@ -842,6 +853,25 @@ class RecommendationController extends Controller
     }
 
     /**
+     * @param  array<int, array<string, mixed>>  $options
+     * @return array<int, string>
+     */
+    private function emptyCoverExactCoverOptionIds(array $options): array
+    {
+        $ids = [];
+        foreach ($options as $option) {
+            $id = trim((string) ($option['id'] ?? ''));
+            if ($id !== '' && $this->normalizedExactCoverConstraints((array) ($option['covers'] ?? [])) === []) {
+                $ids[] = $id;
+            }
+        }
+
+        sort($ids, SORT_STRING);
+
+        return $ids;
+    }
+
+    /**
      * @param  array<int, string>  $constraints
      */
     private function exactCoverConstraintHash(array $constraints): string
@@ -878,18 +908,7 @@ class RecommendationController extends Controller
      */
     private function normalizedExactCoverConstraints(array $constraints): array
     {
-        $normalized = [];
-        foreach ($constraints as $constraint) {
-            $value = trim((string) $constraint);
-            if ($value !== '') {
-                $normalized[$value] = true;
-            }
-        }
-
-        $values = array_keys($normalized);
-        sort($values, SORT_STRING);
-
-        return $values;
+        return ExactCoverAllocator::normalizeConstraints($constraints);
     }
 
     private function moduleConfigValue(string $key, mixed $default): mixed

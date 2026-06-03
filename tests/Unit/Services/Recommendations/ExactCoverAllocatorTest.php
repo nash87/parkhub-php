@@ -102,6 +102,18 @@ class ExactCoverAllocatorTest extends TestCase
                 $result['covered_constraints'],
                 $fixtureName
             );
+            $this->assertTrue($fixture['legal_boundary']['legal_review_required'], $fixtureName);
+            $this->assertSame(
+                'required_before_customer_wording',
+                $fixture['legal_boundary']['attorney_review_status'],
+                $fixtureName
+            );
+            $this->assertFalse($fixture['legal_boundary']['execution_allowed'], $fixtureName);
+            $this->assertStringContainsString(
+                'attorney review, citation verification, client authorization, and final legal judgment remain required',
+                $fixture['legal_boundary']['disclaimer'],
+                $fixtureName
+            );
         }
     }
 }

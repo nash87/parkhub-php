@@ -27,7 +27,7 @@ final class ExactCoverAllocator
         int $maxOptions = self::DEFAULT_MAX_OPTIONS,
         int $maxSearchNodes = self::DEFAULT_MAX_SEARCH_NODES
     ): array {
-        $required = $this->normalizeConstraints($requiredConstraints);
+        $required = self::normalizeConstraints($requiredConstraints);
         if ($required === []) {
             return $this->solved([], [], 0);
         }
@@ -64,7 +64,7 @@ final class ExactCoverAllocator
      * @param  array<int, string>  $constraints
      * @return array<int, string>
      */
-    private function normalizeConstraints(array $constraints): array
+    public static function normalizeConstraints(array $constraints): array
     {
         $normalized = [];
         foreach ($constraints as $constraint) {
@@ -93,7 +93,7 @@ final class ExactCoverAllocator
         foreach ($options as $option) {
             $id = trim((string) $option['id']);
             $covers = [];
-            foreach ($this->normalizeConstraints((array) $option['covers']) as $constraint) {
+            foreach (self::normalizeConstraints((array) $option['covers']) as $constraint) {
                 if (isset($requiredLookup[$constraint])) {
                     $covers[$constraint] = true;
                 }

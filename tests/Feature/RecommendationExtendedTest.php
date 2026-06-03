@@ -452,6 +452,42 @@ class RecommendationExtendedTest extends TestCase
             ->assertJsonPath('error.message', 'Exact-cover option IDs must be unique: slot-a');
     }
 
+    public function test_admin_exact_cover_allocation_rejects_empty_option_covers(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/recommendations/allocation/exact-cover', [
+            'required_constraints' => ['tenant:alpha'],
+            'options' => [
+                ['id' => 'slot-a', 'covers' => [], 'weight' => 90],
+            ],
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('data', null)
+            ->assertJsonPath('error.code', 'EXACT_COVER_OPTION_COVERS_REQUIRED')
+            ->assertJsonPath('error.message', 'Exact-cover options must cover at least one constraint: slot-a');
+    }
+
+    public function test_admin_exact_cover_allocation_rejects_blank_option_covers(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $response = $this->actingAs($admin)->postJson('/api/v1/recommendations/allocation/exact-cover', [
+            'required_constraints' => ['tenant:alpha'],
+            'options' => [
+                ['id' => 'slot-a', 'covers' => ['  '], 'weight' => 90],
+            ],
+        ]);
+
+        $response->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('data', null)
+            ->assertJsonPath('error.code', 'EXACT_COVER_OPTION_COVERS_REQUIRED')
+            ->assertJsonPath('error.message', 'Exact-cover options must cover at least one constraint: slot-a');
+    }
+
     public function test_recommendations_stats_requires_admin(): void
     {
         $user = User::factory()->create();
