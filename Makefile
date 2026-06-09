@@ -154,6 +154,15 @@ script-tests:
 
 pre-push: ci
 
+## Nido-first CI front door (nido-first SOTA 2026).
+# `nido ci run --gate pr` is the canonical local entry; it routes through the
+# nido build queue for OOM-safe capacity-gated execution. Under capacity
+# pressure `nido guard preflight` gates admission automatically.
+# The legacy `make ci` / fop-local-ci.sh path remains the GitHub attestation
+# path (posts fop/local-ci/pr commit status) and must not be removed.
+nido-ci:
+	nido ci run --gate pr
+
 pre-push-report:
 	bash scripts/check-local-ci-report.sh pr
 
