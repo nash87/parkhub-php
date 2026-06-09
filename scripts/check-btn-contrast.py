@@ -118,6 +118,8 @@ def main() -> int:
         if ratio < AA_NORMAL:
             failures.append(f"{mode}: {ratio:.3f}:1 < {AA_NORMAL}:1 ({fg} on {bg})")
 
+    failures.extend(check_amber_text_on_light())
+
     if failures:
         print("FAIL: .btn-primary violates WCAG AA contrast:", file=sys.stderr)
         for f in failures:
@@ -126,6 +128,35 @@ def main() -> int:
     print("ParkHub btn-primary contrast contract OK.")
     return 0
 
+
+
+
+def check_amber_text_on_light() -> list[str]:
+    """text-primary-700 on light surfaces must meet AA.
+
+    The palette's --color-primary-700 (#ab7220) reads 4.01:1 on white —
+    axe caught it on the login links (parkhub-rust #679). The fix is a
+    light-mode-scoped @layer utilities override mapping the utility to
+    --color-primary-800. This check computes the EFFECTIVE light-mode
+    color of .text-primary-700 (override if present, else palette) and
+    fails below AA on white.
+    """
+    table = parse_vars(VENDOR_CSS, BRIDGE_CSS)
+    css = GLOBAL_CSS.read_text()
+    m = re.search(
+        r":root:not\(\.dark\)\s+\.text-primary-700\s*\{[^}]*color\s*:\s*([^;]+);",
+        css,
+    )
+    effective_raw = m.group(1).strip() if m else "var(--color-primary-700)"
+    fg = resolve(effective_raw, table)
+    if fg is None:
+        return [f"text-primary-700: cannot resolve effective color {effective_raw!r}"]
+    ratio = contrast(fg, "#ffffff")
+    status = "OK " if ratio >= AA_NORMAL else "FAIL"
+    print(f"{status} text-primary-700 [light, on white] {fg} = {ratio:.3f}:1 (AA needs {AA_NORMAL}:1)")
+    if ratio < AA_NORMAL:
+        return [f"text-primary-700 light: {ratio:.3f}:1 < {AA_NORMAL}:1 ({fg} on #ffffff)"]
+    return []
 
 if __name__ == "__main__":
     raise SystemExit(main())
