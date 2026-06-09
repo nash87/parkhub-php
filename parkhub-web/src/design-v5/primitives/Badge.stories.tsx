@@ -9,7 +9,7 @@ const VARIANTS: BadgeVariant[] = [
   'info',
   'gray',
   'ev',
-  'purple',
+  'coral',
 ];
 
 const meta: Meta<typeof Badge> = {
