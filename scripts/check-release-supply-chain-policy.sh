@@ -99,11 +99,18 @@ def iter_policy_files(root: Path):
                 yield path
 
 
+# Per-line scan with a documented exemption escape hatch: a line carrying
+# `policy-exempt:` (e.g. `continue-on-error: true # policy-exempt:
+# reporting-only ...`) is deliberately excluded. Use only for reporting /
+# publication steps that must never gate; actual security/release gates
+# stay forbidden from soft-failing.
 for path in sorted(iter_policy_files(repo)):
-    text = read_text(path)
-    for pattern, description in forbidden.items():
-        if pattern in text:
-            errors.append(f"{path}: contains {description}: {pattern}")
+    for lineno, line in enumerate(read_text(path).splitlines(), start=1):
+        if "policy-exempt:" in line:
+            continue
+        for pattern, description in forbidden.items():
+            if pattern in line:
+                errors.append(f"{path}:{lineno}: contains {description}: {pattern}")
 
 workflow = Path(".github/workflows/docker-publish.yml")
 if not workflow.is_file():

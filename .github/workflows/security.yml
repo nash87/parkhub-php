@@ -185,22 +185,23 @@ jobs:
           "${HOME}/.local/bin/zizmor" --version
 
       - name: Run zizmor
-        continue-on-error: true
+        # Blocking per release supply-chain policy: high-severity workflow
+        # SAST must gate. Reporting steps below are policy-exempt.
+        continue-on-error: false
         run: |
           set -euo pipefail
-          # Auditor persona surfaces useful hardening findings without making
-          # them release-gating while this job remains in audit mode.
+          # Auditor persona + high-severity floor: findings at or above high
+          # fail this step (exit codes enabled), gating the PR.
           zizmor \
             --persona=auditor \
             --min-severity=high \
             --no-online-audits \
             --no-progress \
             --color=never \
-            --no-exit-codes \
             .github/workflows .gitea/workflows
 
       - name: Generate zizmor SARIF
-        continue-on-error: true
+        continue-on-error: true # policy-exempt: reporting-only (SARIF publication must not gate)
         run: |
           set -euo pipefail
           zizmor \
@@ -216,7 +217,7 @@ jobs:
       - name: Upload Zizmor SARIF to GitHub Security tab
         uses: github/codeql-action/upload-sarif@68bde559dea0fdcac2102bfdf6230c5f70eb485e # v4
         if: always() && hashFiles('zizmor.sarif') != ''
-        continue-on-error: true
+        continue-on-error: true # policy-exempt: reporting-only (SARIF publication must not gate)
         with:
           sarif_file: zizmor.sarif
           category: zizmor
