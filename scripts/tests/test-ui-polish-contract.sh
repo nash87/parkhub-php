@@ -33,3 +33,6 @@ for phrase in "Coming soon" "Booking studio" "MARMOR GOVERNANCE STUDIO" "OPERATI
 done
 
 echo "ParkHub UI polish contract OK."
+
+# WCAG AA contrast contract for design-system token pairs (static, no browser).
+python3 scripts/check-btn-contrast.py
