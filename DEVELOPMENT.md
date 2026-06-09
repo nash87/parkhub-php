@@ -3,9 +3,9 @@
 This doc covers the local dev loop, the local-first CI/CD gate, the internal
 runner mirror, and the GitHub Actions hardening we rely on. The rule is: use
 GitHub `nash87/parkhub-php` as the canonical repository, run the expensive
-proof locally through `fop`, let the internal Gitea runner mirror catch
-cluster-near issues, and keep GitHub as the external gate that checks the
-posted `fop/local-ci/pr` status.
+proof locally through `nido` (fop compat runtime), let the internal Gitea
+runner mirror catch cluster-near issues, and keep GitHub as the external gate
+that checks the posted `nido/local-ci/pr` status (compat: `fop/local-ci/pr`).
 
 ---
 
@@ -58,20 +58,21 @@ Hooks (summary):
 | pre-commit | check-yaml, check-json, check-merge-conflict, check-added-large-files | same |
 | pre-commit | `laravel/pint@v1.29.0` (`--test`)       | upstream                             |
 | pre-commit | `composer validate --strict`            | local                                |
-| pre-push   | `make ci` (`fop-local-ci.sh --profile pr`) | local                             |
+| pre-push   | `make ci` (`nido-local-ci.sh --profile pr`) | local                            |
 
 ---
 
 ## 3. `make ci` — the canonical local gate
 
-The Makefile delegates to `.github/scripts/fop-local-ci.sh`, which serializes
-every non-trivial step through `fop build`. This is the local source of truth
-for same-repo PRs. GitHub branch protection expects a successful
-`fop/local-ci/pr` commit status, posted by `make ci-post`.
+The Makefile delegates to `.github/scripts/nido-local-ci.sh`, which serializes
+every non-trivial step through the nido/fop build queue. This is the local
+source of truth for same-repo PRs. GitHub branch protection expects a successful
+`nido/local-ci/pr` commit status (compat: `fop/local-ci/pr`), posted by
+`make ci-post`. Both are posted simultaneously by `nido-local-ci.sh`.
 
 ```bash
-make ci          # fop local PR gate, no GitHub status post
-make ci-post     # fop local PR gate + post fop/local-ci/pr
+make ci          # nido local PR gate, no GitHub status post
+make ci-post     # nido local PR gate + post nido/local-ci/pr (+ fop compat)
 make full        # PR gate + Schemathesis/Infection/Playwright extras
 make cd          # full + release-oriented audit/scan/smoke
 make ci-security # strict local OSS security/workflow mirror
@@ -82,6 +83,14 @@ make drift       # openapi snapshot diff (mirrors openapi-drift.yml)
 make frontend    # npm ci + build (mirrors frontend job)
 make pre-push    # alias for make ci
 ```
+
+Environment variables:
+- `NIDO_LOCAL_CI_*` — primary env-var family (canonical nido naming)
+- `FOP_LOCAL_CI_*` — compat fallbacks; same semantics as the NIDO_LOCAL_CI_*
+  counterparts. Both families are accepted for all overrides:
+  `NIDO_LOCAL_CI_NO_DIFF_AWARE` / `FOP_LOCAL_CI_NO_DIFF_AWARE`,
+  `NIDO_LOCAL_CI_DIFF_PATHS` / `FOP_LOCAL_CI_DIFF_PATHS`,
+  `NIDO_LOCAL_CI_DIRECT` / `FOP_LOCAL_CI_DIRECT`, etc.
 
 `make ci` covers the blocking local PR surface: Composer metadata/audit,
 Pint, PHPStan, PHPUnit Unit+Feature, frontend install/typecheck/Vitest/build,
@@ -98,7 +107,7 @@ GitHub-mode so fresh clones report missing optional tools instead of failing;
 `make ci-security` adds `--strict-tools --fail-advisory` for release cleanup.
 
 The lower-level make targets remain as debugging entrypoints, but they are not
-the merge gate. If a workflow job changes, update `.github/scripts/fop-local-ci.sh`,
+the merge gate. If a workflow job changes, update `.github/scripts/nido-local-ci.sh`,
 the Makefile help text, and the relevant GitHub/Gitea workflow in the same
 commit.
 
@@ -122,14 +131,16 @@ make nido-ci                   # Makefile wrapper for the same invocation
 ```
 
 The gate steps are defined in `.nido/local-ci.toml` and mirror the hard-gate
-steps from `fop-local-ci.sh --profile pr`: `pint`, `phpstan`, `phpunit`
+steps from `nido-local-ci.sh --profile pr`: `pint`, `phpstan`, `phpunit`
 (sqlite), `vitest`, and `astro-build`.
 
-The legacy `make ci` / `fop-local-ci.sh --profile pr --post-status` path
-**must not be removed** — GitHub branch protection checks the `fop/local-ci/pr`
-commit status context, and that attestation path still goes through
-`fop-local-ci.sh`. Use `nido ci run` for local iteration; use `make ci-post`
-before merging to post the required status.
+The `make ci` / `nido-local-ci.sh --profile pr --post-status` path posts both
+`nido/local-ci/pr` (canonical) and `fop/local-ci/pr` (compat) commit statuses.
+GitHub branch protection currently checks `fop/local-ci/pr`; the orchestrator
+will flip this to `nido/local-ci/pr` in a separate step. Use `nido ci run`
+for local iteration; use `make ci-post` before merging to post the required
+status. The `.github/scripts/fop-local-ci.sh` shim delegates to
+`nido-local-ci.sh` for backward compatibility.
 
 ---
 
@@ -226,8 +237,9 @@ primitives ([docs.github.com/en/actions](https://docs.github.com/en/actions)):
 - **SBOM** — generated per build (Syft via buildx), uploaded alongside the
   provenance attestation.
 - **Local-first branch protection** — same-repo PRs require the `required` job,
-  which in turn requires `fop local CI attestation`. That job only accepts a
-  successful `fop/local-ci/pr` commit status from `make ci-post`.
+  which in turn requires `fop local CI attestation` (job name preserved for
+  backward compatibility). That job accepts a successful `nido/local-ci/pr`
+  (canonical) or `fop/local-ci/pr` (compat) commit status from `make ci-post`.
 - **Full fallback** — fork PRs, `main` pushes, and PRs labelled `github-ci-full`
   run the heavy GitHub jobs directly. This keeps external contributions honest
   while avoiding duplicate GitHub failures for local branches.

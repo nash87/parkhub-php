@@ -146,8 +146,10 @@ require_text docs/legal-readiness-parity.md "current head SHA"
 require_text docs/legal-readiness-parity.md ".fop/reports/local-ci-pr-<full-sha>.json"
 require_text docs/GDPR.md "Legal Readiness Checklist"
 require_text docs/COMPLIANCE.md "Legal Readiness Checklist"
-require_text .github/scripts/fop-local-ci.sh "FOP_LOCAL_CI_QUEUE_BIN"
-require_text .github/scripts/fop-local-ci.sh "supports_queue_build nido"
-require_text .github/scripts/fop-local-ci.sh "\"\$queue_bin\" build"
+# nido-local-ci.sh is the canonical script; fop-local-ci.sh is a shim.
+# Check nido-local-ci.sh for the queue-binary configuration contract.
+require_text .github/scripts/nido-local-ci.sh "FOP_LOCAL_CI_QUEUE_BIN"
+require_text .github/scripts/nido-local-ci.sh "supports_queue_build nido"
+require_text .github/scripts/nido-local-ci.sh "\"\$queue_bin\" build"
 
 echo "ParkHub legal-readiness wording contract OK."

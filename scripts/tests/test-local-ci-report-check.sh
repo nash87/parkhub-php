@@ -15,9 +15,13 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 sha="$(git rev-parse HEAD)"
+# check-local-ci-report.sh now checks .nido/reports/ first then .fop/reports/.
+# Manage both paths in cleanup so parallel runs don't interfere.
 report=".fop/reports/local-ci-pr-${sha}.json"
+nido_report=".nido/reports/local-ci-pr-${sha}.json"
 tmp_dir="$(mktemp -d)"
 report_backup=""
+nido_report_backup=""
 
 cleanup() {
     rm -rf "$tmp_dir"
@@ -28,12 +32,23 @@ cleanup() {
     else
         rm -f "$report"
     fi
+    if [[ -n "$nido_report_backup" && -f "$nido_report_backup" ]]; then
+        mkdir -p "$(dirname "$nido_report")"
+        cp -p "$nido_report_backup" "$nido_report"
+        rm -f "$nido_report_backup"
+    else
+        rm -f "$nido_report"
+    fi
 }
 trap cleanup EXIT
 
 if [[ -f "$report" ]]; then
     report_backup="$(mktemp)"
     cp -p "$report" "$report_backup"
+fi
+if [[ -f "$nido_report" ]]; then
+    nido_report_backup="$(mktemp)"
+    cp -p "$nido_report" "$nido_report_backup"
 fi
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
@@ -50,10 +65,11 @@ expect_failure() {
 }
 
 echo "==> local-ci report check rejects missing reports"
-rm -f "$report"
+rm -f "$report" "$nido_report"
 expect_failure "missing report"
 
 echo "==> local-ci report check rejects failure reports"
+rm -f "$nido_report"
 mkdir -p "$(dirname "$report")"
 cat > "$report" <<EOF
 {
@@ -67,6 +83,7 @@ EOF
 expect_failure "failure report"
 
 echo "==> local-ci report check rejects reports for a different commit"
+rm -f "$nido_report"
 cat > "$report" <<'EOF'
 {
   "schema": "parkhub.local-ci.v1",
@@ -78,7 +95,8 @@ cat > "$report" <<'EOF'
 EOF
 expect_failure "wrong commit"
 
-echo "==> local-ci report check accepts current success reports"
+echo "==> local-ci report check accepts current success reports (fop-path)"
+rm -f "$nido_report"
 cat > "$report" <<EOF
 {
   "schema": "parkhub.local-ci.v1",
@@ -96,7 +114,8 @@ else
     exit 1
 fi
 
-echo "==> local-ci report check accepts schema v2 success reports"
+echo "==> local-ci report check accepts schema v2 success reports (fop context)"
+rm -f "$nido_report"
 cat > "$report" <<EOF
 {
   "schema": "parkhub.local-ci.v2",

@@ -120,10 +120,10 @@ jobs:
       # TODO(gitea-mirror): No mirror at https://192.168.178.233/crate-ci/typos yet.
       - name: Run typos
         continue-on-error: true
-        uses: crate-ci/typos@cf5f1c29a8ac336af8568821ec41919923b05a83 # v1.45.1
+        uses: crate-ci/typos@5374cbf686e897b15713110e233094e2874de7ef # v1.46.1
 
-      # --- Post fop/local-ci/pr commit status ---
-      - name: Post fop/local-ci/pr status
+      # --- Post nido/local-ci/pr + fop/local-ci/pr commit statuses ---
+      - name: Post nido/local-ci/pr and fop/local-ci/pr status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -150,10 +150,22 @@ jobs:
             SHA="${live_sha}"
           fi
 
+          TARGET_URL="${SERVER_URL}/${REPO}/actions/runs/${RUN_ID}"
+
+          # Post canonical nido context first.
+          gh api \
+            --method POST \
+            "repos/${REPO}/statuses/${SHA}" \
+            -f state="${STATE}" \
+            -f context="nido/local-ci/pr" \
+            -f description="${DESC}" \
+            -f target_url="${TARGET_URL}"
+
+          # Post compat fop context alongside (retire after branch-protection flip).
           gh api \
             --method POST \
             "repos/${REPO}/statuses/${SHA}" \
             -f state="${STATE}" \
             -f context="fop/local-ci/pr" \
             -f description="${DESC}" \
-            -f target_url="${SERVER_URL}/${REPO}/actions/runs/${RUN_ID}"
+            -f target_url="${TARGET_URL}"

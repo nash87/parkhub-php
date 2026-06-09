@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # post-attestation-deferred.sh — Fire-and-forget poll-and-post for the
-# fop/local-ci/pr commit status.
+# nido/local-ci/pr commit status (and fop/local-ci/pr compat context).
 #
 # Background: lefthook's pre-push runs BEFORE the actual `git push`, so
 # the commit's SHA isn't on GitHub yet when this script wants to post a
@@ -9,6 +9,10 @@
 # every 5s (up to 2.5min) until the SHA shows up, then posts the status.
 # The parent process returns immediately so lefthook isn't blocked.
 #
+# Both contexts are posted:
+#   nido/local-ci/pr  — canonical (posted first)
+#   fop/local-ci/pr   — compat; retire after branch-protection flip to nido/*
+#
 # Usage:
 #   bash scripts/post-attestation-deferred.sh [state] [description]
 #   bash scripts/post-attestation-deferred.sh --sha <sha> [state] [description]
@@ -16,7 +20,7 @@
 # By default the SHA comes from `git rev-parse HEAD` (the lefthook
 # pre-push case). Use `--sha <sha>` to manually re-post against a
 # different commit (e.g. when an earlier post failed and the PR is
-# stuck on `fop/local-ci/pr` PENDING). Short SHAs are accepted and
+# stuck on nido/local-ci/pr PENDING). Short SHAs are accepted and
 # expanded via `git rev-parse --verify '<sha>^{commit}'` since the
 # GitHub statuses API rejects abbreviated forms with HTTP 422.
 #
@@ -92,12 +96,20 @@ nohup bash -c "
   for i in \$(seq 1 30); do
     sleep 5
     if gh api 'repos/${repo}/commits/${sha}' >/dev/null 2>&1; then
+      # Post canonical nido context first.
+      gh api --method POST 'repos/${repo}/statuses/${sha}' \
+        -f state='${state}' \
+        -f context='nido/local-ci/pr' \
+        -f description='${description}' >/dev/null 2>&1 \
+        && echo \"\$(date -u +%FT%TZ) posted nido/local-ci/pr ${state} on ${sha:0:8}\" \
+        || echo \"\$(date -u +%FT%TZ) nido/local-ci/pr post failed on ${sha:0:8}\"
+      # Post compat fop context alongside (retire after branch-protection flip).
       gh api --method POST 'repos/${repo}/statuses/${sha}' \
         -f state='${state}' \
         -f context='fop/local-ci/pr' \
         -f description='${description}' >/dev/null 2>&1 \
-        && echo \"\$(date -u +%FT%TZ) posted ${state} on ${sha:0:8}\" \
-        || echo \"\$(date -u +%FT%TZ) post failed on ${sha:0:8}\"
+        && echo \"\$(date -u +%FT%TZ) posted fop/local-ci/pr ${state} on ${sha:0:8}\" \
+        || echo \"\$(date -u +%FT%TZ) fop/local-ci/pr post failed on ${sha:0:8}\"
       exit 0
     fi
   done

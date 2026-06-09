@@ -14,10 +14,14 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 sha="$(git rev-parse HEAD)"
+# nido-local-ci.sh writes to .nido/reports/ (canonical) and .fop/reports/ (compat).
+# The failure trap test checks .fop/reports/ (compat copy) — still valid.
 report=".fop/reports/local-ci-pr-${sha}.json"
+nido_report=".nido/reports/local-ci-pr-${sha}.json"
 tmp_dir="$(mktemp -d)"
 gh_log="$tmp_dir/gh-statuses.log"
 report_backup=""
+nido_report_backup=""
 
 cleanup() {
     rm -rf "$tmp_dir"
@@ -28,12 +32,23 @@ cleanup() {
     else
         rm -f "$report"
     fi
+    if [[ -n "$nido_report_backup" && -f "$nido_report_backup" ]]; then
+        mkdir -p "$(dirname "$nido_report")"
+        cp -p "$nido_report_backup" "$nido_report"
+        rm -f "$nido_report_backup"
+    else
+        rm -f "$nido_report"
+    fi
 }
 trap cleanup EXIT
 
 if [[ -f "$report" ]]; then
     report_backup="$(mktemp)"
     cp -p "$report" "$report_backup"
+fi
+if [[ -f "$nido_report" ]]; then
+    nido_report_backup="$(mktemp)"
+    cp -p "$nido_report" "$nido_report_backup"
 fi
 
 cat > "$tmp_dir/composer" <<'STUB'

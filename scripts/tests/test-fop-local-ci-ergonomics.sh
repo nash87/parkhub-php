@@ -35,9 +35,11 @@ red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
 
 echo "==> fop-local-ci advertises background and diff-aware controls"
+# nido-local-ci.sh (reached via fop-local-ci.sh shim) uses NIDO_LOCAL_CI_*
+# primary env vars; FOP_LOCAL_CI_* are compat fallbacks also documented.
 if .github/scripts/fop-local-ci.sh --help >"$tmp_dir/help" 2>&1 \
     && grep -q -- '--background' "$tmp_dir/help" \
-    && grep -q -- 'FOP_LOCAL_CI_NO_DIFF_AWARE' "$tmp_dir/help"; then
+    && grep -qE -- 'NIDO_LOCAL_CI_NO_DIFF_AWARE' "$tmp_dir/help"; then
     green "    OK"
 else
     red "    FAILED: help output is missing ergonomics flags"
@@ -87,11 +89,14 @@ done
 green "    OK"
 
 echo "==> fop-local-ci background mode returns a PID and writes a log"
+# fop-local-ci.sh shim delegates to nido-local-ci.sh which prints
+# "nido-local-ci backgrounded"; FOP_LOCAL_CI_BG_LOG_DIR maps to
+# NIDO_LOCAL_CI_BG_LOG_DIR via compat fallback resolution.
 FOP_LOCAL_CI_BG_LOG_DIR="$tmp_dir/bg" \
 FOP_LOCAL_CI_DIFF_PATHS=$'docs/parkhub-notes.md' \
     .github/scripts/fop-local-ci.sh --profile pr --dry-run --background >"$tmp_dir/background" 2>&1
 
-if ! grep -q 'fop-local-ci backgrounded' "$tmp_dir/background" \
+if ! grep -qE 'nido-local-ci backgrounded|fop-local-ci backgrounded' "$tmp_dir/background" \
     || ! grep -Eq 'PID=[0-9]+' "$tmp_dir/background"; then
     red "    FAILED: background output missing PID/log details"
     cat "$tmp_dir/background"

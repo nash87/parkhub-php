@@ -1,14 +1,15 @@
 name: Dependabot local-CI bridge
 
-# Bridge workflow: posts `fop/local-ci/pr: success/failure` commit status for
-# Dependabot-authored PRs. The status is normally posted by a developer
-# running `.github/scripts/fop-local-ci.sh --profile pr --post-status` locally.
+# Bridge workflow: posts `nido/local-ci/pr` (canonical) and `fop/local-ci/pr`
+# (compat) commit statuses for Dependabot-authored PRs. The statuses are
+# normally posted by a developer running
+# `.github/scripts/nido-local-ci.sh --profile pr --post-status` locally.
 # Dependabot pushes from GitHub-side; no local developer means no invocation,
 # so the `local-ci-attestation` gate in ci.yml blocks indefinitely.
 #
 # This workflow runs the essential headless gate suite
 # (composer-audit + npm-audit + secret-scan + osv-scanner + typos) and
-# posts the status result so Dependabot PRs can merge cleanly.
+# posts both status contexts so Dependabot PRs can merge cleanly.
 #
 # Advisory: this workflow is NOT yet a required check. Monitor the first few
 # Dependabot cycles before promoting to required in branch protection.
@@ -41,14 +42,14 @@ jobs:
   headless-gate:
     name: Headless local-CI gate (Dependabot)
     # Only run for Dependabot PRs — human PRs go through the normal local-CI
-    # attestation path (fop-local-ci.sh + local-ci-attestation in ci.yml).
+    # attestation path (nido-local-ci.sh + local-ci-attestation in ci.yml).
     if: github.event.pull_request.user.login == 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read       # checkout source + lockfiles
       pull-requests: read  # resolve live head SHA on reruns
-      statuses: write      # post fop/local-ci/pr status (write scope required per
+      statuses: write      # post nido/local-ci/pr + fop/local-ci/pr status (write scope required per
                            # https://github.com/orgs/community/discussions/40769)
 
     steps:
@@ -127,14 +128,17 @@ jobs:
       # --- Typos (mirrors security.yml: typos, advisory) ---
       - name: Run typos
         continue-on-error: true
-        uses: crate-ci/typos@cf5f1c29a8ac336af8568821ec41919923b05a83 # v1.45.1
+        uses: crate-ci/typos@5374cbf686e897b15713110e233094e2874de7ef # v1.46.1
 
-      # --- Post fop/local-ci/pr commit status ---
+      # --- Post nido/local-ci/pr + fop/local-ci/pr commit statuses ---
       # Uses gh api (same tooling as local-ci-attestation in ci.yml) to avoid
       # introducing actions/github-script which has no existing pinned SHA.
       # All github.event.* values are passed through env vars to prevent
       # expression injection in the run shell.
-      - name: Post fop/local-ci/pr status
+      # Posts both contexts: nido/local-ci/pr (canonical) and fop/local-ci/pr
+      # (compat). The local-ci-attestation gate accepts either during the
+      # transition period.
+      - name: Post nido/local-ci/pr and fop/local-ci/pr status
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
@@ -164,10 +168,22 @@ jobs:
             SHA="${live_sha}"
           fi
 
+          TARGET_URL="${SERVER_URL}/${REPO}/actions/runs/${RUN_ID}"
+
+          # Post canonical nido context first.
+          gh api \
+            --method POST \
+            "repos/${REPO}/statuses/${SHA}" \
+            -f state="${STATE}" \
+            -f context="nido/local-ci/pr" \
+            -f description="${DESC}" \
+            -f target_url="${TARGET_URL}"
+
+          # Post compat fop context alongside (retire after branch-protection flip).
           gh api \
             --method POST \
             "repos/${REPO}/statuses/${SHA}" \
             -f state="${STATE}" \
             -f context="fop/local-ci/pr" \
             -f description="${DESC}" \
-            -f target_url="${SERVER_URL}/${REPO}/actions/runs/${RUN_ID}"
+            -f target_url="${TARGET_URL}"

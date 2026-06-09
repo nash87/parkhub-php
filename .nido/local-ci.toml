@@ -4,10 +4,12 @@
 # cross-language recommendation fixture and policy gate.
 # `nido ci run --gate legal-docs` keeps legal-readiness evidence current.
 # `nido ci run --gate pr` is the canonical front door: it delegates to the
-# repository's existing SHA-keyed fop/Nido local CI attestation script
-# (`.github/scripts/fop-local-ci.sh --profile pr`) and must pass before
-# pushing/releasing. GitHub branch protection references `fop/local-ci/pr`
-# as the required commit status context; do NOT rename it. Delegation keeps
+# repository's existing SHA-keyed nido local CI attestation script
+# (`.github/scripts/nido-local-ci.sh --profile pr`) and must pass before
+# pushing/releasing. GitHub branch protection currently references
+# `fop/local-ci/pr` as the required commit status context; the orchestrator
+# will flip this to `nido/local-ci/pr` in a separate step — do NOT rename
+# status_context below until that flip is confirmed. Delegation keeps
 # this TOML drift-free against the attestation script's diff-aware skipping,
 # pre-push reuse, and background execution.
 # `nido ci run --gate full` decomposes the heavy author-time steps for
@@ -60,7 +62,7 @@ name = "pr"
 
 [[gates.steps]]
 name = "parkhub-pr-local-ci"
-command = "NO_COLOR=true .github/scripts/fop-local-ci.sh --profile pr --post-status"
+command = "NO_COLOR=true .github/scripts/nido-local-ci.sh --profile pr --post-status"
 timeout_secs = 7200
 allow_failure = false
 
@@ -119,12 +121,12 @@ allow_failure = false
 [[gates]]
 name = "cd"
 
-# CD gate: delegates to the fop-local-ci.sh cd profile which covers
+# CD gate: delegates to the nido-local-ci.sh cd profile which covers
 # prod-only composer audit, Trivy filesystem scan, SBOM generation,
 # Playwright e2e, and the full release preflight.
 [[gates.steps]]
-name = "fop-local-ci-cd"
-command = ".github/scripts/fop-local-ci.sh --profile cd"
+name = "nido-local-ci-cd"
+command = ".github/scripts/nido-local-ci.sh --profile cd"
 timeout_secs = 3600
 allow_failure = false
 
@@ -145,5 +147,9 @@ denied_license_families = ["AGPL", "GPL", "SSPL", "BUSL"]
 provider = "github"
 repository = "nash87/parkhub-php"
 protected_branch = "main"
-# GitHub branch protection checks this exact context — do NOT rename.
+# GitHub branch protection currently checks this exact context — do NOT rename.
+# The orchestrator will flip this to "nido/local-ci/pr" in a separate step;
+# until that branch-protection change is confirmed, this value must stay as-is.
+# nido-local-ci.sh posts BOTH nido/local-ci/pr and fop/local-ci/pr during
+# the transition so both old and new branch-protection configs are satisfied.
 status_context = "fop/local-ci/pr"

@@ -53,8 +53,11 @@ pre-push:
   parallel: false
   commands:
     local-ci:
+      # Checks for a nido-local-ci success report (.nido/reports/ first,
+      # .fop/reports/ compat fallback). Accepts both nido/local-ci/pr and
+      # fop/local-ci/pr context values during the transition period.
       run: bash scripts/check-local-ci-report.sh pr
-      fail_text: "Local fop CI report missing or stale. Run `make ci`, then push again."
+      fail_text: "Local nido CI report missing or stale. Run `make ci`, then push again."
 
     workflow-drift:
       # Advisory check: warns if .github/workflows/* and .gitea/workflows/*
@@ -71,10 +74,11 @@ pre-push:
     post-attestation:
       # Forks a deferred poll-and-post that waits until the SHA shows up
       # on GitHub (after `git push` transmits the commit) and then
-      # publishes fop/local-ci/pr=success. Returns immediately so
-      # lefthook isn't blocked. The local-ci-attestation gate in
-      # .github/workflows/ci.yml typically clears within ~10s of the
-      # status post — no manual follow-up needed.
+      # publishes BOTH nido/local-ci/pr (canonical) and fop/local-ci/pr
+      # (compat) statuses. Returns immediately so lefthook isn't blocked.
+      # The local-ci-attestation gate in .github/workflows/ci.yml accepts
+      # either context and typically clears within ~10s of the status post.
+      # Env vars: NIDO_LOCAL_CI_* primary; FOP_LOCAL_CI_* are compat fallbacks.
       skip:
         - run: 'test ! -x "$(command -v gh 2>/dev/null)"'
       run: 'bash scripts/post-attestation-deferred.sh success "Local-first attestation - lefthook pre-push gates clean (php)"'

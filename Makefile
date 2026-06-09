@@ -1,16 +1,16 @@
 # parkhub-php — Local-first CI/CD entrypoints
 #
-# `make ci` is the canonical PR gate. It runs through fop so local work gets
-# the same serialization, memory limits, and GitHub commit-status attestation
-# path as the protected PR check. GitHub same-repo PRs should mostly verify
-# the posted `fop/local-ci/pr` status; Gitea can run the fuller internal
-# workflow mirror.
+# `make ci` is the canonical PR gate. It runs through the nido/fop queue so
+# local work gets the same serialization, memory limits, and GitHub
+# commit-status attestation path as the protected PR check. GitHub same-repo
+# PRs should mostly verify the posted `nido/local-ci/pr` status (compat:
+# `fop/local-ci/pr`); Gitea can run the fuller internal workflow mirror.
 #
 # Usage:
-#   make ci         # fop local PR gate (no GitHub status post)
-#   make ci-post    # fop local PR gate + post fop/local-ci/pr for GitHub
-#   make full       # fop full profile: PR gate + mutation/e2e extras
-#   make cd         # fop CD profile: full + release-oriented scans/smoke
+#   make ci         # nido local PR gate (no GitHub status post)
+#   make ci-post    # nido local PR gate + post nido/local-ci/pr for GitHub
+#   make full       # nido full profile: PR gate + mutation/e2e extras
+#   make cd         # nido CD profile: full + release-oriented scans/smoke
 #   make release-preflight # required gate before cutting/publishing a release
 #   make ci-security # strict local OSS mirror of GitHub/Gitea security gates
 #   make lint       # pint --test + phpstan (backend-quality + static-analysis jobs)
@@ -22,6 +22,12 @@
 # Requires: php 8.4, composer v2, node 22, npm. CD/release-preflight also
 # requires Trivy and Playwright Chromium. `act` is optional.
 
+# TODO(T-7009): switch to nido build once --resource-profile lands; fop is the compat runtime.
+# NIDO_BUILD is the canonical variable; FOP_BUILD is kept as a compat alias for
+# any external scripts that may reference the old name.
+NIDO_BUILD ?= fop build --backend local --resource-profile interactive-small . --preset custom --
+FOP_BUILD ?= $(NIDO_BUILD)
+
 SHELL := bash
 .SHELLFLAGS := -euo pipefail -c
 MAKEFLAGS += --no-print-directory
@@ -31,10 +37,10 @@ MAKEFLAGS += --no-print-directory
 help:
 	@echo "parkhub-php local-first CI/CD"
 	@echo ""
-	@echo "  make ci         — fop local PR gate"
-	@echo "  make ci-post    — fop local PR gate + post fop/local-ci/pr"
-	@echo "  make full       — fop full profile"
-	@echo "  make cd         — fop CD profile"
+	@echo "  make ci         — nido local PR gate"
+	@echo "  make ci-post    — nido local PR gate + post nido/local-ci/pr"
+	@echo "  make full       — nido full profile"
+	@echo "  make cd         — nido CD profile"
 	@echo "  make release-preflight — required release gate (CD profile)"
 	@echo "  make ci-security — strict local OSS security/workflow mirror"
 	@echo "  make script-tests — shell script contract tests"
@@ -101,16 +107,16 @@ drift:
 
 ## Canonical local PR gate. GitHub branch protection expects ci-post on PR heads.
 ci:
-	.github/scripts/fop-local-ci.sh --profile pr
+	.github/scripts/nido-local-ci.sh --profile pr
 
 ci-post:
-	.github/scripts/fop-local-ci.sh --profile pr --post-status
+	.github/scripts/nido-local-ci.sh --profile pr --post-status
 
 full:
-	.github/scripts/fop-local-ci.sh --profile full
+	.github/scripts/nido-local-ci.sh --profile full
 
 cd:
-	.github/scripts/fop-local-ci.sh --profile cd
+	.github/scripts/nido-local-ci.sh --profile cd
 
 release-preflight: cd
 
@@ -139,7 +145,7 @@ mutants:
 
 ci-security:
 	$(MAKE) script-tests
-	.github/scripts/fop-local-ci.sh --profile pr --dry-run >/dev/null
+	.github/scripts/nido-local-ci.sh --profile pr --dry-run >/dev/null
 	scripts/ci/local-security-audit.sh --profile cd --strict-tools --fail-advisory
 
 script-tests:
@@ -151,6 +157,7 @@ script-tests:
 	bash scripts/tests/test-fop-local-ci-ergonomics.sh
 	bash scripts/tests/test-fop-local-ci-failure-trap.sh
 	bash scripts/tests/test-local-ci-report-check.sh
+	bash scripts/tests/test-nido-local-ci-report-check.sh
 
 pre-push: ci
 
@@ -158,8 +165,8 @@ pre-push: ci
 # `nido ci run --gate pr` is the canonical local entry; it routes through the
 # nido build queue for OOM-safe capacity-gated execution. Under capacity
 # pressure `nido guard preflight` gates admission automatically.
-# The legacy `make ci` / fop-local-ci.sh path remains the GitHub attestation
-# path (posts fop/local-ci/pr commit status) and must not be removed.
+# `make ci` / nido-local-ci.sh remains the GitHub attestation path (posts
+# nido/local-ci/pr + fop/local-ci/pr commit statuses) and must not be removed.
 nido-ci:
 	nido ci run --gate pr
 
