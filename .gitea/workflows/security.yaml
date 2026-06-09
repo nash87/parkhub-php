@@ -64,11 +64,11 @@ jobs:
 
       - name: Audit root npm dependencies
         run: npm audit --package-lock-only --omit=dev --audit-level=high
-        continue-on-error: true
+        continue-on-error: false
 
       - name: Audit Astro npm dependencies
         run: npm audit --prefix parkhub-web --package-lock-only --omit=dev --audit-level=high
-        continue-on-error: true
+        continue-on-error: false
 
   trivy-fs:
     name: Trivy Filesystem Scan
@@ -83,7 +83,7 @@ jobs:
 
       - name: Run Trivy filesystem scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        continue-on-error: true
+        continue-on-error: false
         with:
           scan-type: fs
           scan-ref: .
@@ -141,12 +141,11 @@ jobs:
           fi
 
   zizmor:
-    name: Zizmor (GHA SAST, audit-mode)
+    name: Zizmor (GHA SAST)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Audit-mode: surface findings as informational; do NOT fail the gate yet.
-    # Promote findings to errors once the workflow inventory has been triaged.
-    continue-on-error: true
+    # Blocking workflow SAST for mirrored CI.
+    continue-on-error: false
     permissions:
       contents: read   # read-only — zizmor only needs to parse workflow YAMLs
     env:
@@ -171,13 +170,13 @@ jobs:
           set -euo pipefail
           # auditor persona surfaces low-severity findings; --no-online-audits
           # avoids GitHub API rate-limit issues when running from Gitea.
-          zizmor --persona=auditor --no-online-audits .github/workflows/ .gitea/workflows/ || true
+          zizmor --persona=auditor --no-online-audits .github/workflows/ .gitea/workflows/
 
   osv-scanner:
     name: OSV-Scanner (supply-chain)
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
+    continue-on-error: false
     permissions:
       contents: read   # read-only — only parses lockfiles
     env:
@@ -198,14 +197,14 @@ jobs:
       - name: Run osv-scanner
         run: |
           set -euo pipefail
-          osv-scanner scan source --recursive --no-config . || true
+          osv-scanner scan source --recursive --no-config .
 
   grype:
     name: Grype (vuln scan, defense-in-depth)
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    continue-on-error: true
+    continue-on-error: false
     permissions:
       contents: read   # read-only — Grype scans the filesystem
     env:
@@ -227,7 +226,7 @@ jobs:
       - name: Run grype
         run: |
           set -euo pipefail
-          grype dir:. --fail-on critical || true
+          grype dir:. --fail-on critical
 
   trivy-image:
     # SOTA-2026 image scanning — Trivy (Apache-2.0) + Grype (Apache-2.0).
@@ -237,7 +236,7 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    continue-on-error: true
+    continue-on-error: false
     permissions:
       contents: read         # checkout for .trivyignore
       packages: read         # pull image from GHCR
@@ -259,7 +258,7 @@ jobs:
 
       - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        continue-on-error: true
+        continue-on-error: false
         with:
           image-ref: ${{ env.IMAGE_REF }}
           scanners: vuln,misconfig,secret

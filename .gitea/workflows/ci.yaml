@@ -430,7 +430,7 @@ jobs:
     name: Cosign verify (advisory)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
+    continue-on-error: false
     permissions:
       contents: read   # read-only — verifies a remote signature
       packages: read   # pull manifest from GHCR

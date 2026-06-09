@@ -46,6 +46,10 @@ jobs:
         run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set monitoring.serviceMonitor.enabled=true > /tmp/rendered-servicemonitor.yaml
       - name: helm template (PrometheusRule enabled)
         run: helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set monitoring.prometheusRule.enabled=true > /tmp/rendered-prometheusrule.yaml
+      - name: helm template (digest image)
+        run: |
+          helm template release helm/parkhub --set config.appKey="$CI_APP_KEY" --set image.digest=sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa \
+            | grep -F 'ghcr.io/nash87/parkhub-php@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
       - name: Validate rendered YAML
         run: |
           for f in /tmp/rendered-*.yaml; do

@@ -1,6 +1,6 @@
 name: Lost Pixel
 # Whole-page + Storybook visual regression for parkhub-web (Astro + React).
-# Mirrors the fop-web-ui pattern — soft-fail, diffs uploaded as artefacts.
+# Mirrors the fop-web-ui pattern, with diffs uploaded as artifacts.
 # Run on push/main and manual dispatch only; PR runs are too slow for the
 # merge train (each shot is ~3-5s and we cover 8 routes + every Storybook
 # story).
@@ -40,7 +40,7 @@ jobs:
       image: 192.168.178.250:5000/gitea/runner-images@sha256:056f41b214d06e42289a7b2918950e46e9394e855ca056c88b8131a5f0761557
       options: --add-host=gitea.test:192.168.178.233
     timeout-minutes: 30
-    continue-on-error: true # Diffs surface as artefacts, never block.
+    continue-on-error: false # Diffs mark the enabled run red and upload artifacts.
     # Gated until lostpixel.config.ts lands at repo root and the
     # lost-pixel devDep + baseline snapshots are committed (T-22XX
     # follow-up). Without the config, `npx lost-pixel` exits with a

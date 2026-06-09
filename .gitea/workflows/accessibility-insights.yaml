@@ -11,8 +11,8 @@ name: Accessibility Insights
 # Gitea runner_act resolves `github.com` action refs natively when the
 # runner has internet egress; mirror to Gitea if air-gapped.
 #
-# Soft-fail (continue-on-error: true) for the first month while we tune
-# the static-site-dir / url config and triage IGT-only findings.
+# Blocking accessibility gate for WCAG drift. Tune intentional exceptions in
+# the test/config layer rather than hiding failures with a permissive marker.
 #
 # Pattern lifted from fop-web-ui/.gitea/workflows/accessibility-insights.yaml.
 
@@ -52,7 +52,7 @@ jobs:
       image: 192.168.178.250:5000/gitea/runner-images@sha256:056f41b214d06e42289a7b2918950e46e9394e855ca056c88b8131a5f0761557
       options: --add-host=gitea.test:192.168.178.233
     timeout-minutes: 30
-    continue-on-error: true # Soft-fail for first month — IGT findings still triaging.
+    continue-on-error: false # Blocking WCAG FastPass + needs-review gate.
     defaults:
       run:
         working-directory: parkhub-web

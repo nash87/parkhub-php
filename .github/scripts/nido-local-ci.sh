@@ -596,6 +596,11 @@ run_direct "ui polish contract" "scripts/tests/test-ui-polish-contract.sh"
 run_direct "recommendation contract gate" "bash scripts/check-recommendation-contract.sh"
 run_direct "legal-readiness wording contract" "scripts/tests/test-legal-readiness-wording.sh"
 run_direct "legal/module OpenAPI contract" "scripts/tests/test-legal-openapi-contract.sh"
+if (( diff_touch_workflows || diff_touch_image )) || [[ "$profile" == "cd" || "${FOP_LOCAL_CI_RUN_LINTERS:-}" == "1" ]]; then
+  run_direct "release supply-chain policy" "bash scripts/check-release-supply-chain-policy.sh"
+else
+  skip_step "release supply-chain policy" "diff-aware: no workflow or image inputs touched"
+fi
 
 # ---------------- Backend (PHP) ---------------------------------------------
 if (( diff_touch_php )); then

@@ -29,11 +29,9 @@ jobs:
     name: Fuzz OpenAPI contract
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Soft job — schemathesis surfaces contract drift and 500s that are
-    # legal-by-spec. During the baseline pass we expect violations; the
-    # workflow must still complete and upload its report so we can
-    # triage follow-up tasks off the nightly run.
-    continue-on-error: true
+    # Blocking contract fuzzing for OpenAPI changes. Failure reports are still
+    # uploaded for triage, but API drift should mark this run red.
+    continue-on-error: false
     steps:
       - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       # TODO(gitea-mirror): No mirror at https://192.168.178.233/shivammathur/setup-php yet.
@@ -101,7 +99,7 @@ jobs:
           ./scripts/ci/wait-for-url.sh http://127.0.0.1:8000/api/v1/health/live 30
 
       - name: Obtain auth token (best-effort)
-        continue-on-error: true
+        continue-on-error: false
         run: |
           # Best-effort: grab a Sanctum token so authenticated endpoints
           # get exercised too. If login fails (demo seeder shape change,
@@ -120,7 +118,7 @@ jobs:
           fi
 
       - name: Run schemathesis
-        continue-on-error: true
+        continue-on-error: false
         run: |
           extra_args=()
           if [ -n "${SCHEMATHESIS_AUTH_HEADER:-}" ]; then

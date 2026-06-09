@@ -22,9 +22,9 @@ jobs:
     name: infection-php sweep
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    # Soft job — mutation score is informational during the baseline
-    # phase. Do NOT gate merges on this; watch the nightly trend instead.
-    continue-on-error: true
+    # Scheduled/manual mutation gate. This workflow is not PR-triggered, so it
+    # does not gate ordinary merges; failures intentionally mark the run red.
+    continue-on-error: false
     steps:
       - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 

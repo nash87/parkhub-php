@@ -13,8 +13,8 @@ runs:
   steps:
     - name: Review dependencies
       uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v4 (repo allow-listed SHA)
-      # Advisory until GitHub Dependency Graph is enabled for this repo.
-      continue-on-error: true
+      # Blocking release supply-chain gate.
+      continue-on-error: false
       with:
         fail-on-severity: high
         # Canonical SPDX deny-list — single source of truth.
@@ -25,10 +25,10 @@ runs:
         #   model used by Sentry, MariaDB, etc. NOT the same as `BSL-1.0`
         #   (Boost Software License, which is permissive — DON'T add it).
         # - SSPL-1.0: Server Side Public License (Elastic, MongoDB current).
-        # - FSL-1.0-ALv2/-MIT, FSL-1.1-MIT: Functional Source License family
-        #   (Sentry, BoxyHQ, Discord) — Apache/MIT future-grant model that
-        #   today behaves as anti-cloud.
+        # - Functional Source License variants are still banned by project
+        #   policy, but GitHub's dependency-review-action currently rejects
+        #   those license identifiers in deny-licenses. Keep them out of this
+        #   action input and handle any FSL introduction during legal review.
         # Project policy is "MIT / Apache-2.0 / BSD / ISC only"; this list is
-        # drift protection for new deps (gate is advisory via continue-on-error
-        # until GitHub Dependency Graph is enabled).
-        deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0, AGPL-3.0-or-later, BUSL-1.1, SSPL-1.0, FSL-1.0-ALv2, FSL-1.0-MIT, FSL-1.1-MIT
+        # blocking drift protection for new deps.
+        deny-licenses: GPL-2.0, GPL-3.0, AGPL-1.0, AGPL-3.0, AGPL-3.0-or-later, BUSL-1.1, SSPL-1.0

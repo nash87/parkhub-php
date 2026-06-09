@@ -4,9 +4,8 @@ name: Unlighthouse
 # gating) by walking every discovered route from a single seed URL and
 # surfacing long-tail regressions.
 #
-# Too slow for per-PR CI (~10-15 min on the full site) — daily cron + manual
-# dispatch. Soft-fail because the budgets in unlighthouse.config.ts are
-# aspirational until long-tail routes get tuned.
+# Too slow for per-PR CI (~10-15 min on the full site), so it runs on daily
+# cron + manual dispatch. Budget drift intentionally marks those runs red.
 #
 # License: unlighthouse is MIT (https://github.com/harlan-zw/unlighthouse).
 # Pattern lifted from fop-web-ui/.gitea/workflows/unlighthouse.yaml.
@@ -42,7 +41,7 @@ jobs:
       image: 192.168.178.250:5000/gitea/runner-images@sha256:056f41b214d06e42289a7b2918950e46e9394e855ca056c88b8131a5f0761557
       options: --add-host=gitea.test:192.168.178.233
     timeout-minutes: 45
-    continue-on-error: true # Soft-fail — long-tail budgets still tuning.
+    continue-on-error: false # Blocking whole-site performance budget gate.
     steps:
       - uses: https://192.168.178.233/actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 

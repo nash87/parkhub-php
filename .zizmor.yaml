@@ -1,7 +1,7 @@
 # Zizmor GHA SAST policy for nash87/parkhub-php.
 #
 # Zizmor is GitHub Actions-specific static analysis. As of 2026 the
-# workflow security.yml runs it in audit-mode (continue-on-error: true,
+# workflow security.yml runs it in audit-mode (continue-on-error: false,
 # min-severity: high). This config file exists so the eventual
 # promotion from audit-mode → required-gate (see audit recommendations
 # 4 + 5 in /tmp/parkhub-php-cicd-audit.md) lands in a separate PR

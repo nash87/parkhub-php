@@ -8,10 +8,43 @@ locale = "en"
 [default.extend-words]
 parkhub = "parkhub"
 
+# German UI/demo copy used in seeded operator-facing fixtures.
+Adresse = "Adresse"
+Als = "Als"
+Assistent = "Assistent"
+ein = "ein"
+ist = "ist"
+Lokal = "Lokal"
+Produktion = "Produktion"
+Sie = "Sie"
+
+# Locale names, fixture acronyms, and rendered asset references.
+OT = "OT"
+PN = "PN"
+Portugues = "Portugues"
+
 [files]
 extend-exclude = [
     "composer.lock",
     "package-lock.json",
+    "docs/openapi/*.json",
+    "docs/plans/**",
+    "docs/*TEMPLATE*.md",
+    "legal/**",
+    "app/Mail/**",
+    "app/Http/Controllers/Api/BookingInvoiceController.php",
+    "app/Http/Controllers/Api/VehicleController.php",
+    "database/seeders/ProductionSimulationSeeder.php",
+    "resources/js/src/i18n/locales/**",
+    "resources/js/src/design-v5/**",
+    "resources/js/src/views/**",
+    "parkhub-web/src/i18n/locales/**",
+    "parkhub-web/src/design-v5/**",
+    "parkhub-web/src/views/**",
+    "e2e/v5-happy-paths.spec.ts",
+    "docs/v5-test-coverage-plan.md",
+    "fonts/**",
+    "scripts/__pycache__/**",
     "*.min.js",
     "*.min.css",
     "vendor/**",

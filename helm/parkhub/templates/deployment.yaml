@@ -44,7 +44,7 @@ spec:
             {{- if .Values.security.readOnlyRootFilesystem.enabled }}
             readOnlyRootFilesystem: true
             {{- end }}
-          image: "{{ .Values.image.repository }}:{{ include "parkhub.imageTag" . }}"
+          image: {{ include "parkhub.imageRef" . | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http

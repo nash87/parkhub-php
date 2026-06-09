@@ -16,7 +16,7 @@
 
 # ---------------------------------------------------------------------------
 # Stage 1: Frontend build (Astro + Vite)
-# Mirrored node:22-slim — pinned to the registry digest, NOT Docker Hub.
+# Mirrored node:22-slim — pinned to the local registry digest, NOT Docker Hub.
 #
 # NODE_BASE / WOLFI_BASE are parameterized so cloud CI (GitHub Actions) can
 # pass --build-arg NODE_BASE=docker.io/library/node:22-slim@sha256:689c1104...

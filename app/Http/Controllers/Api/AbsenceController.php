@@ -146,7 +146,7 @@ class AbsenceController extends Controller
                 $parsedStart = Carbon::createFromFormat('Ymd', $startDate);
                 $parsedEnd = Carbon::createFromFormat('Ymd', $endDate);
             } catch (\Exception $e) {
-                continue; // Skip events with unparseable dates
+                continue; // Skip events with unparsable dates
             }
 
             $allowedTypes = ['homeoffice', 'vacation', 'sick', 'training', 'other'];
