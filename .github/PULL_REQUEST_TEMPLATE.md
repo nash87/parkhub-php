@@ -1,6 +1,10 @@
 ## Summary
 <!-- Brief description of what this PR does and why -->
 
+## Spec reference
+<!-- If this implements a feature: link to specs/<feature-id>/spec.md or docs/plans/<plan>.md
+     Leave blank for bug fixes, dependency bumps, and refactors. -->
+
 ## Type of change
 - [ ] Bug fix
 - [ ] New feature

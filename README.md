@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml"><img src="https://github.com/nash87/parkhub-php/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v5.0.1-brightgreen.svg?style=flat-square" alt="v5.0.1"></a>
+  <a href="CHANGELOG.md"><img src="https://img.shields.io/badge/Release-v5.1.0-brightgreen.svg?style=flat-square" alt="v5.1.0"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="MIT License"></a>
   <a href="https://www.php.net/"><img src="https://img.shields.io/badge/PHP-8.4-777BB4.svg?style=flat-square&logo=php&logoColor=white" alt="PHP 8.4"></a>
   <a href="https://laravel.com/"><img src="https://img.shields.io/badge/Laravel-13-FF2D20.svg?style=flat-square&logo=laravel&logoColor=white" alt="Laravel 13"></a>
@@ -72,6 +72,18 @@
 | **Mobile** | Playwright now ships a `mobile-chrome` (Pixel 5) project so v5 specs can opt into mobile viewports on CI. |
 
 Live demo: <https://parkhub-php-demo.onrender.com>.
+
+---
+
+## What's New in v5.1.0
+
+| Change | Description |
+|--------|-------------|
+| **Absolute session cap** | Tighter upper bound on admin session lifetime — closes a long-lived-session escalation vector. |
+| **Security hardening (L-3)** | Audit-level L-3 hardening pass: session isolation, privilege-check tightening, rate-limit consistency. |
+| **Design v5 complete** | All 26 screens ported to the `design-v5` component tree; `<PlaceholderV5>` fallback retired. |
+| **Helm restricted profile** | `readOnlyRootFilesystem: true` is now the default in the bundled Helm chart. |
+| **SLSA L3 attestations** | Every release image ships a Syft SBOM and cosign-signed build-provenance attestation. |
 
 ---
 
@@ -445,6 +457,15 @@ Mutation testing (Infection) runs weekly via `.github/workflows/infection.yml` (
 Bug reports and feature requests: [GitHub Issues](https://github.com/nash87/parkhub-php/issues)
 
 Security vulnerabilities: [Security Policy](SECURITY.md) (do not open public issues)
+
+---
+
+## Built on the Securanido Platform
+
+ParkHub is developed and maintained by the [Securanido](https://securanido.com) team —
+a platform for self-hosted, privacy-first software. If you are interested in the
+infrastructure, agent orchestration, and compliance tooling behind ParkHub,
+visit [securanido.com](https://securanido.com).
 
 ---
 

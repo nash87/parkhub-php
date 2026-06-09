@@ -263,6 +263,41 @@ hotfix). CI will still run the full gate set on the PR.
 
 ---
 
+## Spec-Driven Development
+
+Non-trivial features (PRs labeled `feature` or `enhancement`) require a spec
+file before the implementation PR is opened. This keeps the design discussion
+separate from the implementation, and gives reviewers a clear requirements
+baseline.
+
+### Quick start
+
+1. Open a GitHub issue describing the problem.
+2. Run `/speckit.specify` in Claude Code, or copy
+   `.specify/templates/spec-template.md` to `specs/<feature-id>/spec.md`.
+3. Fill in the spec (requirements and user stories — no implementation detail).
+4. Open a draft spec PR for review.
+5. Once approved, draft the technical plan at `specs/<feature-id>/plan.md`
+   using `.specify/templates/plan-template.md`.
+6. Track implementation in `specs/<feature-id>/tasks.md` using
+   `.specify/templates/tasks-template.md`.
+
+### In your implementation PR
+
+- Fill in the "Spec reference" field in the PR template.
+- Check the `spec_written` checkbox in the feature-request issue (if one exists).
+
+### Governing principles
+
+The project constitution lives at `.specify/memory/constitution.md`. It
+captures the non-negotiable boundaries (API parity, security, GDPR, code
+quality) that every spec must respect.
+
+Existing planning documents in `docs/plans/` remain valid. New features use
+the `specs/` hierarchy going forward.
+
+---
+
 ## Merge Queue
 
 ParkHub uses GitHub's **native merge queue** (GA since 2023) -- no third-party

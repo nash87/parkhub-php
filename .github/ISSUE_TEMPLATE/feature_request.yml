@@ -25,3 +25,18 @@ body:
         - UI/UX improvement
         - Documentation
         - DevOps/CI
+  - type: checkboxes
+    id: spec_written
+    attributes:
+      label: Spec
+      options:
+        - label: >-
+            I have created (or will create before opening the implementation PR)
+            a spec file at `specs/<feature-id>/spec.md`.
+            See [specs/README.md](../../specs/README.md) and use `/speckit.specify` to bootstrap it.
+  - type: input
+    id: spec_link
+    attributes:
+      label: Spec link (optional)
+      description: Link to the spec PR or draft, if already open.
+      placeholder: "https://github.com/nash87/parkhub-php/pull/..."

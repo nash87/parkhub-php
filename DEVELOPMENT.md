@@ -16,8 +16,7 @@ posted `fop/local-ci/pr` status.
 git clone git@github.com:nash87/parkhub-php.git
 cd parkhub-php
 
-# Optional local restore mirror. Do not pull, rebase, or base PR work from it.
-git remote add gitea-restore git@192.168.178.220:florian/parkhub-php.git
+# Optional: add a private mirror remote here (internal use only, not required).
 
 # Bootstrap
 composer install
