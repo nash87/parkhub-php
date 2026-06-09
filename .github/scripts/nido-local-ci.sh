@@ -713,8 +713,8 @@ if [[ "$profile" == "full" || "$profile" == "cd" ]]; then
   #   1. caller opted in via NIDO_LOCAL_CI_RUN_INFECTION=1?
   #   2. coverage extension present? (Infection without pcov/xdebug fails
   #      with a CoverageChecker error in <1s — meaningless signal.)
-  # The nightly GHA workflow .github/workflows/infection.yml runs with
-  # continue-on-error: true, so the local CD profile must not be stricter.
+  # The nightly GHA workflow .github/workflows/infection.yml runs in advisory
+  # (soft-fail) mode, so the local CD profile must not be stricter.
   run_step_heavy "infection mutation testing (soft, opt-in)" "if [[ \"\${NIDO_LOCAL_CI_RUN_INFECTION:-0}\" != \"1\" ]]; then echo 'infection disabled by default; export NIDO_LOCAL_CI_RUN_INFECTION=1 with pcov/xdebug enabled to run mutation testing'; elif ! php -m | grep -qE '^(pcov|xdebug)\$'; then echo 'infection requires pcov or xdebug for coverage; skipping (advisory like infection.yml continue-on-error)'; else ./vendor/bin/infection --threads=4 --no-progress || echo 'infection returned non-zero (soft on cd profile)'; fi"
 
   run_step_heavy "playwright chromium browser install" "npx playwright install --with-deps chromium"
@@ -755,14 +755,14 @@ fi
 # for CI/CD hardening (template injection, cache poisoning, persist-credentials,
 # excessive-permissions). Uses --persona=auditor to match the workflow.
 #
-# Advisory mode: matches workflow's `continue-on-error: true` — zizmor surfaces
-# findings as informational but does NOT fail the gate. Promote to a hard
-# failure (drop the `|| true`) once the open-finding inventory is at zero.
-# Suppressions live in zizmor.yml with per-rule justification.
+# Blocking since the open-finding inventory reached zero (verified) and the
+# security.yml workflow gate was promoted to hard-fail — local stays in parity
+# per the release supply-chain policy. Suppressions live in zizmor.yml with
+# per-rule justification.
 if (( ! diff_touch_workflows )); then
   skip_step "zizmor (GHA SAST)" "diff-aware: no workflow inputs touched"
 elif command -v zizmor >/dev/null 2>&1; then
-  run_step "zizmor (GHA SAST, advisory)" "zizmor --persona=auditor --min-severity=high --no-online-audits .github/workflows/ .gitea/workflows/ || echo 'zizmor returned non-zero (advisory — see findings above)'"
+  run_step "zizmor (GHA SAST)" "zizmor --persona=auditor --min-severity=high --no-online-audits .github/workflows/ .gitea/workflows/"
 else
   skip_step "zizmor (GHA SAST)" "zizmor not on PATH (install: cargo install zizmor or https://docs.zizmor.sh)"
 fi

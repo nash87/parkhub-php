@@ -68,11 +68,9 @@ jobs:
 
       - name: Audit root npm dependencies
         run: npm audit --package-lock-only --omit=dev --audit-level=high
-        continue-on-error: true
 
       - name: Audit Astro npm dependencies
         run: npm audit --prefix parkhub-web --package-lock-only --omit=dev --audit-level=high
-        continue-on-error: true
 
       # --- Secret scan ---
       - name: Install gitleaks
@@ -106,7 +104,6 @@ jobs:
           osv-scanner --version
 
       - name: OSV-Scanner (composer + npm lockfiles)
-        continue-on-error: true
         run: |
           set -euo pipefail
           osv-scanner scan source \
@@ -114,12 +111,11 @@ jobs:
             -L composer.lock \
             -L package-lock.json \
             -L parkhub-web/package-lock.json \
-            --format=table || true
+            --format=table
 
       # --- Typos (advisory) ---
       # TODO(gitea-mirror): No mirror at https://192.168.178.233/crate-ci/typos yet.
       - name: Run typos
-        continue-on-error: true
         uses: crate-ci/typos@5374cbf686e897b15713110e233094e2874de7ef # v1.46.1
 
       # --- Post nido/local-ci/pr + fop/local-ci/pr commit statuses ---
