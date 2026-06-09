@@ -10,20 +10,40 @@ try:
     import yaml
 except ModuleNotFoundError:
     yaml = None
-    print(
-        "WARN: PyYAML is not installed; skipping workflow YAML parse validation. "
-        "Install with: python3 -m pip install --user PyYAML",
-        file=sys.stderr,
+    _msg = (
+        "PyYAML is not installed; workflow YAML parse validation cannot run. "
+        "Install with: python3 -m pip install --user PyYAML"
     )
+    if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+        # In CI the YAML half of this gate is mandatory — fail cleanly
+        # (no traceback) instead of silently weakening the policy.
+        print(f"FAIL: {_msg}", file=sys.stderr)
+        raise SystemExit(1)
+    print(f"WARN: {_msg} — continuing with the text-pattern half only.", file=sys.stderr)
 
 repo = Path(".")
 errors = []
 
 forbidden = {
     "wolfi-base" + ":latest": "mutable Wolfi base image tag",
-    "continue-on-error" + ": true": "non-blocking release or security gate",
     "advisory until " + "first signed": "advisory attestation verification",
 }
+
+# Scoped to workflow manifests only: prose (.md docs) legitimately discusses
+# the marker, and only workflow files can actually soften a gate with it.
+forbidden_workflow_only = {
+    "continue-on-error" + ": true": "non-blocking release or security gate",
+}
+
+
+def is_workflow_file(path: Path) -> bool:
+    parts = path.parts
+    return (
+        len(parts) >= 2
+        and parts[0] in {".github", ".gitea"}
+        and "workflows" in parts
+        and path.suffix in {".yml", ".yaml"}
+    )
 
 skip_dirs = {
     ".git",
@@ -111,6 +131,10 @@ for path in sorted(iter_policy_files(repo)):
         for pattern, description in forbidden.items():
             if pattern in line:
                 errors.append(f"{path}:{lineno}: contains {description}: {pattern}")
+        if is_workflow_file(path):
+            for pattern, description in forbidden_workflow_only.items():
+                if pattern in line:
+                    errors.append(f"{path}:{lineno}: contains {description}: {pattern}")
 
 workflow = Path(".github/workflows/docker-publish.yml")
 if not workflow.is_file():

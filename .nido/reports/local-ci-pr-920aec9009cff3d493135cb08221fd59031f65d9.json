@@ -1,0 +1,20 @@
+{
+  "schema": "parkhub.local-ci.v2",
+  "profile": "pr",
+  "state": "success",
+  "commit": "920aec9009cff3d493135cb08221fd59031f65d9",
+  "started_at": "2026-06-09T20:39:34Z",
+  "finished_at": "2026-06-09T20:53:51Z",
+  "failed_step": "",
+  "context": "nido/local-ci/pr",
+  "diff_aware": {
+    "enabled": true,
+    "php": true,
+    "frontend": true,
+    "workflows": true,
+    "e2e": false,
+    "image": true,
+    "nix_dev": false,
+    "security": true
+  }
+}
