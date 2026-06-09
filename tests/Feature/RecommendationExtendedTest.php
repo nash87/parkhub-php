@@ -433,6 +433,48 @@ class RecommendationExtendedTest extends TestCase
         $this->assertSame('operational_evidence_personal_data_possible', $trace->details['retention_deletion_class']);
     }
 
+    public function test_admin_exact_cover_allocation_audit_records_effective_request_limits(): void
+    {
+        $admin = User::factory()->admin()->create();
+        // Module defaults are deliberately wider than the request overrides so
+        // the audit trace must capture the effective limits actually used, not
+        // the configured defaults (otherwise fallback_*_limited is unreproducible).
+        Setting::set(
+            ModuleRegistry::configSettingKey('recommendations', 'exact_cover_max_options'),
+            json_encode(256)
+        );
+        Setting::set(
+            ModuleRegistry::configSettingKey('recommendations', 'exact_cover_max_search_nodes'),
+            json_encode(10000)
+        );
+
+        $this->actingAs($admin)->postJson('/api/v1/recommendations/allocation/exact-cover', [
+            'required_constraints' => ['tenant:alpha', 'tenant:beta'],
+            'options' => [
+                ['id' => 'slot-a', 'covers' => ['tenant:alpha'], 'weight' => 90],
+                ['id' => 'slot-b', 'covers' => ['tenant:beta'], 'weight' => 80],
+            ],
+            'limits' => [
+                'max_options' => 5,
+                'max_search_nodes' => 25,
+            ],
+        ])->assertOk();
+
+        $trace = AuditLog::query()
+            ->where('event_type', 'ExactCoverAllocationServed')
+            ->latest()
+            ->first();
+
+        $this->assertNotNull($trace);
+        $this->assertArrayHasKey('effective_limits', $trace->details);
+        $this->assertSame(5, $trace->details['effective_limits']['max_options']);
+        $this->assertSame(25, $trace->details['effective_limits']['max_search_nodes']);
+        // The effective limits must reflect the request overrides, not the
+        // wider module defaults configured above.
+        $this->assertNotSame(256, $trace->details['effective_limits']['max_options']);
+        $this->assertNotSame(10000, $trace->details['effective_limits']['max_search_nodes']);
+    }
+
     public function test_admin_exact_cover_allocation_rejects_duplicate_option_ids(): void
     {
         $admin = User::factory()->admin()->create();
@@ -456,6 +498,8 @@ class RecommendationExtendedTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
 
+        // An empty `covers` array must be rejected at the validation boundary
+        // via `min:1`, matching the OpenAPI schema's `covers.minItems: 1`.
         $response = $this->actingAs($admin)->postJson('/api/v1/recommendations/allocation/exact-cover', [
             'required_constraints' => ['tenant:alpha'],
             'options' => [
@@ -466,8 +510,8 @@ class RecommendationExtendedTest extends TestCase
         $response->assertUnprocessable()
             ->assertJsonPath('success', false)
             ->assertJsonPath('data', null)
-            ->assertJsonPath('error.code', 'EXACT_COVER_OPTION_COVERS_REQUIRED')
-            ->assertJsonPath('error.message', 'Exact-cover options must cover at least one constraint: slot-a');
+            ->assertJsonPath('error.code', 'VALIDATION_ERROR');
+        $this->assertStringContainsString('options.0.covers', (string) $response->json('error.message'));
     }
 
     public function test_admin_exact_cover_allocation_rejects_blank_option_covers(): void

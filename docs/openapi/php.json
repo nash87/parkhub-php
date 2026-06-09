@@ -34283,7 +34283,10 @@
                         "covers": {
                           "items": {
                             "maxLength": 128,
-                            "type": "string"
+                            "type": [
+                              "string",
+                              "null"
+                            ]
                           },
                           "maxItems": 256,
                           "minItems": 1,
