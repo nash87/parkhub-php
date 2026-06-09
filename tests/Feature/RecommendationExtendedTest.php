@@ -374,6 +374,9 @@ class RecommendationExtendedTest extends TestCase
             ->assertJsonPath('data.legal_boundary.legal_review_required', true)
             ->assertJsonPath('data.legal_boundary.attorney_review_status', 'required_before_customer_wording')
             ->assertJsonPath('data.legal_boundary.execution_allowed', false)
+            // Exact wording is a cross-repo contract: parkhub-rust serves the
+            // byte-identical disclaimer from RecommendationLegalBoundary.
+            ->assertJsonPath('data.legal_boundary.disclaimer', 'fop legal output is reference-only drafting support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing profiling or legal wording ships.')
             ->assertJsonCount(0, 'data.top_recommended_lots');
     }
 
@@ -411,7 +414,12 @@ class RecommendationExtendedTest extends TestCase
             ->assertJsonPath('data.result.strategy', 'exact_cover_v1')
             ->assertJsonPath('data.result.status', 'solved')
             ->assertJsonPath('data.result.selected_option_ids', ['slot-a', 'slot-b'])
-            ->assertJsonPath('data.legal_boundary.execution_allowed', false);
+            ->assertJsonPath('data.legal_boundary.legal_review_required', true)
+            ->assertJsonPath('data.legal_boundary.attorney_review_status', 'required_before_customer_wording')
+            ->assertJsonPath('data.legal_boundary.execution_allowed', false)
+            // Exact wording is a cross-repo contract: parkhub-rust serves the
+            // byte-identical disclaimer from ExactCoverLegalBoundary.
+            ->assertJsonPath('data.legal_boundary.disclaimer', 'exact_cover_v1 is operational scheduling support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing legal or profiling claims ship.');
 
         $this->assertNotEmpty($response->json('data.allocation_trace_id'));
 
