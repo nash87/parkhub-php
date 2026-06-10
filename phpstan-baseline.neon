@@ -199,12 +199,6 @@ parameters:
 			path: app/Http/Controllers/Api/BillingController.php
 
 		-
-			message: '#^Left side of && is always true\.$#'
-			identifier: booleanAnd.leftAlwaysTrue
-			count: 1
-			path: app/Http/Controllers/Api/BookingController.php
-
-		-
 			message: '#^Relation ''user'' is not found in App\\Models\\WaitlistEntry model\.$#'
 			identifier: larastan.relationExistence
 			count: 1
@@ -623,12 +617,6 @@ parameters:
 			identifier: nullCoalesce.offset
 			count: 2
 			path: app/Jobs/AggregateSystemMetricsJob.php
-
-		-
-			message: '#^Left side of && is always true\.$#'
-			identifier: booleanAnd.leftAlwaysTrue
-			count: 1
-			path: app/Jobs/AutoReleaseBookingsJob.php
 
 		-
 			message: '#^Relation ''user'' is not found in App\\Models\\RecurringBooking model\.$#'
