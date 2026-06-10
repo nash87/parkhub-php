@@ -15444,6 +15444,136 @@
         ]
       }
     },
+    "/v1/admin/fairness/report": {
+      "get": {
+        "description": "Aggregate-only fairness report over the given ISO-8601 date window.\n\nQuery parameters:\n - from: ISO-8601 datetime (default: 30 days ago)\n - to:   ISO-8601 datetime (default: now)\n\nResponse fields:\n - window: {from, to} — effective date window used\n - total_allocations: int — total recommendation/exact-cover events\n - unique_users_allocated: int — distinct users who received an allocation\n - allocation_frequency_buckets: object — per-bucket user counts (k-anonymised)\n - denial_reasons: object — unsolved allocation statuses with counts\n - booking_to_allocation_ratio: float|null — bookings / allocations ratio\n - gini_coefficient: float|null — inequality measure over per-user counts (0=equal)\n - k_anonymity_threshold: int — minimum cohort size (buckets below this are folded)",
+        "operationId": "fairness.report",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "schema": {
+              "format": "date-time",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "allocation_frequency_buckets": {
+                          "additionalProperties": {
+                            "type": "integer"
+                          },
+                          "type": "object"
+                        },
+                        "booking_to_allocation_ratio": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "denial_reasons": {
+                          "additionalProperties": {
+                            "type": "integer"
+                          },
+                          "type": "object"
+                        },
+                        "gini_coefficient": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "k_anonymity_threshold": {
+                          "const": 5,
+                          "type": "integer"
+                        },
+                        "total_allocations": {
+                          "anyOf": [
+                            {
+                              "type": "integer"
+                            },
+                            {
+                              "type": "number"
+                            }
+                          ]
+                        },
+                        "unique_users_allocated": {
+                          "type": "integer"
+                        },
+                        "window": {
+                          "properties": {
+                            "from": {
+                              "type": "string"
+                            },
+                            "to": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "from",
+                            "to"
+                          ],
+                          "type": "object"
+                        }
+                      },
+                      "required": [
+                        "window",
+                        "total_allocations",
+                        "unique_users_allocated",
+                        "allocation_frequency_buckets",
+                        "denial_reasons",
+                        "booking_to_allocation_ratio",
+                        "gini_coefficient",
+                        "k_anonymity_threshold"
+                      ],
+                      "type": "object"
+                    },
+                    "error": {
+                      "type": "null"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        },
+        "summary": "GET /api/v1/admin/fairness/report?from=&to=",
+        "tags": [
+          "Fairness"
+        ]
+      }
+    },
     "/v1/admin/features": {
       "get": {
         "operationId": "public.adminFeatureFlags_0",
@@ -20760,6 +20890,254 @@
         },
         "tags": [
           "AdminReport"
+        ]
+      }
+    },
+    "/v1/admin/transparency/data-collection": {
+      "get": {
+        "description": "Machine-readable §87 BetrVG disclosure.\n\nReturns one entry per RetentionClass with:\n - class: string (snake_case identifier, cross-repo stable)\n - purpose: string (human-readable German purpose statement)\n - default_ttl_days: int\n - statutory_min_days: int|null (non-null only for legal-hold classes)\n - is_legal_hold: bool\n - surfaces: string[] (which booking/check-in/charging interactions generate this data)\n\nAlso declares:\n - no_covert_monitoring: true — no covert monitoring of employees\n - no_performance_evaluation: true — data not used for individual performance assessment",
+        "operationId": "fairness.dataCollection",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "classes": {
+                          "items": {
+                            "properties": {
+                              "class": {
+                                "type": "string"
+                              },
+                              "default_ttl_days": {
+                                "type": "string"
+                              },
+                              "is_legal_hold": {
+                                "type": "string"
+                              },
+                              "purpose": {
+                                "enum": [
+                                  "Betriebliche Anwesenheitserfassung für Parkplatzverwaltung.",
+                                  "Buchungshistorie für Rechnungsstellung und Nutzerservice.",
+                                  "Sicherheitsprotokoll für Systemintegrität und Datenschutz-Compliance.",
+                                  "Arbeitsrechtlich relevante Daten gemäß BGB §195.",
+                                  "Rohdaten der automatischen Kennzeichenerkennung (ANPR).",
+                                  "Ladesitzungsdaten für Abrechnung und Betrieb.",
+                                  "Steuerlich relevante Rechnungs- und Zahlungsdaten gemäß HGB §257 (GoBD)."
+                                ],
+                                "type": "string"
+                              },
+                              "statutory_min_days": {
+                                "type": "string"
+                              },
+                              "surfaces": {
+                                "anyOf": [
+                                  {
+                                    "additionalItems": false,
+                                    "maxItems": 3,
+                                    "minItems": 3,
+                                    "prefixItems": [
+                                      {
+                                        "const": "booking_check_in",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "booking_check_out",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "lobby_display",
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "type": "array"
+                                  },
+                                  {
+                                    "additionalItems": false,
+                                    "maxItems": 3,
+                                    "minItems": 3,
+                                    "prefixItems": [
+                                      {
+                                        "const": "booking_create",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "booking_modify",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "booking_cancel",
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "type": "array"
+                                  },
+                                  {
+                                    "additionalItems": false,
+                                    "maxItems": 4,
+                                    "minItems": 4,
+                                    "prefixItems": [
+                                      {
+                                        "const": "auth_login",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "auth_failed",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "admin_action",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "api_key_use",
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "type": "array"
+                                  },
+                                  {
+                                    "additionalItems": false,
+                                    "maxItems": 2,
+                                    "minItems": 2,
+                                    "prefixItems": [
+                                      {
+                                        "const": "admin_user_management",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "role_assignment",
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "type": "array"
+                                  },
+                                  {
+                                    "additionalItems": false,
+                                    "maxItems": 3,
+                                    "minItems": 3,
+                                    "prefixItems": [
+                                      {
+                                        "const": "anpr_camera_read",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "vehicle_entry",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "vehicle_exit",
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "type": "array"
+                                  },
+                                  {
+                                    "additionalItems": false,
+                                    "maxItems": 3,
+                                    "minItems": 3,
+                                    "prefixItems": [
+                                      {
+                                        "const": "ev_charging_start",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "ev_charging_stop",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "ev_charging_payment",
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "type": "array"
+                                  },
+                                  {
+                                    "additionalItems": false,
+                                    "maxItems": 3,
+                                    "minItems": 3,
+                                    "prefixItems": [
+                                      {
+                                        "const": "payment_charge",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "invoice_issue",
+                                        "type": "string"
+                                      },
+                                      {
+                                        "const": "refund",
+                                        "type": "string"
+                                      }
+                                    ],
+                                    "type": "array"
+                                  }
+                                ]
+                              }
+                            },
+                            "required": [
+                              "class",
+                              "purpose",
+                              "default_ttl_days",
+                              "statutory_min_days",
+                              "is_legal_hold",
+                              "surfaces"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        },
+                        "disclosure_version": {
+                          "const": "1.0",
+                          "type": "string"
+                        },
+                        "legal_basis": {
+                          "const": "§87 Abs. 1 Nr. 6 BetrVG — Einführung und Anwendung technischer Einrichtungen, die dazu bestimmt sind, das Verhalten oder die Leistung der Arbeitnehmer zu überwachen.",
+                          "type": "string"
+                        },
+                        "no_covert_monitoring": {
+                          "type": "boolean"
+                        },
+                        "no_performance_evaluation": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "disclosure_version",
+                        "legal_basis",
+                        "classes",
+                        "no_covert_monitoring",
+                        "no_performance_evaluation"
+                      ],
+                      "type": "object"
+                    },
+                    "error": {
+                      "type": "null"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "GET /api/v1/admin/transparency/data-collection",
+        "tags": [
+          "Fairness"
         ]
       }
     },

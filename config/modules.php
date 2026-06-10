@@ -115,6 +115,12 @@ return [
     // admin toggle for algorithmic | fifo_only mode. Enabled by default.
     'aiact' => env('MODULE_AIACT', true),
 
+    // Betriebsrat fairness & §87 BetrVG transparency (roadmap P0-2).
+    // Aggregate-only allocation metrics (Gini coefficient, frequency buckets,
+    // k-anonymised to ≥5 users) and machine-readable data-collection disclosure.
+    // Works-council role access is a documented future slice. Enabled by default.
+    'fairness' => env('MODULE_FAIRNESS', true),
+
     // ── Enterprise (disabled by default — opt-in) ──────────────────
     'multi_tenant' => env('MODULE_MULTI_TENANT', false),
     'dynamic_pricing' => env('MODULE_DYNAMIC_PRICING', false),

@@ -130,7 +130,7 @@ class ModuleSystemExtendedTest extends TestCase
     public function test_module_service_provider_all_returns_current_count(): void
     {
         $all = ModuleServiceProvider::all();
-        $this->assertCount(72, $all);
+        $this->assertCount(73, $all);
     }
 
     public function test_modules_endpoint_is_always_public(): void

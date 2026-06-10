@@ -334,3 +334,4 @@ module_routes('mobile', 'mobile.php');
 module_routes('retention', 'retention.php');
 module_routes('noshow_waitlist', 'noshow_waitlist.php');
 module_routes('aiact', 'aiact.php');
+module_routes('fairness', 'fairness.php');
