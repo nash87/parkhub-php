@@ -20,12 +20,12 @@
 #
 # NODE_BASE / WOLFI_BASE are parameterized so cloud CI (GitHub Actions) can
 # pass --build-arg NODE_BASE=docker.io/library/node:22-slim@sha256:689c1104...
-# and --build-arg WOLFI_BASE=cgr.dev/chainguard/wolfi-base@sha256:4973aa3c2ccbe13fe2049aab539b0ab342ec584bd5b54a269d55d4891091c639 while
+# and --build-arg WOLFI_BASE=cgr.dev/chainguard/wolfi-base@sha256:865267010fd5c6a45c7ab456848573010ec521b0d2677a0a966f3f2211b71eda while
 # local + gitea-runner builds default to the LAN mirror. Same images either
 # way, just different ingress to them.
 # ---------------------------------------------------------------------------
 ARG NODE_BASE=192.168.178.250:5000/node:22-slim@sha256:689c11043dad91472750cd824c97dd5e2318e9dd6f954e492fe7af0135d33ceb
-ARG WOLFI_BASE=192.168.178.250:5000/wolfi-base@sha256:4973aa3c2ccbe13fe2049aab539b0ab342ec584bd5b54a269d55d4891091c639
+ARG WOLFI_BASE=192.168.178.250:5000/wolfi-base@sha256:865267010fd5c6a45c7ab456848573010ec521b0d2677a0a966f3f2211b71eda
 
 FROM ${NODE_BASE} AS frontend
 WORKDIR /app

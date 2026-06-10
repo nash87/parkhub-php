@@ -77,7 +77,7 @@ jobs:
           # for local + gitea-runner builds.
           build-args: |
             NODE_BASE=docker.io/library/node:22-slim@sha256:d415caac2f1f77b98caaf9415c5f807e14bc8d7bdea62561ea2fef4fbd08a73c
-            WOLFI_BASE=cgr.dev/chainguard/wolfi-base@sha256:4973aa3c2ccbe13fe2049aab539b0ab342ec584bd5b54a269d55d4891091c639
+            WOLFI_BASE=cgr.dev/chainguard/wolfi-base@sha256:865267010fd5c6a45c7ab456848573010ec521b0d2677a0a966f3f2211b71eda
 
       - name: Scan image with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -104,7 +104,7 @@ jobs:
           # Same public-registry override as the scan build above.
           build-args: |
             NODE_BASE=docker.io/library/node:22-slim@sha256:d415caac2f1f77b98caaf9415c5f807e14bc8d7bdea62561ea2fef4fbd08a73c
-            WOLFI_BASE=cgr.dev/chainguard/wolfi-base@sha256:4973aa3c2ccbe13fe2049aab539b0ab342ec584bd5b54a269d55d4891091c639
+            WOLFI_BASE=cgr.dev/chainguard/wolfi-base@sha256:865267010fd5c6a45c7ab456848573010ec521b0d2677a0a966f3f2211b71eda
 
       - name: Attest image provenance
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4
