@@ -332,3 +332,4 @@ module_routes('mobile', 'mobile.php');
 
 // v5.x features
 module_routes('retention', 'retention.php');
+module_routes('noshow_waitlist', 'noshow_waitlist.php');

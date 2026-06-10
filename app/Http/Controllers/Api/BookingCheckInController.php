@@ -36,6 +36,50 @@ class BookingCheckInController extends Controller
         return BookingResource::make($booking->fresh());
     }
 
+    /**
+     * POST /api/v1/bookings/{id}/check-in (idempotent, hyphenated path per API contract).
+     *
+     * Marks the booking as checked-in. If already checked in, returns 200 without
+     * error (idempotent). Rejects bookings that are not in a checkable state.
+     *
+     * Named `checkInAction` to avoid a PHP case-insensitive collision with the
+     * existing `checkin` method (`checkin` == `checkIn` in PHP).
+     */
+    public function checkInAction(Request $request, string $id): JsonResponse
+    {
+        $booking = Booking::findOrFail($id);
+        $this->authorize('update', $booking);
+
+        $nonCheckableStatuses = [
+            Booking::STATUS_CANCELLED,
+            Booking::STATUS_COMPLETED,
+            Booking::STATUS_RELEASED_NO_SHOW,
+        ];
+
+        if (in_array($booking->status, $nonCheckableStatuses, true)) {
+            return response()->json([
+                'success' => false, 'data' => null,
+                'error' => ['code' => 'BOOKING_NOT_CHECKABLE', 'message' => 'Booking cannot be checked in.'],
+            ], 422);
+        }
+
+        // Idempotent: already checked in — return current state without re-stamping
+        if ($booking->checked_in_at !== null) {
+            return response()->json(['success' => true, 'data' => BookingResource::make($booking)]);
+        }
+
+        $booking->update(['checked_in_at' => now(), 'status' => Booking::STATUS_ACTIVE]);
+
+        AuditLog::log([
+            'user_id' => $request->user()->id,
+            'username' => $request->user()->username,
+            'action' => 'booking_checkin',
+            'details' => ['booking_id' => $id],
+        ]);
+
+        return response()->json(['success' => true, 'data' => BookingResource::make($booking->fresh())]);
+    }
+
     public function extend(ExtendBookingRequest $request, string $id): JsonResponse
     {
         $validated = $request->validated();

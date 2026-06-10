@@ -3,6 +3,7 @@
 use App\Jobs\AggregateSystemMetricsJob;
 use App\Jobs\AutoReleaseBookingsJob;
 use App\Jobs\ExpandRecurringBookingsJob;
+use App\Jobs\NoShowReleaseJob;
 use App\Services\Retention\RetentionEngine;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -11,6 +12,16 @@ use Illuminate\Support\Facades\Schedule;
 
 Schedule::job(new AutoReleaseBookingsJob)->everyFiveMinutes();
 Schedule::job(new AggregateSystemMetricsJob)->everyFiveMinutes();
+
+// No-show auto-release + waitlist FIFO auto-promotion (P1-1/P1-2).
+// Only when the module is enabled. ~5 min cadence matches the check-in deadline
+// granularity; withoutOverlapping prevents pile-up under DB pressure.
+if (module_enabled('noshow_waitlist')) {
+    Schedule::job(new NoShowReleaseJob)
+        ->everyFiveMinutes()
+        ->withoutOverlapping()
+        ->onOneServer();
+}
 Schedule::job(new ExpandRecurringBookingsJob)->dailyAt('01:00');
 Schedule::command('sanctum:prune-expired', ['--hours' => 168])->daily();
 Schedule::command('credits:refill-monthly')->monthlyOn(1, '00:00');

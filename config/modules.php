@@ -105,6 +105,11 @@ return [
     // audit purge, and deletion-evidence log. Enabled by default.
     'retention' => env('MODULE_RETENTION', true),
 
+    // No-show auto-release + waitlist FIFO auto-promotion (P1-1/P1-2).
+    // Per-lot check_in_deadline_minutes (default 30, 0=disabled) and
+    // claim_window_minutes (default 15). Enabled by default.
+    'noshow_waitlist' => env('MODULE_NOSHOW_WAITLIST', true),
+
     // ── Enterprise (disabled by default — opt-in) ──────────────────
     'multi_tenant' => env('MODULE_MULTI_TENANT', false),
     'dynamic_pricing' => env('MODULE_DYNAMIC_PRICING', false),
