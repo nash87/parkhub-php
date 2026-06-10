@@ -19337,6 +19337,306 @@
         ]
       }
     },
+    "/v1/admin/retention/evidence": {
+      "get": {
+        "description": "Returns deletion-evidence log entries (RetentionPurgeRun AuditLog rows).",
+        "operationId": "retention.evidence",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "evidence": {
+                          "items": {
+                            "additionalProperties": {},
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "evidence"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "GET /api/v1/admin/retention/evidence",
+        "tags": [
+          "Retention"
+        ]
+      }
+    },
+    "/v1/admin/retention/policies": {
+      "get": {
+        "description": "Returns all seven retention classes with their current effective TTL,\ndefault TTL, legal-hold flag and statutory minimum.",
+        "operationId": "retention.policies",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "policies": {
+                          "items": {
+                            "properties": {
+                              "class": {
+                                "type": "string"
+                              },
+                              "default_ttl_days": {
+                                "enum": [
+                                  30,
+                                  90,
+                                  180,
+                                  1095,
+                                  3,
+                                  2922
+                                ],
+                                "type": "integer"
+                              },
+                              "is_legal_hold": {
+                                "type": "boolean"
+                              },
+                              "statutory_min_days": {
+                                "enum": [
+                                  2922,
+                                  1095,
+                                  null
+                                ],
+                                "type": [
+                                  "integer",
+                                  "null"
+                                ]
+                              },
+                              "ttl_days": {
+                                "type": "integer"
+                              }
+                            },
+                            "required": [
+                              "class",
+                              "ttl_days",
+                              "default_ttl_days",
+                              "is_legal_hold",
+                              "statutory_min_days"
+                            ],
+                            "type": "object"
+                          },
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "policies"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "GET /api/v1/admin/retention/policies",
+        "tags": [
+          "Retention"
+        ]
+      }
+    },
+    "/v1/admin/retention/policies/{class}": {
+      "put": {
+        "description": "Override the TTL for a specific retention class.\nReturns 422 for unknown classes or legal-hold violations.",
+        "operationId": "retention.updatePolicy",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "class",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "ttl_days": {
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "ttl_days"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "class": {
+                          "type": "string"
+                        },
+                        "default_ttl_days": {
+                          "enum": [
+                            30,
+                            90,
+                            180,
+                            1095,
+                            3,
+                            2922
+                          ],
+                          "type": "integer"
+                        },
+                        "is_legal_hold": {
+                          "type": "boolean"
+                        },
+                        "statutory_min_days": {
+                          "enum": [
+                            2922,
+                            1095,
+                            null
+                          ],
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "ttl_days": {
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "class",
+                        "ttl_days",
+                        "default_ttl_days",
+                        "is_legal_hold",
+                        "statutory_min_days"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        },
+        "summary": "PUT /api/v1/admin/retention/policies/{class}",
+        "tags": [
+          "Retention"
+        ]
+      }
+    },
+    "/v1/admin/retention/run": {
+      "post": {
+        "description": "Execute a retention purge run.\nBody: {\"dry_run\": true|false} (default false).",
+        "operationId": "retention.run",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "dry_run": {
+                          "type": "boolean"
+                        },
+                        "ran_at": {
+                          "type": "string"
+                        },
+                        "results": {
+                          "items": {},
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "results",
+                        "ran_at",
+                        "dry_run"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "POST /api/v1/admin/retention/run",
+        "tags": [
+          "Retention"
+        ]
+      }
+    },
     "/v1/admin/roles": {
       "get": {
         "operationId": "rbac.listRoles",
