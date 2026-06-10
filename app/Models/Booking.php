@@ -55,6 +55,8 @@ class Booking extends Model
 
     const STATUS_NO_SHOW = 'no_show';
 
+    const STATUS_RELEASED_NO_SHOW = 'released_no_show';
+
     protected $fillable = [
         'user_id', 'lot_id', 'slot_id', 'booking_type', 'lot_name', 'slot_number',
         'vehicle_plate', 'start_time', 'end_time', 'status', 'notes',

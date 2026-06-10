@@ -20,8 +20,8 @@ use Illuminate\Support\Carbon;
  * @property ?string $accepted_booking_id
  * @property Carbon $created_at
  * @property Carbon $updated_at
- * @property-read User $user
- * @property-read ParkingLot $lot
+ * @property-read ?User $user
+ * @property-read ?ParkingLot $lot
  * @property-read ?ParkingSlot $slot
  */
 class WaitlistEntry extends Model

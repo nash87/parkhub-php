@@ -32,6 +32,8 @@ use Illuminate\Support\Carbon;
  * @property string $currency
  * @property ?array<string, mixed> $operating_hours
  * @property ?array<string, mixed> $dynamic_pricing_rules
+ * @property ?int $check_in_deadline_minutes
+ * @property ?int $claim_window_minutes
  * @property ?string $tenant_id
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -44,7 +46,7 @@ class ParkingLot extends Model
 {
     use BelongsToTenant, HasFactory, HasUuids;
 
-    protected $fillable = ['name', 'address', 'latitude', 'longitude', 'center_lat', 'center_lng', 'geofence_radius_m', 'total_slots', 'available_slots', 'layout', 'status', 'hourly_rate', 'daily_max', 'monthly_pass', 'currency', 'operating_hours', 'dynamic_pricing_rules', 'tenant_id'];
+    protected $fillable = ['name', 'address', 'latitude', 'longitude', 'center_lat', 'center_lng', 'geofence_radius_m', 'total_slots', 'available_slots', 'layout', 'status', 'hourly_rate', 'daily_max', 'monthly_pass', 'currency', 'operating_hours', 'dynamic_pricing_rules', 'check_in_deadline_minutes', 'claim_window_minutes', 'tenant_id'];
 
     protected function casts(): array
     {
@@ -62,6 +64,8 @@ class ParkingLot extends Model
             'monthly_pass' => 'decimal:2',
             'operating_hours' => 'array',
             'dynamic_pricing_rules' => 'array',
+            'check_in_deadline_minutes' => 'integer',
+            'claim_window_minutes' => 'integer',
         ];
     }
 
