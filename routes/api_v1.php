@@ -329,3 +329,6 @@ module_routes('parking_zones', 'parking_zones.php');
 // v4.4 features
 module_routes('notification_center', 'notification_center.php');
 module_routes('mobile', 'mobile.php');
+
+// v5.x features
+module_routes('retention', 'retention.php');

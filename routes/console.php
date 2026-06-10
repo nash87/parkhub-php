@@ -3,6 +3,7 @@
 use App\Jobs\AggregateSystemMetricsJob;
 use App\Jobs\AutoReleaseBookingsJob;
 use App\Jobs\ExpandRecurringBookingsJob;
+use App\Services\Retention\RetentionEngine;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +14,25 @@ Schedule::job(new AggregateSystemMetricsJob)->everyFiveMinutes();
 Schedule::job(new ExpandRecurringBookingsJob)->dailyAt('01:00');
 Schedule::command('sanctum:prune-expired', ['--hours' => 168])->daily();
 Schedule::command('credits:refill-monthly')->monthlyOn(1, '00:00');
+
+// GDPR retention purge — only when the retention module is enabled.
+// Daily 03:30 UTC: after sanctum-prune (03:00) and audit-log prune (03:15).
+if (module_enabled('retention')) {
+    Schedule::call(function () {
+        try {
+            $results = app(RetentionEngine::class)->purge(dryRun: false);
+            $deleted = array_sum(array_column($results, 'record_count'));
+            Log::info('retention:purge complete', ['total_deleted' => $deleted]);
+        } catch (Throwable $e) {
+            Log::error('retention:purge failed', ['error' => $e->getMessage()]);
+        }
+    })
+        ->name('retention-purge')
+        ->dailyAt('03:30')
+        ->timezone('UTC')
+        ->onOneServer()
+        ->withoutOverlapping();
+}
 
 // Demo auto-reset every 6 hours (only when DEMO_MODE=true)
 if (env('DEMO_MODE') === 'true' || env('DEMO_MODE') === '1') {

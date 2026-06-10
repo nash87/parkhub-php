@@ -100,6 +100,11 @@ return [
     'mobile' => env('MODULE_MOBILE', true),
     'social' => env('MODULE_SOCIAL', false),
 
+    // ── v5.x Features ───────────────────────────────────────────────
+    // GDPR data-retention policy engine: per-class TTL overrides, dry-run
+    // audit purge, and deletion-evidence log. Enabled by default.
+    'retention' => env('MODULE_RETENTION', true),
+
     // ── Enterprise (disabled by default — opt-in) ──────────────────
     'multi_tenant' => env('MODULE_MULTI_TENANT', false),
     'dynamic_pricing' => env('MODULE_DYNAMIC_PRICING', false),
