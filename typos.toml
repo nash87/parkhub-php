@@ -26,6 +26,9 @@ Portugues = "Portugues"
 [files]
 extend-exclude = [
     "composer.lock",
+    # Bilingual Betriebsvereinbarung template — German legal vocabulary is
+    # intentional; the spelling gate is scoped to English surfaces.
+    "docs/betriebsvereinbarung-muster.md",
     "package-lock.json",
     "docs/openapi/*.json",
     "docs/plans/**",
