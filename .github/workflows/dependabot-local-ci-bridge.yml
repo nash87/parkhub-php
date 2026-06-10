@@ -54,13 +54,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
 
       # --- Composer audit (mirrors security.yml: composer-audit) ---
       - name: Set up PHP
-        uses: shivammathur/setup-php@accd6127cb78bee3e8082180cb391013d204ef9f # v2
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: ${{ env.PHP_VERSION }}
           coverage: none
@@ -124,7 +124,7 @@ jobs:
 
       # --- Typos (mirrors security.yml: typos, advisory) ---
       - name: Run typos
-        uses: crate-ci/typos@5374cbf686e897b15713110e233094e2874de7ef # v1.46.1
+        uses: crate-ci/typos@37bb98842b0d8c4ffebdb75301a13db0267cef89 # v1.47.2
 
       # --- Post nido/local-ci/pr + fop/local-ci/pr commit statuses ---
       # Uses gh api (same tooling as local-ci-attestation in ci.yml) to avoid
