@@ -81,10 +81,10 @@ final class RetentionEngine
      */
     public function purge(bool $dryRun = false): array
     {
-        return array_values(array_map(
+        return array_map(
             fn (RetentionClass $class) => $this->purgeClass($class, $dryRun),
             RetentionClass::cases(),
-        ));
+        );
     }
 
     /**
@@ -98,15 +98,25 @@ final class RetentionEngine
             ->orderByDesc('created_at')
             ->limit($limit)
             ->get()
-            ->map(fn (AuditLog $log) => [
-                'id' => $log->id,
-                'purged_class' => $log->details['purged_class'] ?? null,
-                'record_count' => $log->details['record_count'] ?? 0,
-                'oldest_deleted_at' => $log->details['oldest_deleted_at'] ?? null,
-                'newest_deleted_at' => $log->details['newest_deleted_at'] ?? null,
-                'dry_run' => $log->details['dry_run'] ?? false,
-                'occurred_at' => $log->created_at?->toIso8601String(),
-            ])
+            ->map(function (AuditLog $log) {
+                // details is cast to array via the model's casts() METHOD,
+                // which this larastan version does not infer (it only reads
+                // the $casts property and falls back to the DB column type).
+                // getAttribute() returns mixed, so the narrowing below is a
+                // genuine runtime guard, not a type-checker workaround.
+                $raw = $log->getAttribute('details');
+                $details = is_array($raw) ? $raw : [];
+
+                return [
+                    'id' => $log->id,
+                    'purged_class' => $details['purged_class'] ?? null,
+                    'record_count' => $details['record_count'] ?? 0,
+                    'oldest_deleted_at' => $details['oldest_deleted_at'] ?? null,
+                    'newest_deleted_at' => $details['newest_deleted_at'] ?? null,
+                    'dry_run' => $details['dry_run'] ?? false,
+                    'occurred_at' => $log->created_at?->toIso8601String(),
+                ];
+            })
             ->values()
             ->all();
     }
