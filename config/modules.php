@@ -110,6 +110,11 @@ return [
     // claim_window_minutes (default 15). Enabled by default.
     'noshow_waitlist' => env('MODULE_NOSHOW_WAITLIST', true),
 
+    // EU AI Act Art. 50 transparency (applies 2026-08-02).
+    // Adds automated_decision notice to algorithmic endpoints and exposes
+    // admin toggle for algorithmic | fifo_only mode. Enabled by default.
+    'aiact' => env('MODULE_AIACT', true),
+
     // ── Enterprise (disabled by default — opt-in) ──────────────────
     'multi_tenant' => env('MODULE_MULTI_TENANT', false),
     'dynamic_pricing' => env('MODULE_DYNAMIC_PRICING', false),

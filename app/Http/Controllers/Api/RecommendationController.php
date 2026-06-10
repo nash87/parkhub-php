@@ -31,6 +31,19 @@ class RecommendationController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        $transparencyMode = AiActTransparencyController::currentMode();
+        if ($transparencyMode === AiActTransparencyController::MODE_FIFO_ONLY) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'ALGORITHMIC_DISABLED',
+                    'message' => 'Algorithmic allocation is disabled (fifo_only mode). Use the FIFO waitlist endpoint instead.',
+                    'mode' => $transparencyMode,
+                ],
+            ], 409);
+        }
+
         $user = $request->user();
         $lotId = $request->query('lot_id');
         $engine = $this->recommendationEngineConfig();
@@ -160,6 +173,15 @@ class RecommendationController extends Controller
             'data' => $top,
             'error' => null,
             'meta' => null,
+            'automated_decision' => $this->automatedDecisionPayload(
+                'weighted_slot_recommendation',
+                [
+                    'booking_history_considered: '.$bookings->count(),
+                    'available_slot_candidates: '.$candidates->count(),
+                    'scoring_factors: booking_frequency, slot_availability, lot_hourly_rate, slot_proximity',
+                ],
+                $transparencyMode
+            ),
         ]);
     }
 
@@ -210,6 +232,19 @@ class RecommendationController extends Controller
      */
     public function exactCoverAllocation(Request $request, ExactCoverAllocator $allocator): JsonResponse
     {
+        $transparencyMode = AiActTransparencyController::currentMode();
+        if ($transparencyMode === AiActTransparencyController::MODE_FIFO_ONLY) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'ALGORITHMIC_DISABLED',
+                    'message' => 'Algorithmic allocation is disabled (fifo_only mode). Use the FIFO waitlist endpoint instead.',
+                    'mode' => $transparencyMode,
+                ],
+            ], 409);
+        }
+
         $validated = $request->validate([
             'required_constraints' => ['present', 'array', 'max:256'],
             'required_constraints.*' => ['string', 'max:128'],
@@ -280,6 +315,17 @@ class RecommendationController extends Controller
                     'execution_allowed' => false,
                     'disclaimer' => 'exact_cover_v1 is operational scheduling support; attorney review, citation verification, client authorization, and final legal judgment remain required before customer-facing legal or profiling claims ship.',
                 ],
+                'automated_decision' => $this->automatedDecisionPayload(
+                    'exact_cover_allocation',
+                    [
+                        'required_constraint_count: '.count($validated['required_constraints']),
+                        'option_count: '.count($validated['options']),
+                        'max_options_limit: '.$effectiveLimits['exact_cover_max_options'],
+                        'max_search_nodes_limit: '.$effectiveLimits['exact_cover_max_search_nodes'],
+                        'solver: exact_cover_v1 (Algorithm X / dancing links)',
+                    ],
+                    $transparencyMode
+                ),
             ],
             'error' => null,
         ]);
@@ -939,5 +985,23 @@ class RecommendationController extends Controller
         $number = is_numeric($value) ? (int) $value : $min;
 
         return max($min, min($max, $number));
+    }
+
+    /**
+     * Build the EU AI Act Art. 50 automated-decision transparency object.
+     *
+     * @param  array<int, string>  $basis  Truthful per-request inputs used in this decision.
+     * @return array{is_automated: true, decision_type: string, basis: array<int, string>, review_contact: string, art22_review_available: true, mode: string}
+     */
+    private function automatedDecisionPayload(string $decisionType, array $basis, string $mode): array
+    {
+        return [
+            'is_automated' => true,
+            'decision_type' => $decisionType,
+            'basis' => $basis,
+            'review_contact' => 'administrator',
+            'art22_review_available' => true,
+            'mode' => $mode,
+        ];
     }
 }

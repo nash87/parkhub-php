@@ -11846,6 +11846,169 @@
         ]
       }
     },
+    "/v1/admin/aiact/transparency-mode": {
+      "get": {
+        "description": "Returns the current allocation transparency mode and its description.",
+        "operationId": "aiActTransparency.getMode",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "article": {
+                          "const": "EU AI Act Art. 50",
+                          "type": "string"
+                        },
+                        "description": {
+                          "enum": [
+                            "Algorithmic allocation endpoints are disabled. All allocation follows deterministic FIFO rules (Art. 50 opt-out).",
+                            "Algorithmic allocation is active. Every decision response carries an automated_decision transparency notice per EU AI Act Art. 50."
+                          ],
+                          "type": "string"
+                        },
+                        "law_applies_from": {
+                          "const": "2026-08-02",
+                          "type": "string"
+                        },
+                        "mode": {
+                          "type": "string"
+                        },
+                        "valid_modes": {
+                          "additionalItems": false,
+                          "maxItems": 2,
+                          "minItems": 2,
+                          "prefixItems": [
+                            {
+                              "const": "algorithmic",
+                              "type": "string"
+                            },
+                            {
+                              "const": "fifo_only",
+                              "type": "string"
+                            }
+                          ],
+                          "type": "array"
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "description",
+                        "valid_modes",
+                        "law_applies_from",
+                        "article"
+                      ],
+                      "type": "object"
+                    },
+                    "error": {
+                      "type": "null"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "GET /api/v1/admin/aiact/transparency-mode",
+        "tags": [
+          "AiActTransparency"
+        ]
+      },
+      "put": {
+        "description": "Updates the allocation transparency mode. Requires admin role.\nWrites an audit log entry on every successful change.",
+        "operationId": "aiActTransparency.putMode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "mode": {
+                    "enum": [
+                      ""
+                    ],
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mode"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "description": {
+                          "enum": [
+                            "Algorithmic allocation endpoints are disabled. All allocation follows deterministic FIFO rules (Art. 50 opt-out).",
+                            "Algorithmic allocation is active. Every decision response carries an automated_decision transparency notice per EU AI Act Art. 50."
+                          ],
+                          "type": "string"
+                        },
+                        "mode": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "mode",
+                        "description"
+                      ],
+                      "type": "object"
+                    },
+                    "error": {
+                      "type": "null"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          },
+          "422": {
+            "$ref": "#/components/responses/ValidationException"
+          }
+        },
+        "summary": "PUT /api/v1/admin/aiact/transparency-mode",
+        "tags": [
+          "AiActTransparency"
+        ]
+      }
+    },
     "/v1/admin/analytics/occupancy": {
       "get": {
         "description": "Hourly occupancy rates for the last 7 days, grouped by hour of day.\nReturns 24 bins (hours 0–23) with average active booking count per hour.",
@@ -25022,6 +25185,54 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "automated_decision": {
+                      "properties": {
+                        "art22_review_available": {
+                          "type": "boolean"
+                        },
+                        "basis": {
+                          "additionalItems": false,
+                          "maxItems": 3,
+                          "minItems": 3,
+                          "prefixItems": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "const": "scoring_factors: booking_frequency, slot_availability, lot_hourly_rate, slot_proximity",
+                              "type": "string"
+                            }
+                          ],
+                          "type": "array"
+                        },
+                        "decision_type": {
+                          "const": "weighted_slot_recommendation",
+                          "type": "string"
+                        },
+                        "is_automated": {
+                          "type": "boolean"
+                        },
+                        "mode": {
+                          "type": "string"
+                        },
+                        "review_contact": {
+                          "const": "administrator",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "is_automated",
+                        "decision_type",
+                        "basis",
+                        "review_contact",
+                        "art22_review_available",
+                        "mode"
+                      ],
+                      "type": "object"
+                    },
                     "data": {
                       "items": {
                         "type": "string"
@@ -25042,7 +25253,8 @@
                     "success",
                     "data",
                     "error",
-                    "meta"
+                    "meta",
+                    "automated_decision"
                   ],
                   "type": "object"
                 }
@@ -25052,6 +25264,50 @@
           },
           "401": {
             "$ref": "#/components/responses/AuthenticationException"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "const": "ALGORITHMIC_DISABLED",
+                          "type": "string"
+                        },
+                        "message": {
+                          "const": "Algorithmic allocation is disabled (fifo_only mode). Use the FIFO waitlist endpoint instead.",
+                          "type": "string"
+                        },
+                        "mode": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "mode"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
           }
         },
         "summary": "GET /api/v1/bookings/recommendations",
@@ -34787,6 +35043,60 @@
                         "allocation_trace_id": {
                           "type": "string"
                         },
+                        "automated_decision": {
+                          "properties": {
+                            "art22_review_available": {
+                              "type": "boolean"
+                            },
+                            "basis": {
+                              "additionalItems": false,
+                              "maxItems": 5,
+                              "minItems": 5,
+                              "prefixItems": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "const": "solver: exact_cover_v1 (Algorithm X / dancing links)",
+                                  "type": "string"
+                                }
+                              ],
+                              "type": "array"
+                            },
+                            "decision_type": {
+                              "const": "exact_cover_allocation",
+                              "type": "string"
+                            },
+                            "is_automated": {
+                              "type": "boolean"
+                            },
+                            "mode": {
+                              "type": "string"
+                            },
+                            "review_contact": {
+                              "const": "administrator",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "is_automated",
+                            "decision_type",
+                            "basis",
+                            "review_contact",
+                            "art22_review_available",
+                            "mode"
+                          ],
+                          "type": "object"
+                        },
                         "legal_boundary": {
                           "properties": {
                             "attorney_review_status": {
@@ -34977,7 +35287,8 @@
                       "required": [
                         "allocation_trace_id",
                         "result",
-                        "legal_boundary"
+                        "legal_boundary",
+                        "automated_decision"
                       ],
                       "type": "object"
                     },
@@ -35001,6 +35312,50 @@
           },
           "401": {
             "$ref": "#/components/responses/AuthenticationException"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "const": "ALGORITHMIC_DISABLED",
+                          "type": "string"
+                        },
+                        "message": {
+                          "const": "Algorithmic allocation is disabled (fifo_only mode). Use the FIFO waitlist endpoint instead.",
+                          "type": "string"
+                        },
+                        "mode": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message",
+                        "mode"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
           },
           "422": {
             "$ref": "#/components/responses/ValidationException"
