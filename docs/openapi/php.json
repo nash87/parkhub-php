@@ -1573,6 +1573,18 @@
               "null"
             ]
           },
+          "check_in_deadline_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "claim_window_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
           "created_at": {
             "format": "date-time",
             "type": [
@@ -1684,7 +1696,9 @@
           "tenant_id",
           "center_lat",
           "center_lng",
-          "geofence_radius_m"
+          "geofence_radius_m",
+          "check_in_deadline_minutes",
+          "claim_window_minutes"
         ],
         "title": "ParkingLot",
         "type": "object"
@@ -4458,6 +4472,48 @@
           "updated_at"
         ],
         "title": "WaitlistEntryResource",
+        "type": "object"
+      },
+      "WaitlistOfferResource": {
+        "properties": {
+          "claimed_booking_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "lot_id": {
+            "type": "string"
+          },
+          "slot_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "lot_id",
+          "slot_id",
+          "status",
+          "expires_at",
+          "claimed_booking_id",
+          "created_at"
+        ],
+        "title": "WaitlistOfferResource",
         "type": "object"
       },
       "WaitlistSubscribeRequest": {
@@ -25496,6 +25552,96 @@
         "summary": "Tier-2 item 9 — single-booking .ics download.\nGET /api/v1/bookings/{id}.ics → RFC5545 VCALENDAR with one VEVENT",
         "tags": [
           "BookingCalendar"
+        ]
+      }
+    },
+    "/v1/bookings/{id}/check-in": {
+      "post": {
+        "description": "Marks the booking as checked-in. If already checked in, returns 200 without\nerror (idempotent). Rejects bookings that are not in a checkable state.\n\nNamed `checkInAction` to avoid a PHP case-insensitive collision with the\nexisting `checkin` method (`checkin` == `checkIn` in PHP).",
+        "operationId": "bookingCheckIn.checkInAction",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/BookingResource"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          },
+          "403": {
+            "$ref": "#/components/responses/AuthorizationException"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "const": "BOOKING_NOT_CHECKABLE",
+                          "type": "string"
+                        },
+                        "message": {
+                          "const": "Booking cannot be checked in.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "POST /api/v1/bookings/{id}/check-in (idempotent, hyphenated path per API contract)",
+        "tags": [
+          "BookingCheckIn"
         ]
       }
     },
@@ -52254,6 +52400,302 @@
         "summary": "POST /api/v1/waitlist — legacy: join waitlist for a lot",
         "tags": [
           "Waitlist"
+        ]
+      }
+    },
+    "/v1/waitlist/offers": {
+      "get": {
+        "description": "Returns all pending (not expired) offers for the authenticated user.",
+        "operationId": "waitlistOffer.index",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/WaitlistOfferResource"
+                      },
+                      "type": "array"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          }
+        },
+        "summary": "GET /api/v1/waitlist/offers",
+        "tags": [
+          "WaitlistOffer"
+        ]
+      }
+    },
+    "/v1/waitlist/offers/{id}/claim": {
+      "post": {
+        "description": "Claim the offer within its window. Creates a confirmed booking for the\nfreed slot. Idempotent: returns 409 if already claimed by another process.",
+        "operationId": "waitlistOffer.claim",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "booking": {
+                          "$ref": "#/components/schemas/BookingResource"
+                        },
+                        "offer": {
+                          "$ref": "#/components/schemas/WaitlistOfferResource"
+                        }
+                      },
+                      "required": [
+                        "offer",
+                        "booking"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "$ref": "#/components/responses/AuthenticationException"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "const": "FORBIDDEN",
+                          "type": "string"
+                        },
+                        "message": {
+                          "const": "This offer does not belong to you.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        },
+                        "error": {
+                          "properties": {
+                            "code": {
+                              "const": "OFFER_NOT_PENDING",
+                              "type": "string"
+                            },
+                            "message": {
+                              "const": "Offer is no longer pending.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "data",
+                        "error"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "properties": {
+                        "data": {
+                          "type": "null"
+                        },
+                        "error": {
+                          "properties": {
+                            "code": {
+                              "const": "SLOT_NO_LONGER_AVAILABLE",
+                              "type": "string"
+                            },
+                            "message": {
+                              "const": "The slot is no longer available.",
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "code",
+                            "message"
+                          ],
+                          "type": "object"
+                        },
+                        "success": {
+                          "type": "boolean"
+                        }
+                      },
+                      "required": [
+                        "success",
+                        "data",
+                        "error"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": ""
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "const": "OFFER_EXPIRED",
+                          "type": "string"
+                        },
+                        "message": {
+                          "const": "Offer has expired.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "type": "null"
+                    },
+                    "error": {
+                      "properties": {
+                        "code": {
+                          "const": "CLAIM_FAILED",
+                          "type": "string"
+                        },
+                        "message": {
+                          "const": "Failed to claim offer.",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "code",
+                        "message"
+                      ],
+                      "type": "object"
+                    },
+                    "success": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "error"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "summary": "POST /api/v1/waitlist/offers/{id}/claim",
+        "tags": [
+          "WaitlistOffer"
         ]
       }
     },
