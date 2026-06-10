@@ -67,9 +67,12 @@ jobs:
           # both Astro 5 + React 19 frontend + Vitest specs.
           - language: javascript-typescript
             build-mode: none
-          # PHP analysis covers the Laravel backend.
-          - language: php
-            build-mode: none
+          # NOTE: CodeQL does not support PHP (and never has) — older
+          # codeql-action versions silently tolerated the unknown matrix
+          # entry; v4.36+ fails init with "Did not recognize the following
+          # languages: php" (broke dependabot #529). PHP SAST coverage
+          # comes from PHPStan level 5 in local CI + the security.yml
+          # composer-audit/osv gates instead.
 
     steps:
       - name: Checkout
