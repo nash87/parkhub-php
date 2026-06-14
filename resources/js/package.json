@@ -53,6 +53,7 @@
     "vitest": "^4.1.0"
   },
   "overrides": {
+    "esbuild": "0.28.1",
     "devalue": "^5.8.1"
   }
 }
