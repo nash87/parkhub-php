@@ -8,14 +8,18 @@ locale = "en"
 [default.extend-words]
 parkhub = "parkhub"
 
-# German UI/demo copy used in seeded operator-facing fixtures.
+# German UI/demo copy used in seeded operator-facing fixtures, plus the
+# §87 BetrVG / GoBD legal-disclosure wording rendered by the Fairness
+# report service (intentional German legal text on an English code surface).
 Adresse = "Adresse"
 Als = "Als"
 Assistent = "Assistent"
 ein = "ein"
 ist = "ist"
 Lokal = "Lokal"
+oder = "oder"
 Produktion = "Produktion"
+relevante = "relevante"
 Sie = "Sie"
 
 # Locale names, fixture acronyms, and rendered asset references.
