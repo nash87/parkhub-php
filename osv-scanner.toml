@@ -3,7 +3,10 @@
 # on already-documented transitive advisories.
 #
 # Format: https://google.github.io/osv-scanner/configuration/
+#
+# No active ignores. GHSA-48c2-rrv3-qjmp (yaml < 2.8.3) was resolved on
+# 2026-07-15: the vulnerable nested yaml@2.7.1 under yaml-language-server was
+# eliminated by the yaml-language-server bump, deduping to the fixed 2.8.3 in
+# parkhub-web/package-lock.json.
 
-[[IgnoredVulns]]
-id = "GHSA-48c2-rrv3-qjmp"
-reason = "yaml dev-dep CVE on parkhub-web; non-prod only; bumping in next dependabot wave"
+
