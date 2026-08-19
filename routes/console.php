@@ -2,6 +2,7 @@
 
 use App\Jobs\AggregateSystemMetricsJob;
 use App\Jobs\AutoReleaseBookingsJob;
+use App\Jobs\CompleteElapsedBookingsJob;
 use App\Jobs\ExpandRecurringBookingsJob;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -9,6 +10,9 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Schedule::job(new AutoReleaseBookingsJob)->everyFiveMinutes();
+// Elapsed bookings must reach their terminal state even when the optional
+// auto-release feature is switched off -- see CompleteElapsedBookingsJob.
+Schedule::job(new CompleteElapsedBookingsJob)->everyFiveMinutes()->withoutOverlapping();
 Schedule::job(new AggregateSystemMetricsJob)->everyFiveMinutes();
 Schedule::job(new ExpandRecurringBookingsJob)->dailyAt('01:00');
 Schedule::command('sanctum:prune-expired', ['--hours' => 168])->daily();

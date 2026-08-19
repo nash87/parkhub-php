@@ -132,8 +132,15 @@ final class BookingCreationService
 
         $maxActive = (int) config('parkhub.max_active_bookings', 10);
         if ($maxActive > 0 && ! $user->isAdmin()) {
+            // Only bookings that have not ended yet occupy the allowance.
+            // Filtering on status alone counted elapsed bookings forever
+            // and permanently locked the user out once they hit the cap
+            // (nash87/parkhub-php#586). The `end_time` bound keeps the cap
+            // correct even on installs where the scheduler that runs
+            // CompleteElapsedBookingsJob has never fired.
             $activeCount = Booking::where('user_id', $user->id)
                 ->whereIn('status', [Booking::STATUS_CONFIRMED, Booking::STATUS_ACTIVE])
+                ->where('end_time', '>', now())
                 ->count();
             if ($activeCount >= $maxActive) {
                 return BookingCreationResult::fail('MAX_ACTIVE_BOOKINGS', "Maximum {$maxActive} active bookings allowed.", 422);
@@ -142,9 +149,18 @@ final class BookingCreationService
 
         $maxPerDay = (int) Setting::get('max_bookings_per_day', '0');
         if ($maxPerDay > 0 && ! $user->isAdmin()) {
+            // A fulfilled booking must keep consuming its day's quota, so
+            // COMPLETED counts here. Without it, CompleteElapsedBookingsJob
+            // would hand the quota back as soon as a booking elapsed and a
+            // user could rebook the same day indefinitely. Only CANCELLED
+            // and NO_SHOW release the allowance.
             $todayCount = Booking::where('user_id', $user->id)
                 ->whereDate('start_time', $startTime->toDateString())
-                ->whereIn('status', [Booking::STATUS_CONFIRMED, Booking::STATUS_ACTIVE])
+                ->whereIn('status', [
+                    Booking::STATUS_CONFIRMED,
+                    Booking::STATUS_ACTIVE,
+                    Booking::STATUS_COMPLETED,
+                ])
                 ->count();
             if ($todayCount >= $maxPerDay) {
                 return BookingCreationResult::fail('MAX_BOOKINGS_REACHED', "Maximum {$maxPerDay} bookings per day reached.", 422);
