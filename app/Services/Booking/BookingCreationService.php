@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Booking;
 
 use App\Events\BookingCreated;
+use App\Exceptions\InsufficientCreditsException;
 use App\Jobs\SendBookingConfirmationJob;
 use App\Jobs\SendWebhookJob;
 use App\Models\AuditLog;
@@ -32,6 +33,12 @@ use Illuminate\Support\Facades\DB;
 final class BookingCreationService
 {
     /**
+     * How far in the past a requested start time may be before it is
+     * treated as back-dating rather than "now".
+     */
+    private const int START_TIME_GRACE_MINUTES = 2;
+
+    /**
      * Attempt to create a booking.
      *
      * Validation rules are evaluated in the same order as the legacy
@@ -40,7 +47,12 @@ final class BookingCreationService
     public function create(array $input, User $user): BookingCreationResult
     {
         $startTime = Carbon::parse($input['start_time'] ?? '');
-        if ($startTime->isPast()) {
+        // A strict `isPast()` test cannot express "book now": a client that
+        // computes `now()` loses the race against its own request latency,
+        // and an immediate booking (quick-book) is a legitimate operation.
+        // Allow a small grace window instead — genuinely back-dated
+        // bookings are still rejected.
+        if ($startTime->lt(now()->subMinutes(self::START_TIME_GRACE_MINUTES))) {
             return BookingCreationResult::fail('INVALID_BOOKING_TIME', 'Booking start time must be in the future.', 422);
         }
 
@@ -104,6 +116,15 @@ final class BookingCreationService
 
         try {
             $booking = $this->persistBooking($input, $user, $slotId, $startTimeStr, $endTime, $creditsEnabled, $creditsPerBooking);
+        } catch (InsufficientCreditsException) {
+            // The conditional debit found no row to take from: the balance
+            // dropped below the price between the pre-flight check and the
+            // debit. The transaction rolled the booking back.
+            return BookingCreationResult::fail(
+                'INSUFFICIENT_CREDITS',
+                'Not enough credits. Required: '.$creditsPerBooking.', Available: '.(int) $user->fresh()?->credits_balance,
+                422,
+            );
         } catch (\Throwable $e) {
             if ($e->getMessage() === 'SLOT_CONFLICT') {
                 return BookingCreationResult::fail('SLOT_UNAVAILABLE', 'Slot is already booked', 409);
@@ -264,7 +285,22 @@ final class BookingCreationService
             $this->applyPricing($booking, $lot);
 
             if ($creditsEnabled && ! $user->isAdmin()) {
-                $user->decrement('credits_balance', $creditsPerBooking);
+                // Debit conditionally. The balance was read before this
+                // transaction opened, and the row is not locked, so an
+                // unguarded `decrement` lets two concurrent bookings both
+                // pass the earlier check and drive the balance negative.
+                // Making the balance part of the WHERE turns the check and
+                // the debit into one atomic statement; zero affected rows
+                // means somebody else got there first.
+                $debited = User::query()
+                    ->whereKey($user->id)
+                    ->where('credits_balance', '>=', $creditsPerBooking)
+                    ->decrement('credits_balance', $creditsPerBooking);
+
+                if ($debited === 0) {
+                    throw new InsufficientCreditsException;
+                }
+
                 CreditTransaction::create([
                     'user_id' => $user->id,
                     'booking_id' => $booking->id,

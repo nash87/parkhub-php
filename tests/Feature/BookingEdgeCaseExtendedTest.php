@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\CreditTransaction;
 use App\Models\ParkingLot;
 use App\Models\ParkingSlot;
 use App\Models\Setting;
@@ -276,6 +277,19 @@ class BookingEdgeCaseExtendedTest extends TestCase
             'end_time' => now()->addHours(3),
             'booking_type' => 'single',
             'status' => 'confirmed',
+        ]);
+
+        // A refund now requires proof the booking was actually paid for.
+        // Every booking created through the API carries this row; the
+        // fixture has to as well, otherwise it is asserting that a booking
+        // which never cost a credit still returns one — which is the
+        // minting hole this guard closes.
+        CreditTransaction::create([
+            'user_id' => $user->id,
+            'booking_id' => $booking->id,
+            'amount' => -2,
+            'type' => 'deduction',
+            'description' => 'Booking #'.substr($booking->id, 0, 8),
         ]);
 
         $this->withHeader('Authorization', 'Bearer '.$token)

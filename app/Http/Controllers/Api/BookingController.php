@@ -19,10 +19,12 @@ use App\Models\Notification;
 use App\Models\ParkingLot;
 use App\Models\ParkingSlot;
 use App\Models\Setting;
+use App\Models\User;
 use App\Models\WaitlistEntry;
 use App\Models\Webhook;
 use App\Services\Booking\BookingCreationService;
 use Carbon\Carbon;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -125,21 +127,17 @@ class BookingController extends Controller
         $booking = Booking::findOrFail($id);
         $this->authorize('delete', $booking);
 
+        // A booking that is already in a terminal state has nothing left to
+        // cancel. Capturing this before the write is what makes the refund
+        // below idempotent: the endpoint used to credit the caller on every
+        // call, so repeating DELETE minted credits.
+        $wasLive = in_array($booking->status, [Booking::STATUS_CONFIRMED, Booking::STATUS_ACTIVE], true);
+
         // Mark as cancelled instead of hard-deleting — preserves audit trail
         $booking->update(['status' => Booking::STATUS_CANCELLED]);
 
-        // Refund credits if credits system is enabled
-        $creditsEnabled = Setting::get('credits_enabled', 'false') === 'true';
-        $creditsPerBooking = (int) Setting::get('credits_per_booking', '1');
-        if ($creditsEnabled && ! $request->user()->isAdmin()) {
-            $request->user()->increment('credits_balance', $creditsPerBooking);
-            CreditTransaction::create([
-                'user_id' => $request->user()->id,
-                'booking_id' => $booking->id,
-                'amount' => $creditsPerBooking,
-                'type' => 'refund',
-                'description' => 'Cancelled booking #'.substr($booking->id, 0, 8),
-            ]);
+        if ($wasLive) {
+            $this->refundCancelledBooking($request->user(), $booking);
         }
 
         AuditLog::log([
@@ -191,24 +189,43 @@ class BookingController extends Controller
         }
     }
 
-    public function quickBook(Request $request)
+    /**
+     * Quick-book: pick a slot and book it for the rest of the day.
+     *
+     * This used to re-implement creation inline, which meant it skipped
+     * every rule the primary creator enforces — the active-booking cap,
+     * per-day quota, duration limits, advance-days, operating hours,
+     * vehicle requirements, pricing, and the credit ledger. Rows landed
+     * with null prices and no debit, and combined with the cancellation
+     * refund that was a way to mint credits.
+     *
+     * It now resolves a slot and a window, then delegates to the same
+     * BookingCreationService the standard route uses. The convenience is
+     * the slot auto-pick; it was never meant to be a second set of rules.
+     */
+    public function quickBook(Request $request, BookingCreationService $service)
     {
-        // Accepts either slot_id directly, or lot_id+date to auto-pick
+        [$startTime, $endTime] = $this->quickBookWindow($request->input('date'));
+
         if ($request->has('slot_id')) {
             $slot = ParkingSlot::findOrFail($request->slot_id);
         } elseif ($request->has('lot_id')) {
-            $date = $request->date ? now()->parse($request->date) : now();
-            $dayStart = $date->copy()->startOfDay();
-            $dayEnd = $date->copy()->endOfDay();
+            // Auto-pick using the window we are actually going to book, not
+            // a different one — the previous code selected against the
+            // requested day and then persisted `start_time => now()`, so
+            // quick-booking tomorrow produced a booking that started
+            // immediately and occupied today as well.
             $taken = Booking::where('lot_id', $request->lot_id)
                 ->whereIn('status', [Booking::STATUS_CONFIRMED, Booking::STATUS_ACTIVE])
-                ->where('start_time', '<', $dayEnd)
-                ->where('end_time', '>', $dayStart)
+                ->where('start_time', '<', $endTime)
+                ->where('end_time', '>', $startTime)
                 ->pluck('slot_id');
+
             $slot = ParkingSlot::where('lot_id', $request->lot_id)
                 ->where('status', 'available')
                 ->whereNotIn('id', $taken)
                 ->first();
+
             if (! $slot) {
                 return response()->json(['error' => 'NO_SLOTS', 'message' => 'No slots available'], 409);
             }
@@ -216,47 +233,97 @@ class BookingController extends Controller
             return response()->json(['error' => 'INVALID_REQUEST', 'message' => 'Provide slot_id or lot_id'], 422);
         }
 
-        $startTime = $request->date ? now()->parse($request->date)->startOfDay() : now();
-        $endOfDay = $request->date ? now()->parse($request->date)->endOfDay() : now()->endOfDay();
+        $result = $service->create([
+            'lot_id' => $slot->lot_id,
+            'slot_id' => $slot->id,
+            'booking_type' => 'einmalig',
+            'start_time' => $startTime->toDateTimeString(),
+            'end_time' => $endTime->toDateTimeString(),
+            'license_plate' => $request->input('license_plate'),
+        ], $request->user());
 
-        $booking = null;
-
-        try {
-            DB::transaction(function () use ($request, $slot, $startTime, $endOfDay, &$booking) {
-                // Lock the slot row to prevent race conditions
-                ParkingSlot::where('id', $slot->id)->lockForUpdate()->firstOrFail();
-
-                $conflict = Booking::where('slot_id', $slot->id)
-                    ->whereIn('status', [Booking::STATUS_CONFIRMED, Booking::STATUS_ACTIVE])
-                    ->where('start_time', '<', $endOfDay)
-                    ->where('end_time', '>', $startTime)
-                    ->exists();
-
-                if ($conflict) {
-                    throw new \Exception('SLOT_CONFLICT');
-                }
-
-                $booking = Booking::create([
-                    'user_id' => $request->user()->id,
-                    'lot_id' => $slot->lot_id,
-                    'slot_id' => $slot->id,
-                    'booking_type' => 'einmalig',
-                    'lot_name' => $slot->lot?->name,
-                    'slot_number' => $slot->slot_number,
-                    'vehicle_plate' => $request->license_plate,
-                    'start_time' => now(),
-                    'end_time' => $endOfDay,
-                    'status' => Booking::STATUS_CONFIRMED,
-                ]);
-            }, 3);
-        } catch (\Exception $e) {
-            if ($e->getMessage() === 'SLOT_CONFLICT') {
-                return response()->json(['error' => 'SLOT_UNAVAILABLE', 'message' => 'Slot taken'], 409);
-            }
-            throw $e;
+        if ($result->isOk()) {
+            // 200 rather than 201: this route has always answered 200 and
+            // clients parse it that way.
+            return BookingResource::make($result->booking)->response()->setStatusCode(200);
         }
 
-        return BookingResource::make($booking)->response()->setStatusCode(200);
+        if ($result->status === 409) {
+            return response()->json([
+                'error' => $result->errorCode === 'SLOT_UNAVAILABLE' ? 'SLOT_UNAVAILABLE' : 'NO_SLOTS',
+                'message' => $result->errorMessage,
+            ], 409);
+        }
+
+        return response()->json([
+            'success' => false,
+            'data' => null,
+            'error' => ['code' => $result->errorCode, 'message' => $result->errorMessage],
+            'meta' => null,
+        ], $result->status);
+    }
+
+    /**
+     * The window a quick booking occupies: from now (or the start of a
+     * future day) until that day ends.
+     *
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    /**
+     * Return the credit a cancelled booking actually cost, at most once.
+     *
+     * Two conditions, both necessary. A refund requires *proof of payment*
+     * — a matching `deduction` row — because bookings can be created by
+     * paths that never touched the ledger, and refunding those is minting.
+     * And it must happen at most once per booking; the unique index on
+     * `credit_transactions (booking_id, type)` is the hard backstop, so the
+     * ledger row is written *before* the balance moves and a duplicate is
+     * rejected by the database rather than by a check that can race.
+     */
+    private function refundCancelledBooking(User $user, Booking $booking): void
+    {
+        if (Setting::get('credits_enabled', 'false') !== 'true' || $user->isAdmin()) {
+            return;
+        }
+
+        $paid = CreditTransaction::where('booking_id', $booking->id)
+            ->where('type', 'deduction')
+            ->exists();
+
+        if (! $paid) {
+            return;
+        }
+
+        $creditsPerBooking = (int) Setting::get('credits_per_booking', '1');
+
+        try {
+            DB::transaction(function () use ($user, $booking, $creditsPerBooking) {
+                CreditTransaction::create([
+                    'user_id' => $user->id,
+                    'booking_id' => $booking->id,
+                    'amount' => $creditsPerBooking,
+                    'type' => 'refund',
+                    'description' => 'Cancelled booking #'.substr($booking->id, 0, 8),
+                ]);
+
+                $user->increment('credits_balance', $creditsPerBooking);
+            });
+        } catch (UniqueConstraintViolationException) {
+            // Already refunded. Nothing to do — and importantly the balance
+            // was not touched, because the ledger row is written first.
+        }
+    }
+
+    private function quickBookWindow(?string $date): array
+    {
+        if ($date === null || $date === '') {
+            return [now(), now()->endOfDay()];
+        }
+
+        $day = now()->parse($date);
+        $start = $day->isToday() ? now() : $day->copy()->startOfDay();
+
+        return [$start, $day->copy()->endOfDay()];
     }
 
     public function updateNotes(UpdateBookingNotesRequest $request, string $id)

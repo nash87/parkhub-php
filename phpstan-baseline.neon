@@ -217,12 +217,6 @@ parameters:
 			path: app/Http/Controllers/Api/BookingController.php
 
 		-
-			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\ParkingLot\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Api/BookingController.php
-
-		-
 			message: '#^Expression on left side of \?\? is not nullable\.$#'
 			identifier: nullCoalesce.expr
 			count: 4
