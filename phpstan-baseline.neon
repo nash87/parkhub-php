@@ -523,12 +523,6 @@ parameters:
 			path: app/Http/Controllers/Api/SseController.php
 
 		-
-			message: '#^Parameter \#1 \$userId of method App\\Http\\Controllers\\Api\\SseController\:\:pollBookingEvents\(\) expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: app/Http/Controllers/Api/SseController.php
-
-		-
 			message: '#^PHPDoc tag @var with type class\-string is not subtype of native type ''\\\\Stripe\\\\Checkout…''\.$#'
 			identifier: varTag.nativeType
 			count: 1

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\ParkingLot;
+use App\Services\Realtime\SseEventQueue;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -118,19 +119,7 @@ class SseController extends Controller
      */
     public static function pushEvent(int|string $userId, string $eventType, array $data): void
     {
-        $key = "sse_events:{$userId}";
-        $events = Cache::get($key, []);
-        $events[] = [
-            'event' => $eventType,
-            'data' => array_merge($data, [
-                'timestamp' => now()->toIso8601String(),
-            ]),
-            'created_at' => now()->timestamp,
-        ];
-
-        // Keep only last 100 events, expire after 5 minutes
-        $events = array_slice($events, -100);
-        Cache::put($key, $events, 300);
+        SseEventQueue::push($userId, $eventType, $data);
     }
 
     /**
@@ -144,31 +133,23 @@ class SseController extends Controller
             'module' => 'realtime',
             'enabled' => config('modules.realtime', true),
             'user_id' => $user?->id,
-            'pending_events' => count(Cache::get("sse_events:{$user?->id}", [])),
+            'pending_events' => count(SseEventQueue::pull($user->id, 0)),
         ]);
     }
 
     /**
-     * Poll the cache-based event queue for new events since last counter.
+     * Poll the event queue for events after $lastEventId.
+     *
+     * Typed `int|string` because `users.id` is a UUID: this method was
+     * declared `int $userId` and called with `$user->id`, so under
+     * `strict_types=1` the first poll of every connection threw a
+     * `TypeError` and no event was ever delivered.
+     *
+     * @return list<array<string, mixed>>
      */
-    private function pollBookingEvents(int $userId, int $lastEventId): array
+    private function pollBookingEvents(int|string $userId, int $lastEventId): array
     {
-        $key = "sse_events:{$userId}";
-        $events = Cache::get($key, []);
-
-        if (empty($events)) {
-            return [];
-        }
-
-        // Return events added after lastEventId (simple counter-based)
-        $newEvents = array_slice($events, $lastEventId);
-
-        // Clean up delivered events
-        if (! empty($newEvents)) {
-            Cache::put($key, array_slice($events, count($events)), 300);
-        }
-
-        return $newEvents;
+        return SseEventQueue::pull($userId, $lastEventId);
     }
 
     /**
