@@ -3,6 +3,8 @@
 use App\Jobs\AggregateSystemMetricsJob;
 use App\Jobs\AutoReleaseBookingsJob;
 use App\Jobs\ExpandRecurringBookingsJob;
+use App\Jobs\PurgeExpiredBookingsJob;
+use App\Jobs\SendBookingReminderJob;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +13,17 @@ use Illuminate\Support\Facades\Schedule;
 Schedule::job(new AutoReleaseBookingsJob)->everyFiveMinutes();
 Schedule::job(new AggregateSystemMetricsJob)->everyFiveMinutes();
 Schedule::job(new ExpandRecurringBookingsJob)->dailyAt('01:00');
+
+// Reminders are the only path that tells a user their booking is coming up.
+// The job was written, unit-tested, and never invoked from anywhere, so no
+// reminder has ever been sent. It is safe on a short cadence because it
+// records what it already sent (`bookings.reminder_sent_at`).
+Schedule::job(new SendBookingReminderJob)->everyFifteenMinutes()->withoutOverlapping();
+
+// The job's own docblock documents a 90-day retention window for
+// cancelled/completed/no-show bookings. Without a schedule that stated
+// retention control was never applied and bookings accumulated forever.
+Schedule::job(new PurgeExpiredBookingsJob)->dailyAt('03:30')->withoutOverlapping();
 Schedule::command('sanctum:prune-expired', ['--hours' => 168])->daily();
 Schedule::command('credits:refill-monthly')->monthlyOn(1, '00:00');
 

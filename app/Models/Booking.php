@@ -69,6 +69,7 @@ class Booking extends Model
             'start_time' => 'datetime',
             'end_time' => 'datetime',
             'checked_in_at' => 'datetime',
+            'reminder_sent_at' => 'datetime',
             'recurrence' => 'array',
             'base_price' => 'decimal:2',
             'tax_amount' => 'decimal:2',

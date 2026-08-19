@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Models\Booking;
 use App\Models\ParkingSlot;
 use App\Models\RecurringBooking;
+use Carbon\Carbon;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -33,14 +34,29 @@ class ExpandRecurringBookingsJob implements ShouldQueue
             ->where(function ($q) {
                 $q->whereNull('end_date')->orWhere('end_date', '>=', now()->toDateString());
             })
-            ->with('user')
             ->get();
 
         foreach ($active as $recurring) {
             $daysOfWeek = $recurring->days_of_week; // e.g. [1, 2, 3, 4, 5] = Mon-Fri
 
-            for ($i = 0; $i <= $this->daysAhead; $i++) {
+            // `end_date` is not cast on the model, so parse it once rather
+            // than relying on string comparison inside the loop.
+            $seriesEnd = $recurring->end_date
+                ? Carbon::parse((string) $recurring->end_date)->endOfDay()
+                : null;
+
+            for ($i = 0; $i < $this->daysAhead; $i++) {
                 $date = now()->addDays($i);
+
+                // The series admission test above only checks that the
+                // series has not *already* ended. Without the same bound
+                // inside the loop, a series ending today still expands
+                // across the whole horizon — holding real slots, billing
+                // nothing, and re-created every night by the 01:00 run.
+                if ($seriesEnd && $date->gt($seriesEnd)) {
+                    break;
+                }
+
                 $dayOfWeek = (int) $date->format('N'); // 1=Mon…7=Sun
 
                 if (! in_array($dayOfWeek, $daysOfWeek)) {

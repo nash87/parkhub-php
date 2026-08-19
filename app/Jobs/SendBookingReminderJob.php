@@ -34,9 +34,14 @@ class SendBookingReminderJob implements ShouldQueue
         $windowStart = now();
         $windowEnd = now()->addMinutes($this->minutesBefore);
 
+        // Only bookings that have not already been reminded. This job is
+        // queued (so it retries) and scheduled on a cadence shorter than
+        // its own look-ahead window, so without this filter the same
+        // booking is mailed on every pass.
         $bookings = Booking::whereIn('status', ['confirmed'])
             ->whereBetween('start_time', [$windowStart, $windowEnd])
             ->whereNull('checked_in_at')
+            ->whereNull('reminder_sent_at')
             ->with('user')
             ->get();
 
@@ -48,6 +53,9 @@ class SendBookingReminderJob implements ShouldQueue
             }
 
             Mail::to($user->email)->send(new BookingReminderMail($booking, $user));
+            // Stamp after the send so a delivery failure is retried rather
+            // than silently marked as reminded.
+            $booking->forceFill(['reminder_sent_at' => now()])->save();
             $sent++;
         }
 

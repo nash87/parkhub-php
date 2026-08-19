@@ -637,12 +637,6 @@ parameters:
 			path: app/Jobs/AutoReleaseBookingsJob.php
 
 		-
-			message: '#^Relation ''user'' is not found in App\\Models\\RecurringBooking model\.$#'
-			identifier: larastan.relationExistence
-			count: 1
-			path: app/Jobs/ExpandRecurringBookingsJob.php
-
-		-
 			message: '#^Using nullsafe property access "\?\-\>slot_number" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
 			identifier: nullsafe.neverNull
 			count: 1
