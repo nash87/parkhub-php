@@ -9,12 +9,16 @@ use App\Http\Requests\ImportIcalRequest;
 use App\Http\Requests\StoreAbsenceRequest;
 use App\Models\Absence;
 use App\Models\Setting;
+use App\Services\BookingVisibility;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class AbsenceController extends Controller
 {
+    /** Longest team-absence window a single request may ask for. */
+    private const int MAX_TEAM_ABSENCE_WINDOW_DAYS = 366;
+
     public function index(Request $request): JsonResponse
     {
         $absences = Absence::where('user_id', $request->user()->id)
@@ -61,21 +65,60 @@ class AbsenceController extends Controller
         return response()->json(['message' => 'Deleted']);
     }
 
+    /**
+     * Absences across the team for a bounded window.
+     *
+     * This used to spread `$a->toArray()` into the response — the entire
+     * absence row, including the free-text `note` — alongside the real name
+     * and username, with `from`/`to` taken off the query string
+     * unvalidated. `?from=1900-01-01&to=2999-12-31` returned every absence
+     * record the instance had ever held, to any authenticated user.
+     */
     public function teamAbsences(Request $request): JsonResponse
     {
-        $from = $request->from ?? now()->startOfMonth()->toDateString();
-        $to = $request->to ?? now()->endOfMonth()->toDateString();
+        $validated = $request->validate([
+            'from' => 'sometimes|date',
+            'to' => 'sometimes|date|after_or_equal:from',
+        ]);
+
+        $from = isset($validated['from'])
+            ? Carbon::parse($validated['from'])->startOfDay()
+            : now()->startOfMonth();
+        $to = isset($validated['to'])
+            ? Carbon::parse($validated['to'])->endOfDay()
+            : now()->endOfMonth();
+
+        // An unbounded window is a bulk export, not a team view.
+        if ($from->diffInDays($to) > self::MAX_TEAM_ABSENCE_WINDOW_DAYS) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'WINDOW_TOO_LARGE',
+                    'message' => 'Requested range exceeds '.self::MAX_TEAM_ABSENCE_WINDOW_DAYS.' days.',
+                ],
+                'meta' => null,
+            ], 422);
+        }
+
         $absences = Absence::with('user')
-            ->where('start_date', '<=', $to)
-            ->where('end_date', '>=', $from)
+            ->where('start_date', '<=', $to->toDateString())
+            ->where('end_date', '>=', $from->toDateString())
             ->get();
 
-        return response()->json($absences->map(function ($a) {
-            return array_merge($a->toArray(), [
-                'user_name' => $a->user?->name,
-                'username' => $a->user?->username,
-            ]);
-        })->values());
+        $mode = BookingVisibility::mode();
+        $isAdmin = $request->user()?->isAdmin() ?? false;
+
+        // Explicit allow-list. The private note is never included, and the
+        // reason is generalised for everyone but admins.
+        return response()->json($absences->map(fn ($a) => [
+            'id' => $a->id,
+            'user_id' => $a->user_id,
+            'user_name' => BookingVisibility::label($a->user?->name, $a->user?->username, $mode),
+            'absence_type' => BookingVisibility::absenceType($a->absence_type, $isAdmin),
+            'start_date' => $a->start_date,
+            'end_date' => $a->end_date,
+        ])->values());
     }
 
     public function getPattern(Request $request): JsonResponse
