@@ -172,8 +172,11 @@ final class TaxProfileRegistry
         return [
             // Austria — Umsatzsteuer, § 10 UStG
             new TaxProfile('AT', 0.20, 0.10, true),
-            // Switzerland — MWSTG Art. 25 (non-EU; standard 7.7%)
-            new TaxProfile('CH', 0.077, 0.026, false),
+            // Switzerland — MWSTG Art. 25 (non-EU). 8.1% standard / 2.6%
+            // reduced since 2024-01-01; a rise to 8.5% is proposed for 2028
+            // and is not in force. Source: Swiss Federal Tax Administration,
+            // https://www.estv.admin.ch/en/vat-rates-switzerland
+            new TaxProfile('CH', 0.081, 0.026, false),
             // Germany — Umsatzsteuergesetz § 12 Abs. 1
             new TaxProfile('DE', 0.19, 0.07, true),
             // Spain — IVA, Ley 37/1992

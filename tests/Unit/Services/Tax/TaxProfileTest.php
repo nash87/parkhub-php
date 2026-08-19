@@ -25,13 +25,14 @@ final class TaxProfileTest extends TestCase
         $this->assertTrue($de->reverseChargeEu);
     }
 
-    public function test_tax_profile_ch_rate_77(): void
+    public function test_tax_profile_ch_standard_rate(): void
     {
         $ch = TaxProfileRegistry::resolveProfile('CH');
 
         $this->assertSame('CH', $ch->country);
-        // Switzerland's standard rate: 7.7%.
-        $this->assertEqualsWithDelta(0.077, $ch->standardRate, 1e-9);
+        // Switzerland's standard rate: 8.1% since 2024-01-01.
+        // https://www.estv.admin.ch/en/vat-rates-switzerland
+        $this->assertEqualsWithDelta(0.081, $ch->standardRate, 1e-9);
         // Non-EU → no reverse-charge regime.
         $this->assertFalse($ch->reverseChargeEu);
     }
