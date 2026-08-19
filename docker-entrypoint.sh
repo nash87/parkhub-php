@@ -1,6 +1,100 @@
 #!/bin/bash
 set -e
 
+# ---------------------------------------------------------------------------
+# Apache runtime identity
+#
+# The php:*-apache base image writes `User ${APACHE_RUN_USER}` /
+# `Group ${APACHE_RUN_GROUP}` into apache2.conf and defines those variables
+# in /etc/apache2/envvars, which `apache2-foreground` sources before exec'ing
+# httpd. If Apache is ever started without sourcing envvars -- a `command:`
+# override in docker-compose, a different orchestrator, or a base-image swap
+# -- those variables are undefined and Apache falls back to its built-in
+# default user (`daemon` on upstream httpd builds).
+#
+# This script used to hardcode `www-data`. When the two disagreed, every
+# Laravel writable path (storage/, bootstrap/cache) ended up owned by a user
+# the workers are not, so any request touching the session, cache or log
+# failed with `permission denied` and the app returned 500. Worse, because
+# this script re-applied the wrong ownership on every container start, an
+# operator's manual `chown` appeared to "revert" on restart -- which is
+# exactly the symptom reported in nash87/parkhub-php#578.
+#
+# Resolve the identity Apache will actually use instead of assuming it.
+# Paths are overridable so the resolution logic can be tested off-container.
+# ---------------------------------------------------------------------------
+APACHE_ENVVARS_FILE="${APACHE_ENVVARS_FILE:-/etc/apache2/envvars}"
+APACHE_CONF_FILE="${APACHE_CONF_FILE:-/etc/apache2/apache2.conf}"
+
+# Echoes "user:group". Precedence: envvars file, then the ambient
+# environment, then a literal User/Group directive in apache2.conf, then the
+# Debian default. A directive that is still an unexpanded ${...} placeholder
+# is ignored -- it tells us nothing about the effective user.
+resolve_apache_identity() {
+    local user="" group=""
+
+    if [ -r "$APACHE_ENVVARS_FILE" ]; then
+        user="$( . "$APACHE_ENVVARS_FILE" >/dev/null 2>&1; printf '%s' "${APACHE_RUN_USER:-}" )"
+        group="$( . "$APACHE_ENVVARS_FILE" >/dev/null 2>&1; printf '%s' "${APACHE_RUN_GROUP:-}" )"
+    fi
+
+    [ -z "$user" ] && user="${APACHE_RUN_USER:-}"
+    [ -z "$group" ] && group="${APACHE_RUN_GROUP:-}"
+
+    if [ -z "$user" ] && [ -r "$APACHE_CONF_FILE" ]; then
+        user="$(awk 'tolower($1)=="user" && $2 !~ /\$\{/ {v=$2} END{if (v) print v}' "$APACHE_CONF_FILE")"
+    fi
+    if [ -z "$group" ] && [ -r "$APACHE_CONF_FILE" ]; then
+        group="$(awk 'tolower($1)=="group" && $2 !~ /\$\{/ {v=$2} END{if (v) print v}' "$APACHE_CONF_FILE")"
+    fi
+
+    [ -z "$user" ] && user="www-data"
+    [ -z "$group" ] && group="$user"
+
+    printf '%s:%s' "$user" "$group"
+}
+
+# Allow the test suite to source this file for the helpers alone.
+if [ "${PARKHUB_ENTRYPOINT_LIB_ONLY:-}" = "1" ]; then
+    return 0 2>/dev/null || exit 0
+fi
+
+RUNTIME_IDENTITY="$(resolve_apache_identity)"
+RUNTIME_USER="${RUNTIME_IDENTITY%%:*}"
+RUNTIME_GROUP="${RUNTIME_IDENTITY##*:}"
+echo "Apache runtime identity resolved to ${RUNTIME_USER}:${RUNTIME_GROUP}"
+
+# Make the Laravel-writable paths owned by whoever Apache actually runs as.
+# Failures are reported instead of swallowed: a silent chown failure here is
+# indistinguishable, hours later, from an application bug.
+ensure_writable_paths() {
+    local failed=0
+    chown -R "${RUNTIME_USER}:${RUNTIME_GROUP}" "$@" || failed=1
+    chmod -R 775 "$@" || failed=1
+    if [ "$failed" -ne 0 ]; then
+        echo "WARNING: could not fully apply ${RUNTIME_USER}:${RUNTIME_GROUP} ownership to: $*" >&2
+    fi
+}
+
+# Prove the runtime user can actually write, rather than assuming the chown
+# above was sufficient (bind mounts, restrictive volume drivers and
+# read-only filesystems all defeat it). Failing here with a precise message
+# beats serving opaque 500s from every session-backed route.
+assert_writable_as_runtime_user() {
+    local target="$1"
+    command -v gosu >/dev/null 2>&1 || return 0
+    if gosu "$RUNTIME_USER" sh -c "test -w '$target'" 2>/dev/null; then
+        return 0
+    fi
+    echo "FATAL: ${target} is not writable by the Apache runtime user (${RUNTIME_USER})." >&2
+    echo "       Laravel cannot write sessions, caches or logs, so every request would 500." >&2
+    echo "       Current ownership:" >&2
+    ls -ld "$target" >&2 || true
+    echo "       If this path is a bind mount, chown it on the host to ${RUNTIME_USER}:${RUNTIME_GROUP}" >&2
+    echo "       or run the container with a matching --user." >&2
+    exit 1
+}
+
 # Configure Apache port from PORT env var (default: 10000 for Render, override for self-hosting)
 if [ -n "$PORT" ]; then
     sed -i "s/Listen 80/Listen $PORT/" /etc/apache2/ports.conf 2>/dev/null || true
@@ -49,8 +143,7 @@ done
 
 # Ensure storage directories exist with correct permissions
 mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cache
-chown -R www-data:www-data storage bootstrap/cache database 2>/dev/null || true
-chmod -R 775 storage bootstrap/cache 2>/dev/null || true
+ensure_writable_paths storage bootstrap/cache database
 
 # Demo mode: fresh DB + seed with realistic data on every container start
 # SEED_DEMO_DATA=true: seed data once in production mode (no demo UI/auto-reset)
@@ -89,12 +182,18 @@ php artisan route:cache --no-interaction 2>&1 || true
 # failing with `file_put_contents` permission errors on /api/v1/discover
 # (and any other endpoint that touches the cache) was a direct
 # consequence of the mixed ownership.
-chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+ensure_writable_paths storage bootstrap/cache
+
+# Everything above ran as root. Confirm the workers can still write before
+# handing control to Apache.
+assert_writable_as_runtime_user storage/logs
+assert_writable_as_runtime_user storage/framework/sessions
+assert_writable_as_runtime_user bootstrap/cache
 
 # Start Laravel scheduler in background (needed for auto-release, demo
 # resets, etc.). Run the scheduler as www-data too so it doesn't
-# re-introduce root-owned files under storage/ at runtime.
-(while true; do gosu www-data php artisan schedule:run --no-interaction >> storage/logs/scheduler.log 2>&1; sleep 60; done) &
+# re-introduce files under storage/ that the workers cannot rewrite.
+(while true; do gosu "$RUNTIME_USER" php artisan schedule:run --no-interaction >> storage/logs/scheduler.log 2>&1; sleep 60; done) &
 
 # Run Apache as root.
 #
