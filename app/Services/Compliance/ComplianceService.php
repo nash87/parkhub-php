@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Compliance;
 
+use App\Models\AuditLog;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -58,18 +59,33 @@ final class ComplianceService
 
     /**
      * Raw audit log rows, newest first, capped at $limit. Returns null
-     * when the `audit_logs` table isn't present (module off).
+     * when the audit table isn't present (module off).
+     *
+     * The table is `audit_log` (see {@see AuditLog::$table})
+     * and its columns are `target_type` / `target_id`. This method asked
+     * for `audit_logs` with `resource_*` columns, so the existence check
+     * never passed and the GDPR audit export was permanently empty. The
+     * export's own column names are preserved by aliasing, so the CSV
+     * contract does not change — only the fact that it now contains data.
      */
     public function auditLogs(int $limit): ?Collection
     {
-        if (! DB::getSchemaBuilder()->hasTable('audit_logs')) {
+        if (! DB::getSchemaBuilder()->hasTable('audit_log')) {
             return null;
         }
 
-        return DB::table('audit_logs')
+        return DB::table('audit_log')
             ->orderByDesc('created_at')
             ->limit($limit)
-            ->get(['id', 'user_id', 'action', 'resource_type', 'resource_id', 'ip_address', 'created_at']);
+            ->get([
+                'id',
+                'user_id',
+                'action',
+                'target_type as resource_type',
+                'target_id as resource_id',
+                'ip_address',
+                'created_at',
+            ]);
     }
 
     /**
@@ -136,9 +152,9 @@ final class ComplianceService
                 'category' => 'Accountability',
                 'name' => 'Audit Logging',
                 'description' => 'Action audit trail',
-                'status' => DB::getSchemaBuilder()->hasTable('audit_logs') ? 'compliant' : 'non_compliant',
-                'details' => DB::getSchemaBuilder()->hasTable('audit_logs') ? 'Audit log table exists with action tracking' : 'Audit log table not found',
-                'recommendation' => DB::getSchemaBuilder()->hasTable('audit_logs') ? null : 'Enable the audit_log module',
+                'status' => DB::getSchemaBuilder()->hasTable('audit_log') ? 'compliant' : 'non_compliant',
+                'details' => DB::getSchemaBuilder()->hasTable('audit_log') ? 'Audit log table exists with action tracking' : 'Audit log table not found',
+                'recommendation' => DB::getSchemaBuilder()->hasTable('audit_log') ? null : 'Enable the audit_log module',
             ],
             [
                 'id' => 'data-minimization',

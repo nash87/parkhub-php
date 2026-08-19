@@ -46,16 +46,19 @@ class ComplianceController extends Controller
         $logs = $this->service->auditLogs($limit);
 
         if ($logs === null) {
+            // The audit trail is the artifact an auditor asks for. If it
+            // cannot be produced, reporting `success: true` with an empty
+            // list is a silent false negative in exactly the wrong place —
+            // it is indistinguishable from "this install has no activity".
             return response()->json([
-                'success' => true,
-                'data' => [
-                    'format' => $format,
-                    'logs' => [],
-                    'count' => 0,
-                    'exported_at' => now()->toISOString(),
-                    'content' => $format === 'csv' ? "id,user_id,action,resource_type,resource_id,ip_address,created_at\n" : null,
+                'success' => false,
+                'data' => null,
+                'error' => [
+                    'code' => 'AUDIT_TRAIL_UNAVAILABLE',
+                    'message' => 'The audit log table is not present on this installation, so no audit trail can be exported.',
                 ],
-            ]);
+                'meta' => null,
+            ], 503);
         }
 
         if ($format === 'csv') {

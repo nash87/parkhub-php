@@ -14,17 +14,6 @@ class ComplianceServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    protected function tearDown(): void
-    {
-        // The `audit_logs` plural table isn't in any migration (ComplianceController
-        // checks for it to detect whether the audit module is on). Some tests
-        // create it on demand; drop it again so it doesn't leak into siblings.
-        if (DB::getSchemaBuilder()->hasTable('audit_logs')) {
-            DB::getSchemaBuilder()->drop('audit_logs');
-        }
-        parent::tearDown();
-    }
-
     public function test_report_returns_ten_checks_with_expected_categories(): void
     {
         $report = app(ComplianceService::class)->report();
@@ -96,26 +85,24 @@ class ComplianceServiceTest extends TestCase
 
     public function test_audit_logs_returns_null_when_table_missing(): void
     {
-        // audit_logs (plural) is not a migrated table — simulates the
-        // audit module being off.
-        if (DB::getSchemaBuilder()->hasTable('audit_logs')) {
-            DB::getSchemaBuilder()->drop('audit_logs');
-        }
+        // Dropping the real table is what "the audit module is off" means.
+        // This test used to drop `audit_logs` — a table no migration ever
+        // creates — so it passed while asserting nothing about the code
+        // path that runs in production.
+        DB::getSchemaBuilder()->drop('audit_log');
 
         $this->assertNull(app(ComplianceService::class)->auditLogs(100));
     }
 
     public function test_audit_logs_returns_rows_newest_first_when_table_exists(): void
     {
-        $this->createAuditLogsTable();
-
-        DB::table('audit_logs')->insert([
+        DB::table('audit_log')->insert([
             [
                 'id' => (string) Str::uuid(),
                 'user_id' => (string) Str::uuid(),
                 'action' => 'older, action "with quotes"',
-                'resource_type' => 'booking',
-                'resource_id' => 'b-1',
+                'target_type' => 'booking',
+                'target_id' => 'b-1',
                 'ip_address' => '203.0.113.1',
                 'created_at' => now()->subMinute(),
                 'updated_at' => now()->subMinute(),
@@ -124,8 +111,8 @@ class ComplianceServiceTest extends TestCase
                 'id' => (string) Str::uuid(),
                 'user_id' => (string) Str::uuid(),
                 'action' => 'newest_event',
-                'resource_type' => 'user',
-                'resource_id' => 'u-1',
+                'target_type' => 'user',
+                'target_id' => 'u-1',
                 'ip_address' => '203.0.113.2',
                 'created_at' => now(),
                 'updated_at' => now(),
@@ -141,14 +128,12 @@ class ComplianceServiceTest extends TestCase
 
     public function test_audit_logs_csv_escapes_quotes_in_action(): void
     {
-        $this->createAuditLogsTable();
-
-        DB::table('audit_logs')->insert([
+        DB::table('audit_log')->insert([
             'id' => (string) Str::uuid(),
             'user_id' => (string) Str::uuid(),
             'action' => 'login "admin"',
-            'resource_type' => 'user',
-            'resource_id' => 'u-1',
+            'target_type' => 'user',
+            'target_id' => 'u-1',
             'ip_address' => '203.0.113.3',
             'created_at' => now(),
             'updated_at' => now(),
@@ -160,22 +145,5 @@ class ComplianceServiceTest extends TestCase
         $this->assertStringStartsWith('id,user_id,action,resource_type,resource_id,ip_address,created_at', $csv);
         // Internal double-quotes must be CSV-escaped (RFC 4180).
         $this->assertStringContainsString('""admin""', $csv);
-    }
-
-    private function createAuditLogsTable(): void
-    {
-        if (DB::getSchemaBuilder()->hasTable('audit_logs')) {
-            return;
-        }
-
-        DB::getSchemaBuilder()->create('audit_logs', function ($table) {
-            $table->string('id', 36)->primary();
-            $table->string('user_id', 36)->nullable();
-            $table->string('action');
-            $table->string('resource_type')->nullable();
-            $table->string('resource_id')->nullable();
-            $table->string('ip_address', 45)->nullable();
-            $table->timestamps();
-        });
     }
 }
