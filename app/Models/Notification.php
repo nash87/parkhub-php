@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Services\PushNotificationService;
+use App\Jobs\SendPushNotificationJob;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -36,16 +36,16 @@ class Notification extends Model
     protected static function booted(): void
     {
         static::created(function (Notification $notification) {
-            // Fire-and-forget push notification (non-blocking)
-            try {
-                PushNotificationService::sendToUser(
-                    $notification->user_id,
-                    $notification->title ?? 'ParkHub',
-                    $notification->message ?? '',
-                );
-            } catch (\Throwable) {
-                // Push failure should never break app flow
-            }
+            // Queue the push rather than performing it here. This hook runs
+            // inside whatever request created the notification, and the send
+            // is a blocking round-trip to every registered endpoint
+            // (web-push's `flush()` is `yield $promise->wait()`). The comment
+            // this replaces called it "non-blocking"; it never was.
+            SendPushNotificationJob::dispatch(
+                $notification->user_id,
+                $notification->title ?? 'ParkHub',
+                $notification->message ?? '',
+            );
         });
     }
 }
