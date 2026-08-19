@@ -56,7 +56,7 @@ Route::get('/legal/privacy', [PublicController::class, 'legalPrivacy']);
 Route::get('/legal/impressum', [PublicController::class, 'legalImpressum']);
 
 // Protected routes
-Route::middleware([StartSession::class, 'auth:sanctum', 'session.absolute'])->group(function () {
+Route::middleware([StartSession::class, 'auth:sanctum', 'session.absolute', 'tenant'])->group(function () {
     // Auth
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/refresh', [AuthController::class, 'refresh']);

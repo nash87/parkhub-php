@@ -96,7 +96,7 @@ module_routes('map', 'map.php');
 
 // ── Core protected routes ───────────────────────────────────────────────────
 
-Route::middleware([StartSession::class, 'auth:sanctum', 'throttle:api', 'session.absolute'])->group(function () {
+Route::middleware([StartSession::class, 'auth:sanctum', 'throttle:api', 'session.absolute', 'tenant'])->group(function () {
     // Auth (protected)
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::post('/auth/refresh', [AuthController::class, 'refresh']);

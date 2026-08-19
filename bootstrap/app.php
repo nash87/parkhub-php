@@ -9,6 +9,7 @@ use App\Http\Middleware\ModuleGate;
 use App\Http\Middleware\RequestIdLogging;
 use App\Http\Middleware\RequireAdmin;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\TenantScope;
 use App\Jobs\PurgeAuditLogsJob;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Console\Scheduling\Schedule;
@@ -71,6 +72,11 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin' => RequireAdmin::class,
             'module' => ModuleGate::class,
             'session.absolute' => EnforceAbsoluteSessionLifetime::class,
+            // Resolves the caller's tenant into the container. It has to run
+            // as route middleware rather than in the api group, because the
+            // group runs before `auth:sanctum` and there would be no
+            // authenticated user to read a tenant from.
+            'tenant' => TenantScope::class,
         ]);
     })
     ->withSchedule(function (Schedule $schedule): void {
