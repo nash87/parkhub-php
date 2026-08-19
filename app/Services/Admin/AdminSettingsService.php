@@ -33,7 +33,7 @@ final class AdminSettingsService
      */
     public const array ALLOWED_SETTING_KEYS = [
         'company_name', 'use_case', 'self_registration', 'license_plate_mode',
-        'display_name_format', 'max_bookings_per_day', 'allow_guest_bookings',
+        'display_name_format', 'booking_visibility', 'max_bookings_per_day', 'allow_guest_bookings',
         'auto_release_minutes', 'require_vehicle', 'waitlist_enabled',
         'min_booking_duration_hours', 'max_booking_duration_hours',
         'credits_enabled', 'credits_per_booking',

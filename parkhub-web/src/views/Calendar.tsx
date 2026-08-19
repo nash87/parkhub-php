@@ -40,6 +40,7 @@ export function CalendarPage() {
   const [copied, setCopied] = useState(false);
   const [generatingToken, setGeneratingToken] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const [dragEvent, setDragEvent] = useState<CalendarEvent | null>(null);
   const [dropTarget, setDropTarget] = useState<Date | null>(null);
   const [showRescheduleConfirm, setShowRescheduleConfirm] = useState(false);
@@ -49,7 +50,7 @@ export function CalendarPage() {
   useEffect(() => {
     loadEvents();
     return () => { abortRef.current?.abort(); };
-  }, [currentMonth]);
+  }, [currentMonth, showAll]);
 
   async function loadEvents() {
     abortRef.current?.abort();
@@ -61,7 +62,7 @@ export function CalendarPage() {
     const start = formatDate(new Date(year, month, 1));
     const end = formatDate(new Date(year, month + 1, 0));
     try {
-      const res = await api.calendarEvents(start, end);
+      const res = await api.calendarEvents(start, end, showAll ? 'all' : 'mine');
       if (controller.signal.aborted) return;
       if (res.success && res.data) setEvents(res.data);
     /* istanbul ignore next -- network failure path */
@@ -157,6 +158,9 @@ export function CalendarPage() {
   // ── Drag-to-Reschedule handlers ──
   function handleDragStart(e: React.DragEvent, event: CalendarEvent) {
     if (event.type !== 'booking') return;
+    // Another user's booking is visible for planning only. Rescheduling it
+    // is not the caller's to do, so it must not even start a drag.
+    if (event.mine === false) return;
     setDragEvent(event);
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', event.id);
@@ -238,6 +242,19 @@ export function CalendarPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h1 className="text-2xl font-bold text-surface-900 dark:text-white">{t('calendar.title', 'Kalender')}</h1>
         <div className="flex items-center gap-2 self-start sm:self-auto">
+          <button
+            onClick={() => setShowAll(v => !v)}
+            aria-pressed={showAll}
+            className={`px-3 py-2 text-xs font-medium rounded-xl transition-colors min-h-[44px] ${
+              showAll
+                ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                : 'text-surface-500 hover:bg-surface-100 dark:hover:bg-surface-800'
+            }`}
+          >
+            {showAll
+              ? t('calendar.showingAllBookings', 'Alle Buchungen')
+              : t('calendar.showingMyBookings', 'Meine Buchungen')}
+          </button>
           <button onClick={() => setShowHelp(!showHelp)} className="p-2 rounded-xl hover:bg-surface-100 dark:hover:bg-surface-800 text-surface-500 min-w-[44px] min-h-[44px] flex items-center justify-center" title={t('calendarDrag.helpLabel')}>
             <Question size={20} />
           </button>
@@ -298,10 +315,12 @@ export function CalendarPage() {
                 <div className="mt-0.5 space-y-0.5">
                   {dayEvents.slice(0, 3).map(e => (
                     <div key={e.id}
-                      draggable={e.type === 'booking'}
+                      draggable={e.type === 'booking' && e.mine !== false}
                       onDragStart={(ev) => handleDragStart(ev, e)}
                       onDragEnd={handleDragEnd}
-                      className={`h-1.5 rounded-full ${statusColors[e.status] || 'bg-surface-300'} ${e.type === 'booking' ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                      className={`h-1.5 rounded-full ${statusColors[e.status] || 'bg-surface-300'} ${
+                        e.mine === false ? 'opacity-40' : ''
+                      } ${e.type === 'booking' && e.mine !== false ? 'cursor-grab active:cursor-grabbing' : ''}`}
                     />
                   ))}
                   {dayEvents.length > 3 && <span className="text-[10px] text-surface-400">+{dayEvents.length - 3}</span>}
@@ -327,12 +346,13 @@ export function CalendarPage() {
             <div className="space-y-2">
               {selectedEvents.map(e => (
                 <div key={e.id} className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-surface-800 border border-surface-200 dark:border-surface-700">
-                  <div className={`w-2 h-8 rounded-full ${statusColors[e.status] || 'bg-surface-300'}`} />
+                  <div className={`w-2 h-8 rounded-full ${statusColors[e.status] || 'bg-surface-300'} ${e.mine === false ? 'opacity-40' : ''}`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-surface-900 dark:text-white truncate">{e.title}</p>
                     <p className="text-xs text-surface-500 dark:text-surface-400">
                       {new Date(e.start).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })} - {new Date(e.end).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                       {e.lot_name && ` \u00b7 ${e.lot_name}`}
+                      {e.mine === false && e.owner && ` \u00b7 ${e.owner}`}
                     </p>
                   </div>
                 </div>

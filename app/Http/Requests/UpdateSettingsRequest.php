@@ -21,6 +21,9 @@ class UpdateSettingsRequest extends FormRequest
             'self_registration' => 'sometimes|boolean',
             'license_plate_mode' => 'sometimes|in:required,optional,disabled,visible,hidden',
             'display_name_format' => 'sometimes|in:first_name,full_name,username',
+            // How much of a booking owner's identity other users see in the
+            // team view and the shared calendar. See App\Services\BookingVisibility.
+            'booking_visibility' => 'sometimes|in:full,firstName,initials,occupied',
             'max_bookings_per_day' => 'sometimes|integer|min:0|max:50',
             'allow_guest_bookings' => 'sometimes|boolean',
             'auto_release_minutes' => 'sometimes|integer|min:0|max:480',

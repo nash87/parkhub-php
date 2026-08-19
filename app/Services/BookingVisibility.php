@@ -1,0 +1,80 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Services;
+
+use App\Models\Setting;
+
+/**
+ * How much of a booking owner's identity other users may see.
+ *
+ * The `booking_visibility` setting already governed the team view. The
+ * shared calendar (#571) widens where booking data is displayed, which
+ * makes this control load-bearing rather than cosmetic: in a workplace
+ * deployment, "which slot is free" is scheduling information, while "who
+ * parked when" is behavioural data about employees. The two are separated
+ * here so an operator can grant the first without the second.
+ *
+ * The masking logic lives in one place so the team view and the calendar
+ * cannot drift apart.
+ */
+final class BookingVisibility
+{
+    public const string MODE_FULL = 'full';
+
+    public const string MODE_FIRST_NAME = 'firstName';
+
+    public const string MODE_INITIALS = 'initials';
+
+    public const string MODE_OCCUPIED = 'occupied';
+
+    public const array MODES = [
+        self::MODE_FULL,
+        self::MODE_FIRST_NAME,
+        self::MODE_INITIALS,
+        self::MODE_OCCUPIED,
+    ];
+
+    /** The configured mode, falling back to the historical default. */
+    public static function mode(): string
+    {
+        $mode = (string) Setting::get('booking_visibility', self::MODE_FULL);
+
+        return in_array($mode, self::MODES, true) ? $mode : self::MODE_FULL;
+    }
+
+    /**
+     * Render an owner label for another user's booking.
+     *
+     * @param  string  $anonymousLabel  shown in `occupied` mode. The team
+     *                                  view says "User" (it lists people);
+     *                                  the calendar says "Occupied" (it
+     *                                  lists slots). Same policy, different
+     *                                  noun.
+     */
+    public static function label(
+        ?string $name,
+        ?string $username = null,
+        ?string $mode = null,
+        string $anonymousLabel = 'User',
+    ): string {
+        $mode ??= self::mode();
+        $fallback = $username ?: 'User';
+        $name = trim((string) $name);
+
+        if ($name === '') {
+            $name = $fallback;
+        }
+
+        return match ($mode) {
+            self::MODE_FIRST_NAME => explode(' ', $name)[0] ?: $fallback,
+            self::MODE_INITIALS => collect(explode(' ', $name))
+                ->filter()
+                ->map(fn (string $part) => strtoupper(substr($part, 0, 1)))
+                ->join('.'),
+            self::MODE_OCCUPIED => $anonymousLabel,
+            default => $name,
+        };
+    }
+}

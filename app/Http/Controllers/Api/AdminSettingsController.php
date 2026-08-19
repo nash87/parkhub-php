@@ -32,6 +32,7 @@ class AdminSettingsController extends Controller
             'self_registration' => 'true',
             'license_plate_mode' => 'optional',
             'display_name_format' => 'first_name',
+            'booking_visibility' => 'full',
             'max_bookings_per_day' => '3',
             'allow_guest_bookings' => 'false',
             'auto_release_minutes' => '30',

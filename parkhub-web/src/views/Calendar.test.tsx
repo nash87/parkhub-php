@@ -22,6 +22,8 @@ vi.mock('react-i18next', () => ({
     t: (key: string, fallback?: string) => {
       const map: Record<string, string> = {
         'calendar.title': 'Calendar',
+        'calendar.showingMyBookings': 'My bookings',
+        'calendar.showingAllBookings': 'All bookings',
         'calendar.noBookings': 'No entries on this day',
         'calendar.selectDay': 'Click a day to see entries',
         'calendar.subscribe': 'Subscribe',
@@ -178,6 +180,33 @@ describe('CalendarPage', () => {
     await waitFor(() => {
       expect(mockCalendarEvents).toHaveBeenCalled();
     });
+  });
+
+  it('requests only the caller\'s own bookings by default', async () => {
+    render(<CalendarPage />);
+
+    await waitFor(() => {
+      expect(mockCalendarEvents).toHaveBeenCalled();
+    });
+    expect(mockCalendarEvents.mock.calls[0][2]).toBe('mine');
+  });
+
+  it('re-requests with the shared scope when the toggle is switched on', async () => {
+    const user = userEvent.setup();
+    render(<CalendarPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Calendar')).toBeInTheDocument();
+    });
+
+    const toggle = screen.getByRole('button', { name: 'My bookings' });
+    expect(toggle).toHaveAttribute('aria-pressed', 'false');
+    await user.click(toggle);
+
+    await waitFor(() => {
+      expect(mockCalendarEvents.mock.calls.at(-1)?.[2]).toBe('all');
+    });
+    expect(screen.getByRole('button', { name: 'All bookings' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows "No entries on this day" when clicking a day with no events', async () => {

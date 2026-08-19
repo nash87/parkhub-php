@@ -9,6 +9,7 @@ use App\Models\Absence;
 use App\Models\Booking;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\BookingVisibility;
 use Illuminate\Http\Request;
 
 class TeamController extends Controller
@@ -39,12 +40,7 @@ class TeamController extends Controller
             $absence = $absencesByUser->get($user->id);
             $booking = $bookingsByUser->get($user->id);
 
-            $displayName = match ($privacyMode) {
-                'firstName' => explode(' ', $user->name)[0] ?? $user->username,
-                'initials' => collect(explode(' ', $user->name))->map(fn ($n) => strtoupper(substr($n, 0, 1)))->join('.'),
-                'occupied' => 'User',
-                default => $user->name,
-            };
+            $displayName = BookingVisibility::label($user->name, $user->username, $privacyMode);
 
             return [
                 'id' => $user->id,

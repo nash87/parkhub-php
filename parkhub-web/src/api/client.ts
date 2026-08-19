@@ -421,8 +421,10 @@ export const api = {
     request<void>(`/api/v1/notifications/center/${id}`, { method: 'DELETE' }),
 
   // ── Calendar ──
-  calendarEvents: (start: string, end: string) =>
-    request<CalendarEvent[]>(`/api/v1/calendar/events?start=${start}&end=${end}`),
+  calendarEvents: (start: string, end: string, scope: 'mine' | 'all' = 'mine') =>
+    request<CalendarEvent[]>(
+      `/api/v1/calendar/events?start=${start}&end=${end}${scope === 'all' ? '&scope=all' : ''}`,
+    ),
   generateCalendarToken: () =>
     request<{ token: string; url: string }>('/api/v1/calendar/token', { method: 'POST' }),
 
@@ -947,6 +949,11 @@ export interface CalendarEvent {
   type: 'booking' | 'absence';
   status: string;
   lot_name?: string;
+  slot_number?: string;
+  /** False for another user's booking when the shared scope is requested. */
+  mine?: boolean;
+  /** Owner label for another user's booking, masked per `booking_visibility`. */
+  owner?: string | null;
 }
 
 export interface Announcement {
