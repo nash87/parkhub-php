@@ -5,7 +5,9 @@ import { render, screen } from '@testing-library/react';
 // ── Mocks ──
 
 vi.mock('react-router-dom', () => ({
-  Link: ({ to, children, ...props }: any) => <a href={to} {...props}>{children}</a>,
+  // Tagged so a test can tell a client-side router link apart from a real
+  // anchor. A router <Link> to a server URL never reaches the server.
+  Link: ({ to, children, ...props }: any) => <a href={to} data-router-link="true" {...props}>{children}</a>,
   Outlet: () => <div data-testid="outlet">Outlet Content</div>,
   useLocation: () => ({ pathname: '/admin' }),
 }));
@@ -104,6 +106,16 @@ describe('AdminPage', () => {
     expect(screen.getByText('Analytics').closest('a')).toHaveAttribute('href', '/admin/analytics');
     expect(screen.getByText('Rate Limits').closest('a')).toHaveAttribute('href', '/admin/rate-limits');
     expect(screen.getByText('Tenants').closest('a')).toHaveAttribute('href', '/admin/tenants');
+  });
+
+  it('renders the GraphQL playground as a real anchor, not a router link', () => {
+    render(<AdminPage />);
+    const link = screen.getByText('GraphQL').closest('a');
+
+    expect(link).toHaveAttribute('href', '/api/v1/graphql/playground');
+    expect(link).not.toHaveAttribute('data-router-link');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link?.getAttribute('rel') ?? '').toContain('noopener');
   });
 
   it('renders the outlet for child routes', () => {

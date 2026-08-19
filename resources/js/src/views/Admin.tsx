@@ -7,11 +7,26 @@ import {
   PuzzlePiece, GraphicsCard, ShieldCheck, LockKey, MapTrifold,
 } from '@phosphor-icons/react';
 
+/**
+ * A tab in the admin navigation.
+ *
+ * `external: true` marks a destination rendered by the backend rather than
+ * the SPA router. Those must be plain anchors: react-router's <Link>
+ * intercepts the click, matches no client route, and renders the catch-all
+ * 404 page, so the tab appears permanently broken.
+ */
+type AdminTab = {
+  name: string;
+  path: string;
+  icon: typeof ChartBar;
+  external?: boolean;
+};
+
 function AdminNav() {
   const { t } = useTranslation();
   const location = useLocation();
 
-  const tabs = [
+  const tabs: AdminTab[] = [
     { name: t('admin.overview'), path: '/admin', icon: ChartBar },
     { name: t('admin.settings'), path: '/admin/settings', icon: GearSix },
     { name: t('admin.users'), path: '/admin/users', icon: Users },
@@ -34,7 +49,7 @@ function AdminNav() {
     { name: t('compliance.title', 'Compliance'), path: '/admin/compliance', icon: ShieldCheck },
     { name: t('rbac.title', 'Roles'), path: '/admin/roles', icon: LockKey },
     { name: t('parkingZones.title', 'Zones'), path: '/admin/zones', icon: MapTrifold },
-    { name: 'GraphQL', path: '/api/v1/graphql/playground', icon: GraphicsCard },
+    { name: 'GraphQL', path: '/api/v1/graphql/playground', icon: GraphicsCard, external: true },
   ];
 
   function isActive(path: string) {
@@ -42,21 +57,21 @@ function AdminNav() {
     return location.pathname.startsWith(path);
   }
 
+  function tabClassName(active: boolean) {
+    return `relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
+      active
+        ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+        : 'text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white hover:bg-surface-100 dark:hover:bg-surface-800'
+    }`;
+  }
+
   return (
     <nav aria-label="Admin navigation" className="flex gap-1 overflow-x-auto pb-1 scrollbar-hide -webkit-overflow-scrolling-touch">
       {tabs.map(tab => {
-        const active = isActive(tab.path);
-        return (
-          <Link
-            key={tab.path}
-            to={tab.path}
-            aria-current={active ? 'page' : undefined}
-            className={`relative flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-colors ${
-              active
-                ? 'text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
-                : 'text-surface-500 dark:text-surface-400 hover:text-surface-900 dark:hover:text-white hover:bg-surface-100 dark:hover:bg-surface-800'
-            }`}
-          >
+        // An external destination is never the active SPA route.
+        const active = !tab.external && isActive(tab.path);
+        const content = (
+          <>
             <tab.icon weight={active ? 'fill' : 'regular'} className="w-4.5 h-4.5" />
             {tab.name}
             {active && (
@@ -66,6 +81,32 @@ function AdminNav() {
                 transition={{ type: 'spring', stiffness: 500, damping: 30 }}
               />
             )}
+          </>
+        );
+
+        if (tab.external) {
+          return (
+            <a
+              key={tab.path}
+              href={tab.path}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${tab.name} (opens in a new tab)`}
+              className={tabClassName(active)}
+            >
+              {content}
+            </a>
+          );
+        }
+
+        return (
+          <Link
+            key={tab.path}
+            to={tab.path}
+            aria-current={active ? 'page' : undefined}
+            className={tabClassName(active)}
+          >
+            {content}
           </Link>
         );
       })}
