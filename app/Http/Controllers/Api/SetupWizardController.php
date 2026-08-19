@@ -57,6 +57,24 @@ class SetupWizardController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // The setup routes are unauthenticated by design: during first run
+        // there is no admin to authenticate as. That is only safe while the
+        // instance is still unconfigured, so every mutating setup endpoint
+        // has to close once setup is complete.
+        //
+        // `/setup`, `/setup/complete` and `/setup/change-password` each
+        // carried this check; the wizard did not, so it stayed writable for
+        // the whole life of a deployment — including step 3, which creates
+        // active user accounts.
+        if (filter_var(Setting::get('setup_completed', false), FILTER_VALIDATE_BOOLEAN)) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'error' => ['code' => 'SETUP_COMPLETED', 'message' => 'Setup has already been completed'],
+                'meta' => null,
+            ], 403);
+        }
+
         // T-1749-intentional: private step helpers — would need per-step routing refactor to benefit from FormRequest.
         $request->validate([
             'step' => 'required|integer|min:1|max:4',
