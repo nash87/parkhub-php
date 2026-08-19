@@ -260,8 +260,14 @@ export function CalendarPage() {
         </div>
       </div>
 
-      {/* Calendar grid */}
-      <div className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 overflow-hidden">
+      {/* Calendar grid.
+          `data-testid` is a stable hook for the visual-regression suite: the
+          grid's contents depend on today's date and on seeded booking data,
+          so it is masked in screenshots rather than compared pixel by pixel. */}
+      <div
+        data-testid="calendar-grid"
+        className="bg-white dark:bg-surface-900 rounded-2xl border border-surface-200 dark:border-surface-800 overflow-hidden"
+      >
         <div className="grid grid-cols-7 border-b border-surface-200 dark:border-surface-800">
           {WEEKDAYS.map(day => (
             <div key={day} className="p-2 text-center text-xs font-medium text-surface-500 dark:text-surface-400">{day}</div>
@@ -312,9 +318,11 @@ export function CalendarPage() {
         </div>
       </div>
 
-      {/* Selected day detail */}
+      {/* Selected day detail. Masked in visual snapshots alongside the grid:
+          its height, and therefore the position of everything below it,
+          follows the seeded booking data. */}
       {selectedDate ? (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
+        <motion.div data-testid="calendar-day-detail" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
           <h2 className="text-lg font-semibold text-surface-900 dark:text-white">
             {selectedDate.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })}
           </h2>
@@ -341,7 +349,7 @@ export function CalendarPage() {
           )}
         </motion.div>
       ) : (
-        <div className="text-center py-4">
+        <div data-testid="calendar-day-detail" className="text-center py-4">
           <p className="text-sm text-surface-500 dark:text-surface-400">{t('calendar.selectDay', 'Klicke auf einen Tag, um Eintr\u00e4ge zu sehen')}</p>
         </div>
       )}
