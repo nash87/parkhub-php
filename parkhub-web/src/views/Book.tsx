@@ -11,6 +11,7 @@ import {
 import { api, type ParkingLot, type ParkingSlot, type Vehicle, type CreateBookingPayload, type DynamicPriceResult, type OperatingHoursData } from '../api/client';
 import { SkeletonCard } from '../components/Skeleton';
 import toast from 'react-hot-toast';
+import { toDateTimeLocalValue } from '../lib/datetime';
 
 type Step = 1 | 2 | 3;
 
@@ -42,7 +43,10 @@ export function BookPage() {
     const now = new Date();
     now.setMinutes(0, 0, 0);
     now.setHours(now.getHours() + 1);
-    return now.toISOString().slice(0, 16);
+    // toISOString() is UTC; a datetime-local input reads the local wall
+    // clock, so seeding it from UTC opened the form an offset's worth of
+    // hours away -- in the past, for this product's primary market.
+    return toDateTimeLocalValue(now);
   });
   const [duration, setDuration] = useState(2);
 
