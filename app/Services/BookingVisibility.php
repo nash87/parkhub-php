@@ -36,6 +36,34 @@ final class BookingVisibility
         self::MODE_OCCUPIED,
     ];
 
+    /**
+     * Absence reasons a colleague may see as-is.
+     *
+     * "Who is around today" is ordinary workplace scheduling information,
+     * and `homeoffice` / `vacation` / `training` are part of that. `sick`
+     * is health data — special-category under GDPR Art. 9 — and `other` is
+     * effectively free-form, so neither is disclosed to colleagues. Admins
+     * see the real value.
+     */
+    public const array COLLEAGUE_VISIBLE_ABSENCE_TYPES = ['homeoffice', 'vacation', 'training'];
+
+    /** Generic label for an absence whose reason is not disclosed. */
+    public const string ABSENCE_UNDISCLOSED = 'absent';
+
+    /**
+     * The absence reason to show to $viewerIsAdmin, for a given raw type.
+     */
+    public static function absenceType(?string $type, bool $viewerIsAdmin): string
+    {
+        if ($viewerIsAdmin) {
+            return (string) $type;
+        }
+
+        return in_array($type, self::COLLEAGUE_VISIBLE_ABSENCE_TYPES, true)
+            ? (string) $type
+            : self::ABSENCE_UNDISCLOSED;
+    }
+
     /** The configured mode, falling back to the historical default. */
     public static function mode(): string
     {

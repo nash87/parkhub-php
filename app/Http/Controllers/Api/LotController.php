@@ -10,6 +10,8 @@ use App\Http\Resources\ParkingLotResource;
 use App\Models\Booking;
 use App\Models\ParkingLot;
 use App\Models\ParkingSlot;
+use App\Models\User;
+use App\Services\BookingVisibility;
 use chillerlan\QRCode\Common\EccLevel;
 use chillerlan\QRCode\Output\QRMarkupSVG;
 use chillerlan\QRCode\QRCode;
@@ -78,7 +80,7 @@ class LotController extends Controller
         return ParkingLotResource::make($lot)->response()->setStatusCode(201);
     }
 
-    public function show(string $id)
+    public function show(Request $request, string $id)
     {
         $lot = ParkingLot::findOrFail($id);
         $lot->available_slots = $this->calculateAvailable($lot);
@@ -94,15 +96,40 @@ class LotController extends Controller
                 ->get()
                 ->keyBy('slot_id');
 
-            $slotConfigs = $slots->map(function ($slot) use ($activeBookings) {
+            // The layout answers "which slots are free right now". It does
+            // not need to name who is in the others, and it certainly does
+            // not need their licence plate: the plate is on the caller's
+            // own booking, and on nobody else's business. Callers see their
+            // own booking in full; everyone else's identity goes through
+            // the same `booking_visibility` policy as the team roster.
+            $viewerId = $request->user()?->id;
+            $mode = BookingVisibility::mode();
+
+            // Resolve owners through an explicit lookup rather than the
+            // relation: `User` soft-deletes, so a booking's owner genuinely
+            // may not resolve, and `Collection::get()` is honest about that.
+            $owners = User::query()
+                ->whereIn('id', $activeBookings->pluck('user_id')->unique()->all())
+                ->get(['id', 'name', 'username'])
+                ->keyBy('id');
+
+            $slotConfigs = $slots->map(function ($slot) use ($activeBookings, $viewerId, $mode, $owners) {
                 $booking = $activeBookings->get($slot->id);
+                $isOwn = $booking !== null && $booking->user_id === $viewerId;
+                $owner = $booking !== null ? $owners->get($booking->user_id) : null;
+
+                $bookedBy = match (true) {
+                    $booking === null => null,
+                    $isOwn => $owner?->name,
+                    default => BookingVisibility::label($owner?->name, $owner?->username, $mode, 'Occupied'),
+                };
 
                 return [
                     'id' => $slot->id,
                     'number' => $slot->slot_number,
-                    'status' => $booking ? 'occupied' : 'available',
-                    'vehiclePlate' => $booking?->vehicle_plate,
-                    'bookedBy' => $booking?->user?->name,
+                    'status' => $booking !== null ? 'occupied' : 'available',
+                    'vehiclePlate' => $isOwn ? $booking->vehicle_plate : null,
+                    'bookedBy' => $bookedBy,
                 ];
             })->values()->toArray();
 

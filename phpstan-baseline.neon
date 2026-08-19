@@ -31,12 +31,6 @@ parameters:
 			path: app/Http/Controllers/Api/AbsenceController.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Absence\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/Api/AbsenceController.php
-
-		-
 			message: '#^Access to an undefined property App\\Models\\Booking\:\:\$booking_count\.$#'
 			identifier: property.notFound
 			count: 2
@@ -533,24 +527,6 @@ parameters:
 			identifier: varTag.nativeType
 			count: 1
 			path: app/Http/Controllers/Api/StripeController.php
-
-		-
-			message: '#^Access to an undefined property Illuminate\\Database\\Eloquent\\Model\:\:\$name\.$#'
-			identifier: property.notFound
-			count: 1
-			path: app/Http/Controllers/Api/TeamController.php
-
-		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,App\\Models\\Absence\>\:\:map\(\) contains unresolvable type\.$#'
-			identifier: argument.unresolvableType
-			count: 1
-			path: app/Http/Controllers/Api/TeamController.php
-
-		-
-			message: '#^Using nullsafe property access on non\-nullable type App\\Models\\User\. Use \-\> instead\.$#'
-			identifier: nullsafe.neverNull
-			count: 1
-			path: app/Http/Controllers/Api/TeamController.php
 
 		-
 			message: '#^Access to an undefined property App\\Models\\TranslationProposal\:\:\$reviewer\.$#'
