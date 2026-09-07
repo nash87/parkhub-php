@@ -30,7 +30,7 @@ jobs:
       contents: write       # push the automation branch
       pull-requests: write  # open/update the changelog PR
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v6
         with:
           fetch-depth: 0
           token: ${{ secrets.PARKHUB_CHANGELOG_TOKEN || github.token }}
@@ -38,7 +38,7 @@ jobs:
 
       - name: Run git-cliff
         # MIT/Apache-2.0 — orhun/git-cliff. Reads cliff.toml at repo root.
-        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5 # v4.8.0
+        uses: orhun/git-cliff-action@3d96a18cc4ec17e9dc69ddcc424ccafaf1f78ce2 # v4.9.0
         with:
           config: cliff.toml
           args: --output CHANGELOG.md
